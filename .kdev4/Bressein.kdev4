@@ -1,0 +1,15 @@
+[Buildset]
+BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x01\x00\x00\x00\x10\x00B\x00r\x00e\x00s\x00s\x00e\x00i\x00n)
+
+[CMake]
+BuildDirs=/home/ziming/projects/Bressein/build
+CMakeDir=/usr/share/cmake/Modules
+Current CMake Binary=file:///usr/bin/cmake
+CurrentBuildDir=file:///home/ziming/projects/Bressein/build
+CurrentBuildType=Debug
+CurrentInstallDir=
+Extra Arguments=
+ProjectRootRelative=./
+
+[Project]
+VersionControlSupport=kdevgit

@@ -1,6 +1,6 @@
 #include <QtGui/QApplication>
 #include "Bressein.h"
-
+#include "sipc/utils.h"
 
 int main(int argc, char** argv)
 {
