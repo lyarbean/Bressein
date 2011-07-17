@@ -28,8 +28,8 @@ namespace Bressein
 {
     User::User (QByteArray number, QByteArray password)
     {
-        socket = new QTcpSocket(this);
-        socket->
+        sipcSocket = new QTcpSocket (this);
+        sipcSocket->
         connect (this, SIGNAL (serverConfigGot()), SLOT (sipcLogin()));
         initialize (number, password);
     }
@@ -95,7 +95,7 @@ namespace Bressein
     {
         //TODO if proxy
         QByteArray password = (hashV4 (info->userId, info->password));
-        QByteArray data = ssiLoginBody (info->loginNumber, password);
+        QByteArray data = ssiLoginData (info->loginNumber, password);
         QSslSocket socket;
         socket.connectToHostEncrypted ("uid.fetion.com.cn", 443);
 
@@ -217,7 +217,7 @@ namespace Bressein
 
     void User::getServerConfig()
     {
-        QByteArray body = configBody (info->loginNumber);
+        QByteArray body = configData (info->loginNumber);
         QTcpSocket socket;
         QHostInfo info = QHostInfo::fromName ("nav.fetion.com.cn");
         socket.connectToHost (info.addresses().first().toString(), 80);
@@ -287,16 +287,16 @@ namespace Bressein
 
     void User::sipcRegister()
     {
-        socket->setReadBufferSize (0);
+        sipcSocket->setReadBufferSize (0);
 
         int seperator = info->systemconfig.ProxyIpPort.indexOf (':');
         QString ip = QString (info->systemconfig.ProxyIpPort.left (seperator));
         quint16 port = info->systemconfig.ProxyIpPort.mid (seperator).toUInt();
-        socket->connectToHost (ip, port);
+        sipcSocket->connectToHost (ip, port);
 
-        if (!socket->waitForConnected()) /*30 seconds*/
+        if (!sipcSocket->waitForConnected()) /*30 seconds*/
         {
-            qDebug() << "#SipcHanlder::run waitForConnected" << socket->errorString();
+            qDebug() << "#SipcHanlder::run waitForConnected" << sipcSocket->errorString();
             return;
         }
 
@@ -311,33 +311,35 @@ namespace Bressein
 
         while (length < toSendMsg.length())
         {
-            length += socket->write (toSendMsg.right (toSendMsg.size() - length));
+            length += sipcSocket->write (toSendMsg.right (toSendMsg.size() - length));
         }
 
-        socket->waitForBytesWritten (-1);
+        sipcSocket->waitForBytesWritten (-1);
 
-        socket->flush();
+        sipcSocket->flush();
 
-        while (socket->bytesAvailable() < (int) sizeof (quint16))
+        while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
         {
-            if (!socket->waitForReadyRead (30000))
+            if (!sipcSocket->waitForReadyRead (30000))
             {
-                qDebug() << "#SipcHanlder::run waitForReadyRead" << socket->error() << socket->errorString();
+                qDebug() << "#SipcHanlder::run waitForReadyRead" << sipcSocket->error() << sipcSocket->errorString();
                 return;
             }
         }
 
-        handleSipcRegisterResponse (socket->readAll());
+        handleSipcRegisterResponse (sipcSocket->readAll());
     }
 
     void User::handleSipcRegisterResponse (QByteArray data)
     {
-        if (!data.startsWith("SIP-C/4.0 401 Unauthoried"))
+        if (!data.startsWith ("SIP-C/4.0 401 Unauthoried"))
         {
             qDebug() << "Wrong Sipc register response.";
             return;
         }
+
         int b, e;
+
         b = data.indexOf ("\",nonce=\"");
         e = data.indexOf ("\",key=\"", b);
         info->nonce = data.mid (b + 9, e - b - 9); // need to store?
@@ -359,11 +361,12 @@ namespace Bressein
     void User::sipcAuthorize ()
     {
 
-        if (socket->state() != QAbstractSocket::ConnectedState )
+        if (sipcSocket->state() != QAbstractSocket::ConnectedState)
         {
             qDebug() << "socket closed.";
             return;
         }
+
         QByteArray toSendMsg ("R fetion.com.cn SIP-C/4.0\r\n");
 
         toSendMsg.append ("F: ").append (info->fetionNumber).append ("\r\n");
@@ -375,27 +378,48 @@ namespace Bressein
 
         while (length < toSendMsg.length())
         {
-            length += socket->write (toSendMsg.right (toSendMsg.size() - length));
+            length += sipcSocket->write (toSendMsg.right (toSendMsg.size() - length));
         }
 
-        socket->waitForBytesWritten (-1);
+        sipcSocket->waitForBytesWritten (-1);
 
-        socket->flush();
+        sipcSocket->flush();
 
-        while (socket->bytesAvailable() < (int) sizeof (quint16))
+        while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
         {
-            if (!socket->waitForReadyRead (30000))
+            if (!sipcSocket->waitForReadyRead (30000))
             {
-                qDebug() << "#SipcHanlder::run waitForReadyRead" << socket->error() << socket->errorString();
+                qDebug() << "#SipcHanlder::run waitForReadyRead" << sipcSocket->error() << sipcSocket->errorString();
                 return;
             }
         }
-        handleSipcAuthorizeResponse (socket->readAll());
+
+        handleSipcAuthorizeResponse (sipcSocket->readAll());
     }
+
     void User::handleSipcAuthorizeResponse (QByteArray data)
     {
+        //if
 
     }
 
+    void User::getSsiPic()
+    {
+        QByteArray data = SsiPicData (info->verfication->algorithm, info->ssic);
+        QTcpSocket socket;
+        QHostInfo info = QHostInfo::fromName ("nav.fetion.com.cn");
+        socket.connectToHost (info.addresses().first().toString(), 80);
+
+        if (!socket.waitForConnected())
+        {
+            qDebug() << "waitForEncrypted" << socket.errorString();
+            return;
+        }
+
+        socket.write (data);
+
+        while (socket.waitForReadyRead (-1))
+            parseServerConfig (socket.readAll());
+    }
 
 }

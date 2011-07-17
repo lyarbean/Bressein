@@ -85,7 +85,7 @@ private slots:
     void parseServerConfig(QByteArray data);
     void sipcRegister();
     void sipcAuthorize();
-
+    void getSsiPic();
 private:
     class  UserInfo;
     typedef UserInfo * Info;
@@ -93,7 +93,7 @@ private:
     QList<contact *> contacts;
     // groups
     //pggroups
-    QTcpSocket* socket; // All sip-c transactions are handle through this socket
+    QTcpSocket* sipcSocket; // All sip-c transactions are handle through this socket
 };
 }
 #endif // USER_H

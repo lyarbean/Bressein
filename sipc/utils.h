@@ -4,7 +4,7 @@
 #include <QCryptographicHash>
 #include <openssl/rsa.h>
 #include <QDebug>
-/*! \defgroup utils
+/*! \defgroup utils "Utils"
 *  utils provide public declarations and functions.
 *  @{
 * */
@@ -79,7 +79,7 @@ namespace Bressein
     /** \fn static QByteArray cnouce(quint16 time = 2)
      * @brief generate a QByteArray in hex of length 16 * time
      *
-     * @param time ... 默认为 2。
+     * @param time  2 as default.
      * @return QByteArray
      **/
     static QByteArray cnouce (quint16 time = 2)
@@ -95,30 +95,30 @@ namespace Bressein
         return t;
     }
 
-    /** \fn static QByteArray configBody(QByteArray& number)
+    /** \fn static QByteArray configData(QByteArray& number)
      * @brief Generate a body for fetching server's configuration
      *
      * @param number The phone number or fetion number
      * @return QByteArray
      **/
-    static QByteArray configBody (QByteArray& number)
+    static QByteArray configData (QByteArray& number)
     {
-        QByteArray body = ("<config><user ");
+        QByteArray part = ("<config><user ");
 
         if (number.size() == 11) //mobileNumber
         {
-            body.append ("mobile-no=\"");
+            part.append ("mobile-no=\"");
         }
         else
         {
-            body.append ("user-id=\"");
+            part.append ("user-id=\"");
         }
 
-        body.append (number);
+        part.append (number);
 
-        body.append ("\"/> <client type=\"PC\" version=\"");
-        body.append (PROTOCOL_VERSION);
-        body.append ("\"platform=\"W5.1\"/><servers version=\"0\"/>"
+        part.append ("\"/> <client type=\"PC\" version=\"");
+        part.append (PROTOCOL_VERSION);
+        part.append ("\"platform=\"W5.1\"/><servers version=\"0\"/>"
                      "<parameters version=\"0\"/><hints version=\"0\"/></config>");
         QByteArray data ("POST /nav/getsystemconfig.aspx HTTP/1.1\r\n");
         data.append ("User-Agent: IIC2.0/PC ");
@@ -126,20 +126,20 @@ namespace Bressein
         data.append ("\r\nHost: ");
         data.append ("\r\nConnection: Close\r\n");
         data.append ("Content-length: ");
-        data.append (QByteArray::number (body.size()));
+        data.append (QByteArray::number (part.size()));
         data.append ("\r\n\r\n");
-        data.append (body);
-        return body;
+        data.append (part);
+        return data;
     }
 
-    /** \fn static QByteArray ssiLoginBody (QByteArray& number, QByteArray& passwordhashed4)
+    /** \fn static QByteArray ssiLoginData (QByteArray& number, QByteArray& passwordhashed4)
      * @brief A body that written to sslsocket on SsiLogin
      *
      * @param number The phone number or fetion number.
      * @param passwordhashed4 The value of hashV4(UserId, password).
      * @return QByteArray
      **/
-    static QByteArray ssiLoginBody (QByteArray& number, QByteArray& passwordhashed4)
+    static QByteArray ssiLoginData (QByteArray& number, QByteArray& passwordhashed4)
     {
         QByteArray numberString;
 
@@ -154,22 +154,35 @@ namespace Bressein
 
         numberString.append (number);
 
-        QByteArray body ("GET /ssiportal/SSIAppSignInV4.aspx?");
-        body.append (numberString);
-        body.append ("&domains=");
-        body.append (DOMAIN);
-        body.append ("&v4digest-type=1&v4digest="); // TODO v4digest-type
-        body.append (passwordhashed4);
-        body.append (" HTTP/1.1\r\n"
+        QByteArray data ("GET /ssiportal/SSIAppSignInV4.aspx?");
+        data.append (numberString);
+        data.append ("&domains=");
+        data.append (DOMAIN);
+        data.append ("&v4digest-type=1&v4digest="); // TODO v4digest-type
+        data.append (passwordhashed4);
+        data.append (" HTTP/1.1\r\n"
                      "User-Agent: IIC2.0/pc \"");
-        body.append (PROTOCOL_VERSION);
-        body.append ("\"\r\nHost: uid.fetion.com.cn\r\n" // UID_URI
+        data.append (PROTOCOL_VERSION);
+        data.append ("\"\r\nHost: uid.fetion.com.cn\r\n" // UID_URI
                      "Cache-Control: private\r\n"
                      "Connection: Keep-Alive\r\n\r\n");
-        return body;
+        return data;
     }
 
-    /** \fn static QByteArray ssiVerifyBody (QByteArray& number, QByteArray& passwordha*shed4, QByteArray& guid, QByteArray& code, QByteArray& algorithm)
+    static QByteArray SsiPicData (QByteArray algorithm, QByteArray ssic)
+    {
+        QByteArray data ("GET /nav/GetPicCodeV4.aspx?algorithm=");
+        data.append (algorithm);
+        data.append (" HTTP/1.1\r\n");
+        data.append (ssic);
+        data.append ("Host: nav.fetion.com.cn\r\n");// NAVIGATION_URI
+        data.append ("User-Agent: IIC2.0/PC ");
+        data.append (PROTOCOL_VERSION);
+        data.append ("\r\nConnection: close\r\n\r\n");
+        return data;
+    }
+
+    /** \fn static QByteArray ssiVerifyData (QByteArray& number, QByteArray& passwordha*shed4, QByteArray& guid, QByteArray& code, QByteArray& algorithm)
      * @brief A http body for Ssi Verification
      *
      * @param number The phone number or fetion number.
@@ -179,7 +192,7 @@ namespace Bressein
      * @param algorithm ...
      * @return QByteArray
      **/
-    static QByteArray ssiVerifyBody (QByteArray& number,
+    static QByteArray ssiVerifyData (QByteArray& number,
                                      QByteArray& passwordhashed4,
                                      QByteArray& guid,
                                      QByteArray& code,
@@ -198,25 +211,25 @@ namespace Bressein
 
         numberString.append (number);
 
-        QByteArray body ("GET /ssiportal/SSIAppSignInV4.aspx?");
-        body.append (numberString);
-        body.append ("&domains=");
-        body.append (DOMAIN);
-        body.append ("&pid=");
-        body.append (guid);
-        body.append ("&pic=");
-        body.append ("code");
-        body.append ("&algorithm=");
-        body.append (algorithm);
-        body.append ("&v4digest-type=1&v4digest="); // TODO v4digest-type
-        body.append (passwordhashed4);
-        body.append (" HTTP/1.1\r\n"
-                     "User-Agent: IIC2.0/pc \"");
-        body.append (PROTOCOL_VERSION);
-        body.append ("\"\r\nHost: uid.fetion.com.cn\r\n"
+        QByteArray data ("GET /ssiportal/SSIAppSignInV4.aspx?");
+        data.append (numberString);
+        data.append ("&domains=");
+        data.append (DOMAIN);
+        data.append ("&pid=");
+        data.append (guid);
+        data.append ("&pic=");
+        data.append ("code");
+        data.append ("&algorithm=");
+        data.append (algorithm);
+        data.append ("&v4digest-type=1&v4digest="); // TODO v4digest-type
+        data.append (passwordhashed4);
+        data.append (" HTTP/1.1\r\n"
+                     "User-Agent: IIC2.0/pc ");
+        data.append (PROTOCOL_VERSION);
+        data.append ("\r\nHost: uid.fetion.com.cn\r\n"
                      "Cache-Control: private\r\n"
                      "Connection: Keep-Alive\r\n\r\n");
-        return body;
+        return data;
     }
 
     /** \fn static QByteArray sipAuthorizeBody(QByteArray& mobileNumber, QByteArray& userId*, QByteArray& personalVersion, QByteArray& customConfigVersion, QByteArray& contactVersion, QByteArray& state)
@@ -266,8 +279,9 @@ namespace Bressein
         // Follow openfetion's method
         // nonce + password(doubly hashed) + aeskey (random)
         // catenate parts in bytes
-        QByteArray psdhex = QByteArray::fromHex (hashV4 (userId, password));
-        QByteArray encryptedKey = QByteArray::fromHex (nonce);
+        // in hex
+        QByteArray psdhex = hashV4 (userId, password);
+        QByteArray encryptedKey = nonce;
         encryptedKey.append (psdhex);
         encryptedKey.append (aeskey);
         //     qDebug() << userInfo->nonce.size() << userInfo->aeskey.size();
