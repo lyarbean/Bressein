@@ -5,18 +5,20 @@
 #include <QtGui/QMenuBar>
 #include <QtGui/QAction>
 
-Bressein::Bressein()
+namespace Bressein
 {
-    QLabel* l = new QLabel( this );
-    l->setText( "Hello World!" );
-    setCentralWidget( l );
-    QAction* a = new QAction(this);
-    a->setText( "Quit" );
-    connect(a, SIGNAL(triggered()), SLOT(close()) );
-    menuBar()->addMenu( "File" )->addAction( a );
+    Bressein::Bressein()
+    {
+        QLabel* l = new QLabel (this);
+        l->setText ("Hello World!");
+        setCentralWidget (l);
+        QAction* a = new QAction (this);
+        a->setText ("Quit");
+        connect (a, SIGNAL (triggered()), SLOT (close()));
+        menuBar()->addMenu ("File")->addAction (a);
+    }
+
+    Bressein::~Bressein()
+    {}
 }
-
-Bressein::~Bressein()
-{}
-
 #include "Bressein.moc"

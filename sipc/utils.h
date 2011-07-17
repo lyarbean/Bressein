@@ -3,162 +3,335 @@
 #include <QDateTime>
 #include <QCryptographicHash>
 #include <openssl/rsa.h>
+#include <QDebug>
 /*! \defgroup utils
 *  utils provide public declarations and functions.
 *  @{
 * */
 
-/**
- * @brief The current Fetion's version
- **/
-const static QByteArray PROTOCOL_VERSION = "4.3.0980";
-const static QByteArray NAVIGATION = "nav.fetion.com.cn";
-const static QByteArray CONFIG_URI = "/nav/getsystemconfig.aspx";
-const static QByteArray DOMAIN = "fetion.com.cn";
-const static QByteArray UID_URI = "uid.fetion.com.cn";
-const static QByteArray SSI_URI = "/ssiportal/SSIAppSignInV4.aspx";
-
-/** \fn static QByteArray hashV1 ( QByteArray &sid, QByteArray &password )
- * @brief Returns the Sha1 in Hex, of the catenation of sid and password
- *
- * @param sid
- * @param password
- * @return QByteArray
- **/
-static QByteArray hashV1 (QByteArray &sid, QByteArray &password)
+namespace Bressein
 {
-    return QCryptographicHash::hash (sid.append (password),
-                                     QCryptographicHash::Sha1).toHex().toUpper();
-}
+    /**
+     * @brief The current Fetion's version
+     **/
+    const static QByteArray PROTOCOL_VERSION = "4.3.0980";
+    const static QByteArray NAVIGATION = "nav.fetion.com.cn";
+    const static QByteArray CONFIG_URI = "/nav/getsystemconfig.aspx";
+    const static QByteArray DOMAIN = "fetion.com.cn";
+    const static QByteArray UID_URI = "uid.fetion.com.cn";
+    const static QByteArray SSI_URI = "/ssiportal/SSIAppSignInV4.aspx";
 
-/**
- * \fn static QByteArray hashV2 ( QByteArray &sid, QByteArray &password )
- * @brief hashV2
- *
- * @param sid ...
- * @param password ...
- * @return QByteArray
- **/
-static QByteArray hashV2 (QByteArray &sid, QByteArray &password)
-{
-    QByteArray h = QByteArray::fromHex (password);
-    bool ok;
-    u_int32_t sidInt = sid.toUInt (&ok, 10);
-    Q_ASSERT (ok);
-    QByteArray out;
-    out.append (char (sidInt & 0xFF)).append (char ( (sidInt & 0xFF00) >> 8))
-    .append (char ( (sidInt & 0xFF000) >> 16))
-    .append (char ( (sidInt & 0xFF000) >> 24));
-    return  hashV1 (out, h);;
-}
-
-/**
- * \fn static QByteArray hashV4 ( QByteArray &sid, QByteArray &password )
- * @brief If sid is null then returns  hashV1 ( prefix, password ),
- *  otherwise returns hashV2 ( sid, hashV1 ( prefix,password )), where prefix is
- *  'fetion.com.cn:'.
- * \sa hashV1
- * \sa hashV2
- * @param sid ...
- * @param password ...
- * @return QByteArray
- **/
-static QByteArray hashV4 (QByteArray &sid, QByteArray &password)
-{
-    QByteArray prefix = DOMAIN;
-    prefix.append (':');
-    QByteArray res = hashV1 (prefix, password);
-
-    if (sid.isNull() || sid.isEmpty())
-        return res;
-
-    return hashV2 (sid, res);
-}
-
-/** \fn static QByteArray cnouce(uint time = 2)
- * @brief generate a QByteArray in hex of length 4 * time
- *
- * @param time ... 默认为 2。
- * @return QByteArray
- **/
-static QByteArray cnouce (uint time = 2)
-{
-    QByteArray t;
-    qsrand (QDateTime::currentMSecsSinceEpoch ());
-
-    for (uint i = 0; i < time; i++)
+    /** \fn static QByteArray hashV1 ( QByteArray &userIdInt, QByteArray &password )
+     * @brief Returns the Sha1 in Hex, of the catenation of userIdInt and password
+     *
+     * @param userId
+     * @param password
+     * @return QByteArray in Hex
+     **/
+    static QByteArray hashV1 (QByteArray &userId, QByteArray &password)
     {
-        t.append (QString::number (qrand(), 16));
+        return QCryptographicHash::hash (userId.append (password),
+                                         QCryptographicHash::Sha1).toHex().toUpper();
     }
 
-    return t;
-}
-
-/** \fn static QByteArray configBody(QByteArray& number)
- * @brief Generate a body for fetching server's configuration
- *
- * @param number The phone number or fetion number
- * @return QByteArray
- **/
-static QByteArray configBody (QByteArray& number)
-{
-    QByteArray body = ("<config><user ");
-
-    if (number.size() == 11) //mobileNumber
+    /**
+     * \fn static QByteArray hashV2 ( QByteArray &userId, QByteArray &hashV4 )
+     * @brief hashV2
+     *
+     * @param userId in decimal
+     * @param password
+     * @return QByteArray
+     **/
+    static QByteArray hashV2 (QByteArray &userId, QByteArray &hashV4)
     {
-        body.append ("mobile-no=\"");
-    }
-    else
-    {
-        body.append ("user-id=\"");
+        //FIXME not sure how to do
+// convert userId from int to bin
+        int k = userId.toInt();
+        QByteArray g = QByteArray::fromRawData ( (char*) (&k), 4);
+        qDebug() << "g  " << g;
+        // in hex
+        return  hashV1 (g, hashV4);
     }
 
-    body.append (number);
+    /**
+     * \fn static QByteArray hashV4 ( QByteArray &userId, QByteArray &password )
+     * @brief If userId is null then returns  hashV1 ( prefix, password ),
+     *  otherwise returns hashV2 ( userId, hashV1 ( prefix,password )), where prefix is
+     *  'fetion.com.cn:'.
+     * \sa hashV1
+     * \sa hashV2
+     * @param userId ...
+     * @param password ...
+     * @return QByteArray
+     **/
+    static QByteArray hashV4 (QByteArray &userId, QByteArray &password)
+    {
+        QByteArray prefix = DOMAIN;
+        prefix.append (':');
+        QByteArray res = hashV1 (prefix, password);
 
-    body.append ("\"/> <client type=\"PC\" version=\"");
-    body.append (PROTOCOL_VERSION);
-    body.append ("\"platform=\"W5.1\"/><servers version=\"0\"/>");
-    body.append ("<parameters version=\"0\"/><hints version=\"0\"/></config>");
-    return body;
-}
+        if (userId.isNull() || userId.isEmpty())
+            return res;
 
-/** \fn static QByteArray sipAuthorizeBody(QByteArray& mobileNumber, QByteArray& userId*, QByteArray& personalVersion, QByteArray& customConfigVersion, QByteArray& contactVersion, QByteArray& state)
- * @brief Generate a body for sip authorization
- * @param mobileNumber ...
- * @param userId ...
- * @param personalVersion ...
- * @param customConfigVersion ...
- * @param contactVersion ...
- * @param state ...
- * @return QByteArray
- **/
-static QByteArray sipAuthorizeBody (QByteArray& mobileNumber,
-                                    QByteArray& userId,
-                                    QByteArray& personalVersion,
-                                    QByteArray& customConfigVersion,
-                                    QByteArray& contactVersion,
-                                    QByteArray& state)
-{
-    QByteArray body = "<args><device machine-code=\"001676C0E351\"/>";
-    body.append ("<caps value=\"1ff\"/><events value=\"7f\"/>");
-    body.append ("<user-info mobile-no=\"");
-    body.append (mobileNumber);
-    body.append ("\" user-id=\"");
-    body.append (userId);
-    body.append ("\"><personal version=\"");
-    body.append (personalVersion);
-    body.append ("\" attributes=\"v4default\"/><custom-config version=\"");
-    body.append (customConfigVersion);
-    body.append ("\"/><contact-list version=\"");
-    body.append (contactVersion);
-    body.append ("\" buddy-attributes=\"v4default\"/></user-info><credentials domains=\"");
-    body.append (DOMAIN);
-    body.append ("\"/><presence><basic value=\"");
-    body.append (state);
-    body.append ("\" desc=\"\"/></presence></args>\r\n");
-    return body;
+        return hashV2 (userId, res);
+    }
+
+    /** \fn static QByteArray cnouce(quint16 time = 2)
+     * @brief generate a QByteArray in hex of length 16 * time
+     *
+     * @param time ... 默认为 2。
+     * @return QByteArray
+     **/
+    static QByteArray cnouce (quint16 time = 2)
+    {
+        QByteArray t;
+        qsrand (QDateTime::currentMSecsSinceEpoch ());
+
+        for (quint16 i = 0; i < time; i++)
+        {
+            t.append (QString::number (qrand(), 16));
+        }
+
+        return t;
+    }
+
+    /** \fn static QByteArray configBody(QByteArray& number)
+     * @brief Generate a body for fetching server's configuration
+     *
+     * @param number The phone number or fetion number
+     * @return QByteArray
+     **/
+    static QByteArray configBody (QByteArray& number)
+    {
+        QByteArray body = ("<config><user ");
+
+        if (number.size() == 11) //mobileNumber
+        {
+            body.append ("mobile-no=\"");
+        }
+        else
+        {
+            body.append ("user-id=\"");
+        }
+
+        body.append (number);
+
+        body.append ("\"/> <client type=\"PC\" version=\"");
+        body.append (PROTOCOL_VERSION);
+        body.append ("\"platform=\"W5.1\"/><servers version=\"0\"/>"
+                     "<parameters version=\"0\"/><hints version=\"0\"/></config>");
+        QByteArray data ("POST /nav/getsystemconfig.aspx HTTP/1.1\r\n");
+        data.append ("User-Agent: IIC2.0/PC ");
+        data.append (PROTOCOL_VERSION);
+        data.append ("\r\nHost: ");
+        data.append ("\r\nConnection: Close\r\n");
+        data.append ("Content-length: ");
+        data.append (QByteArray::number (body.size()));
+        data.append ("\r\n\r\n");
+        data.append (body);
+        return body;
+    }
+
+    /** \fn static QByteArray ssiLoginBody (QByteArray& number, QByteArray& passwordhashed4)
+     * @brief A body that written to sslsocket on SsiLogin
+     *
+     * @param number The phone number or fetion number.
+     * @param passwordhashed4 The value of hashV4(UserId, password).
+     * @return QByteArray
+     **/
+    static QByteArray ssiLoginBody (QByteArray& number, QByteArray& passwordhashed4)
+    {
+        QByteArray numberString;
+
+        if (number.size() == 11)
+        {
+            numberString.append ("mobileno=");
+        }
+        else
+        {
+            numberString.append ("sid=");
+        }
+
+        numberString.append (number);
+
+        QByteArray body ("GET /ssiportal/SSIAppSignInV4.aspx?");
+        body.append (numberString);
+        body.append ("&domains=");
+        body.append (DOMAIN);
+        body.append ("&v4digest-type=1&v4digest="); // TODO v4digest-type
+        body.append (passwordhashed4);
+        body.append (" HTTP/1.1\r\n"
+                     "User-Agent: IIC2.0/pc \"");
+        body.append (PROTOCOL_VERSION);
+        body.append ("\"\r\nHost: uid.fetion.com.cn\r\n" // UID_URI
+                     "Cache-Control: private\r\n"
+                     "Connection: Keep-Alive\r\n\r\n");
+        return body;
+    }
+
+    /** \fn static QByteArray ssiVerifyBody (QByteArray& number, QByteArray& passwordha*shed4, QByteArray& guid, QByteArray& code, QByteArray& algorithm)
+     * @brief A http body for Ssi Verification
+     *
+     * @param number The phone number or fetion number.
+     * @param passwordhashed4 The value of hashV4(UserId, password).
+     * @param guid ...
+     * @param code ...
+     * @param algorithm ...
+     * @return QByteArray
+     **/
+    static QByteArray ssiVerifyBody (QByteArray& number,
+                                     QByteArray& passwordhashed4,
+                                     QByteArray& guid,
+                                     QByteArray& code,
+                                     QByteArray& algorithm)
+    {
+        QByteArray numberString;
+
+        if (number.size() == 11)
+        {
+            numberString.append ("mobileno=");
+        }
+        else
+        {
+            numberString.append ("sid=");
+        }
+
+        numberString.append (number);
+
+        QByteArray body ("GET /ssiportal/SSIAppSignInV4.aspx?");
+        body.append (numberString);
+        body.append ("&domains=");
+        body.append (DOMAIN);
+        body.append ("&pid=");
+        body.append (guid);
+        body.append ("&pic=");
+        body.append ("code");
+        body.append ("&algorithm=");
+        body.append (algorithm);
+        body.append ("&v4digest-type=1&v4digest="); // TODO v4digest-type
+        body.append (passwordhashed4);
+        body.append (" HTTP/1.1\r\n"
+                     "User-Agent: IIC2.0/pc \"");
+        body.append (PROTOCOL_VERSION);
+        body.append ("\"\r\nHost: uid.fetion.com.cn\r\n"
+                     "Cache-Control: private\r\n"
+                     "Connection: Keep-Alive\r\n\r\n");
+        return body;
+    }
+
+    /** \fn static QByteArray sipAuthorizeBody(QByteArray& mobileNumber, QByteArray& userId*, QByteArray& personalVersion, QByteArray& customConfigVersion, QByteArray& contactVersion, QByteArray& state)
+     * @brief Generate a body for sip authorization
+     * @param mobileNumber ...
+     * @param userId ...
+     * @param personalVersion ...
+     * @param customConfigVersion ...
+     * @param contactVersion ...
+     * @param state ...
+     * @return QByteArray
+     **/
+    static QByteArray sipAuthorizeBody (QByteArray& mobileNumber,
+                                        QByteArray& userId,
+                                        QByteArray& personalVersion,
+                                        QByteArray& customConfigVersion,
+                                        QByteArray& contactVersion,
+                                        QByteArray& state)
+    {
+        QByteArray body = "<args><device machine-code=\"001676C0E351\"/>";
+        body.append ("<caps value=\"1ff\"/><events value=\"7f\"/>"
+                     "<user-info mobile-no=\"");
+        body.append (mobileNumber);
+        body.append ("\" user-id=\"");
+        body.append (userId);
+        body.append ("\"><personal version=\"");
+        body.append (personalVersion);
+        body.append ("\" attributes=\"v4default\"/><custom-config version=\"");
+        body.append (customConfigVersion);
+        body.append ("\"/><contact-list version=\"");
+        body.append (contactVersion);
+        body.append ("\" buddy-attributes=\"v4default\"/>"
+                     "</user-info><credentials domains=\"");
+        body.append (DOMAIN);
+        body.append ("\"/><presence><basic value=\"");
+        body.append (state);
+        body.append ("\" desc=\"\"/></presence></args>\r\n");
+        return body;
+    }
+
+    static QByteArray RSAPublicEncrypt (QByteArray userId,
+                                        QByteArray password,
+                                        QByteArray nonce,
+                                        QByteArray aeskey,
+                                        QByteArray key/*public key*/)
+    {
+        // Follow openfetion's method
+        // nonce + password(doubly hashed) + aeskey (random)
+        // catenate parts in bytes
+        QByteArray psdhex = QByteArray::fromHex (hashV4 (userId, password));
+        QByteArray encryptedKey = QByteArray::fromHex (nonce);
+        encryptedKey.append (psdhex);
+        encryptedKey.append (aeskey);
+        //     qDebug() << userInfo->nonce.size() << userInfo->aeskey.size();
+        char *keyC = key.data(); // it points to key's data, never free it;
+        char modulus[257];
+        char exponent[7];
+        memset (modulus, 0, sizeof (modulus));
+        memset (exponent, 0, sizeof (exponent));
+        memcpy (modulus , keyC, 256);
+        memcpy (exponent, keyC + 256, 6);
+        BIGNUM *bnn, *bne;
+        bnn = BN_new();
+        bne = BN_new();
+        BN_hex2bn (&bnn, modulus);
+        BN_hex2bn (&bne, exponent);
+        RSA *r = RSA_new();
+        r->n = bnn;
+        r->e = bne;
+        r->d = 0;
+        int flen = RSA_size (r);//128
+
+        const char *tmp = encryptedKey.constData();
+        int len = strlen (tmp) + 1;
+        unsigned char *res = (unsigned char*) malloc (len);
+        memset (res , 0 , len);
+        memcpy (res , (unsigned char *) tmp , len - 1);
+
+        unsigned char *out = (unsigned char*) malloc (flen);
+        memset (out , 0 , flen);
+
+        int ret = RSA_public_encrypt (len + 1, res, out, r, RSA_PKCS1_PADDING);
+
+        if (ret < 0)
+        {
+            printf ("encrypt failed");
+            free (res);
+            return QByteArray ("");
+        }
+
+        RSA_free (r);
+
+        delete res;
+        //clean up
+        // split ret into hex bytearray
+        Q_ASSERT (ret == 128);
+        char* result = (char*) malloc (ret * 2 + 1);
+        int i = 0;
+        memset (result , 0 , ret * 2 + 1);
+
+        while (i < ret)
+        {
+            sprintf (result + i * 2 , "%02x" , out[i]);
+            i++;
+        };
+
+        QByteArray resultHex (result);
+
+        free (out);
+
+        free (result);
+
+        return resultHex.toUpper();
+    }
 }
 
 /*! @} */
 #endif
-// kate: indent-mode cstyle; space-indent on; indent-width 4; replace-tabs on;  replace-tabs on;  replace-tabs on;  replace-tabs on;           indent-wsidth 0;

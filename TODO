@@ -1,2 +1,5 @@
 The directory sipc implement fetion protocol based on Qt
 while a graphic front-end is implement and stored at directory gui.
+
+
+N.B QString may get confused with '&'

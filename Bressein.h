@@ -3,12 +3,16 @@
 
 #include <QtGui/QMainWindow>
 
-class Bressein : public QMainWindow
+namespace Bressein
 {
-Q_OBJECT
-public:
-    Bressein();
-    virtual ~Bressein();
-};
 
+    class Bressein : public QMainWindow
+    {
+        Q_OBJECT
+
+    public:
+        Bressein();
+        virtual ~Bressein();
+    };
+}
 #endif // Bressein_H
