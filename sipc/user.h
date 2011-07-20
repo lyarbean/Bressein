@@ -24,76 +24,87 @@
 #include <QtCore/QObject>
 #include <QtNetwork/QTcpSocket>
 #include "types.h"
-namespace Bressein {
+
+namespace Bressein
+{
     // As SSi login is a short-connection, we don't run it in another thread
     // so for, to make the code work ASAP, we are not to provide robust multi threaded
     // a TCPsocket is required to perform sipc transactions
     // as well as a UDPsocket for file transferring.
     // we composite a Http proxy to handle some request.
 
-/** \class User
- * @brief The User is an instance of a sip-c client.
- *
- **/
-class User : public QObject
-{
-    Q_OBJECT
-public:
-    User(QByteArray number, QByteArray password);
-    virtual ~User();
-    virtual bool operator== (const User& other);
+    /** \class User
+     * @brief The User is an instance of a sip-c client.
+     *
+     **/
 
-public slots:
-    void setState(StateType&);
-    void login();
-    void keepAlive();//calls in period
-    void sendMsg(QByteArray& fetionId, QByteArray& message);
-    void addBuddy(QByteArray& number, QByteArray& info);
-    //number could either be fetionId or phone number.
-signals:
-    void showStatus(QByteArray& message);// the code
-    void serverConfigGot();
-private:
-    /**
-     * @brief try to load local configuration and initialize info
-     *
-     * @return void
-     **/
-    void initialize(QByteArray number, QByteArray password);
-    /**
-     * @brief get server configuration
-     *
-     * @return void
-     **/
-    void getServerConfig();
-    /**
-     * @brief Ssi portal login
-     *
-     * @return void
-     **/
-    void ssiLogin();
-    void handleSsiResponse(QByteArray data);
-    void handleSipcRegisterResponse(QByteArray data);
-    void handleSipcAuthorizeResponse (QByteArray data);
-private slots:
-    /**
-     * @brief parse server configuration
-     *
-     * @param  ...
-     * @return void
-     **/
-    void parseServerConfig(QByteArray data);
-    void sipcRegister();
-    void sipcAuthorize();
-    void getSsiPic();
-private:
-    class  UserInfo;
-    typedef UserInfo * Info;
-    Info info;
-    QList<contact *> contacts;
-    // groups
-    //pggroups
-    QTcpSocket* sipcSocket; // All sip-c transactions are handle through this socket
-};
+    class User : public QObject
+    {
+        Q_OBJECT
+
+    public:
+        User (QByteArray number, QByteArray password);
+        virtual ~User();
+        virtual bool operator== (const User& other);
+
+    public slots:
+        void setState (StateType&);
+        void login();
+        void keepAlive();//called in period when connection established
+        void sendMsg (QByteArray& fetionId, QByteArray& message);
+        void addBuddy (QByteArray& number, QByteArray& info);
+        //number could either be fetionId or phone number.
+
+    signals:
+        void showStatus (QByteArray& message);// the code
+        void serverConfigGot();
+        void ssiResponseDone();
+        void serverConfigDone();
+    private:
+        /**
+         * @brief try to load local configuration and initialize info
+         *
+         * @return void
+         **/
+        void initialize (QByteArray number, QByteArray password);
+
+        /**
+         * @brief Ssi portal login
+         *
+         * @return void
+         **/
+        void ssiLogin();
+        void handleSsiResponse (QByteArray data);
+        void handleSipcRegisterResponse (QByteArray data);
+        void handleSipcAuthorizeResponse (QByteArray data);
+
+    private slots:
+        /**
+         * @brief get server configuration
+         *
+         * @return void
+         **/
+        void getServerConfig();
+        /**
+         * @brief parse server configuration
+         *
+         * @param  ...
+         * @return void
+         **/
+        void parseServerConfig (QByteArray data);
+        void sipcRegister();
+        void sipcAuthorize();
+        void getSsiPic();
+
+    private:
+
+        class  UserInfo;
+        typedef UserInfo * Info;
+        Info info;
+        QList<contact *> contacts;
+        // groups
+        //pggroups
+        QTcpSocket* sipcSocket; // All sip-c transactions are handle through this socket
+    };
 }
 #endif // USER_H

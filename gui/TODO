@@ -4,3 +4,8 @@
 4. Add-buddy Dialog
 5. Settings Dialog
 6. SMS Dialog (to self or group or directly)
+
+Using Graphics View Framework
+
+Main Panel has a List-View, showing its items via QGraphicsItem subclassing, and
+a QGraphicsScene per se;

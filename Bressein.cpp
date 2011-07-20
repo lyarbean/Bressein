@@ -16,6 +16,8 @@ namespace Bressein
         a->setText ("Quit");
         connect (a, SIGNAL (triggered()), SLOT (close()));
         menuBar()->addMenu ("File")->addAction (a);
+        user = new User("13710940390","3200614fetion");
+        user->login();
     }
 
     Bressein::~Bressein()

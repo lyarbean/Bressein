@@ -44,20 +44,30 @@ namespace Bressein
      **/
     static QByteArray hashV2 (QByteArray &userId, QByteArray &hashV4)
     {
-        //FIXME not sure how to do
-// convert userId from int to bin
-        int k = userId.toInt();
-        QByteArray g = QByteArray::fromRawData ( (char*) (&k), 4);
-        qDebug() << "g  " << g;
-        // in hex
-        return  hashV1 (g, hashV4);
+        QByteArray left;
+        bool ok;
+        unsigned int value = userId.toInt (&ok, 10);
+
+        if (!ok)
+        {
+            printf ("Failed to convert userId to Integer\n");
+            return QByteArray ("");
+        }
+
+        left.append ( (char) ( (value & 0xFF)));
+
+        left.append ( (char) ( (value & 0xFF00) >> 8));
+        left.append ( (char) ( (value & 0xFF0000) >> 16));
+        left.append ( (char) ( (value & 0xFF000000) >> 24));
+        QByteArray right = QByteArray::fromHex (hashV4);
+        return  hashV1 (left, right);
     }
 
     /**
      * \fn static QByteArray hashV4 ( QByteArray &userId, QByteArray &password )
      * @brief If userId is null then returns  hashV1 ( prefix, password ),
-     *  otherwise returns hashV2 ( userId, hashV1 ( prefix,password )), where prefix is
-     *  'fetion.com.cn:'.
+     *  otherwise returns hashV2 ( userId, hashV1 ( prefix,password )),
+     *  where prefix is 'fetion.com.cn:'.
      * \sa hashV1
      * \sa hashV2
      * @param userId ...
@@ -76,6 +86,74 @@ namespace Bressein
         return hashV2 (userId, res);
     }
 
+    static QByteArray RSAPublicEncrypt (QByteArray userId,
+                                        QByteArray password,
+                                        QByteArray nonce,
+                                        QByteArray aeskey,
+                                        QByteArray key/*public key*/)
+    {
+        // Follow openfetion's method
+        // in hex
+        // nonce + password(doubly hashed) + aeskey (random)
+        // catenate parts in bytes
+        // in hex
+        QByteArray psd = QByteArray::fromHex (hashV4 (userId, password));
+        QByteArray toEncrypt = nonce;
+        toEncrypt.append (psd);
+        toEncrypt.append (aeskey);
+        char *keyC = key.data(); // it points to key's data, never free it;
+        char modulus[257];
+        char exponent[7];
+        memset (modulus, 0, sizeof (modulus));
+        memset (exponent, 0, sizeof (exponent));
+        memcpy (modulus , keyC, 256);
+        memcpy (exponent, keyC + 256, 6);
+        BIGNUM *bnn, *bne;
+        bnn = BN_new();
+        bne = BN_new();
+        BN_hex2bn (&bnn, modulus);
+        BN_hex2bn (&bne, exponent);
+        RSA *r = RSA_new();
+        r->n = bnn;
+        r->e = bne;
+        r->d = 0;
+        int flen = RSA_size (r);//128
+        qDebug() << "toEncrypt " << toEncrypt.constData();
+        unsigned char *out = (unsigned char*) malloc (flen);
+        memset (out , 0 , flen);
+
+        int ret = RSA_public_encrypt (toEncrypt.size(), (unsigned char *) toEncrypt.data(), out, r, RSA_PKCS1_PADDING);
+
+        if (ret < 0)
+        {
+            printf ("encrypt failed");
+            return QByteArray ("");
+        }
+
+        RSA_free (r);
+
+        //clean up
+        // split ret into hex bytearray
+        Q_ASSERT (ret == 128);
+        char* result = (char*) malloc (ret * 2 + 1);
+        int i = 0;
+        memset (result , 0 , ret * 2 + 1);
+
+        while (i < ret)
+        {
+            sprintf (result + i * 2 , "%02x" , out[i]);
+            i++;
+        };
+
+        QByteArray resultHex (result);
+
+        free (out);
+
+        free (result);
+
+        return resultHex.toUpper();
+    }
+
     /** \fn static QByteArray cnouce(quint16 time = 2)
      * @brief generate a QByteArray in hex of length 16 * time
      *
@@ -89,7 +167,7 @@ namespace Bressein
 
         for (quint16 i = 0; i < time; i++)
         {
-            t.append (QString::number (qrand(), 16));
+            t.append (QByteArray::number (qrand()).toHex());
         }
 
         return t;
@@ -118,7 +196,7 @@ namespace Bressein
 
         part.append ("\"/> <client type=\"PC\" version=\"");
         part.append (PROTOCOL_VERSION);
-        part.append ("\"platform=\"W5.1\"/><servers version=\"0\"/>"
+        part.append ("\" platform=\"W5.1\"/><servers version=\"0\"/>"
                      "<parameters version=\"0\"/><hints version=\"0\"/></config>");
         QByteArray data ("POST /nav/getsystemconfig.aspx HTTP/1.1\r\n");
         data.append ("User-Agent: IIC2.0/PC ");
@@ -139,7 +217,9 @@ namespace Bressein
      * @param passwordhashed4 The value of hashV4(UserId, password).
      * @return QByteArray
      **/
-    static QByteArray ssiLoginData (QByteArray& number, QByteArray& passwordhashed4)
+    static QByteArray ssiLoginData (QByteArray& number,
+                                    QByteArray& passwordhashed4,
+                                    QByteArray passwordType = "1")
     {
         QByteArray numberString;
 
@@ -158,12 +238,14 @@ namespace Bressein
         data.append (numberString);
         data.append ("&domains=");
         data.append (DOMAIN);
-        data.append ("&v4digest-type=1&v4digest="); // TODO v4digest-type
+        data.append ("&v4digest-type=");
+        data.append (passwordType);
+        data.append ("&v4digest="); // TODO v4digest-type
         data.append (passwordhashed4);
-        data.append (" HTTP/1.1\r\n"
-                     "User-Agent: IIC2.0/pc \"");
+        data.append ("\r\n"
+                     "User-Agent: IIC2.0/pc ");
         data.append (PROTOCOL_VERSION);
-        data.append ("\"\r\nHost: uid.fetion.com.cn\r\n" // UID_URI
+        data.append ("\r\nHost: uid.fetion.com.cn\r\n" // UID_URI
                      "Cache-Control: private\r\n"
                      "Connection: Keep-Alive\r\n\r\n");
         return data;
@@ -196,7 +278,8 @@ namespace Bressein
                                      QByteArray& passwordhashed4,
                                      QByteArray& guid,
                                      QByteArray& code,
-                                     QByteArray& algorithm)
+                                     QByteArray& algorithm,
+                                     QByteArray passwordType = "1")
     {
         QByteArray numberString;
 
@@ -218,10 +301,12 @@ namespace Bressein
         data.append ("&pid=");
         data.append (guid);
         data.append ("&pic=");
-        data.append ("code");
+        data.append (code);
         data.append ("&algorithm=");
         data.append (algorithm);
-        data.append ("&v4digest-type=1&v4digest="); // TODO v4digest-type
+        data.append ("&v4digest-type=");
+        data.append (passwordType);
+        data.append ("&v4digest="); // TODO v4digest-type
         data.append (passwordhashed4);
         data.append (" HTTP/1.1\r\n"
                      "User-Agent: IIC2.0/pc ");
@@ -268,82 +353,6 @@ namespace Bressein
         body.append (state);
         body.append ("\" desc=\"\"/></presence></args>\r\n");
         return body;
-    }
-
-    static QByteArray RSAPublicEncrypt (QByteArray userId,
-                                        QByteArray password,
-                                        QByteArray nonce,
-                                        QByteArray aeskey,
-                                        QByteArray key/*public key*/)
-    {
-        // Follow openfetion's method
-        // nonce + password(doubly hashed) + aeskey (random)
-        // catenate parts in bytes
-        // in hex
-        QByteArray psdhex = hashV4 (userId, password);
-        QByteArray encryptedKey = nonce;
-        encryptedKey.append (psdhex);
-        encryptedKey.append (aeskey);
-        //     qDebug() << userInfo->nonce.size() << userInfo->aeskey.size();
-        char *keyC = key.data(); // it points to key's data, never free it;
-        char modulus[257];
-        char exponent[7];
-        memset (modulus, 0, sizeof (modulus));
-        memset (exponent, 0, sizeof (exponent));
-        memcpy (modulus , keyC, 256);
-        memcpy (exponent, keyC + 256, 6);
-        BIGNUM *bnn, *bne;
-        bnn = BN_new();
-        bne = BN_new();
-        BN_hex2bn (&bnn, modulus);
-        BN_hex2bn (&bne, exponent);
-        RSA *r = RSA_new();
-        r->n = bnn;
-        r->e = bne;
-        r->d = 0;
-        int flen = RSA_size (r);//128
-
-        const char *tmp = encryptedKey.constData();
-        int len = strlen (tmp) + 1;
-        unsigned char *res = (unsigned char*) malloc (len);
-        memset (res , 0 , len);
-        memcpy (res , (unsigned char *) tmp , len - 1);
-
-        unsigned char *out = (unsigned char*) malloc (flen);
-        memset (out , 0 , flen);
-
-        int ret = RSA_public_encrypt (len + 1, res, out, r, RSA_PKCS1_PADDING);
-
-        if (ret < 0)
-        {
-            printf ("encrypt failed");
-            free (res);
-            return QByteArray ("");
-        }
-
-        RSA_free (r);
-
-        delete res;
-        //clean up
-        // split ret into hex bytearray
-        Q_ASSERT (ret == 128);
-        char* result = (char*) malloc (ret * 2 + 1);
-        int i = 0;
-        memset (result , 0 , ret * 2 + 1);
-
-        while (i < ret)
-        {
-            sprintf (result + i * 2 , "%02x" , out[i]);
-            i++;
-        };
-
-        QByteArray resultHex (result);
-
-        free (out);
-
-        free (result);
-
-        return resultHex.toUpper();
     }
 }
 

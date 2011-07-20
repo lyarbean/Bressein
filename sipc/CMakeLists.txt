@@ -1,4 +1,5 @@
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 set(SIPC_SRCS user.cpp)
 qt4_automoc(${SIPC_SRCS})
 add_library(sipc ${SIPC_SRCS})
-link_libraries(${QT_LIBRARIES} ssl)
+link_libraries(sipc ${QT_LIBRARIES})

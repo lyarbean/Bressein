@@ -2,7 +2,7 @@
 #define Bressein_H
 
 #include <QtGui/QMainWindow>
-
+#include "sipc/user.h"
 namespace Bressein
 {
 
@@ -13,6 +13,8 @@ namespace Bressein
     public:
         Bressein();
         virtual ~Bressein();
+    private:
+        User* user;
     };
 }
 #endif // Bressein_H

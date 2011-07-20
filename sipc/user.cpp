@@ -1,5 +1,5 @@
 /*
-    <one line to give the program's name and a brief idea of what it does.>
+    The implement of User
     Copyright (C) 2011  颜烈彬 <slbyan@gmail.com>
 
     This program is free software; you can redistribute it and/or modify
@@ -29,8 +29,8 @@ namespace Bressein
     User::User (QByteArray number, QByteArray password)
     {
         sipcSocket = new QTcpSocket (this);
-        sipcSocket->
-        connect (this, SIGNAL (serverConfigGot()), SLOT (sipcLogin()));
+        connect (this, SIGNAL (serverConfigGot()), this, SLOT (sipcRegister()));
+        connect (this, SIGNAL (ssiResponseDone()), this, SLOT (getServerConfig()));
         initialize (number, password);
     }
 
@@ -52,7 +52,7 @@ namespace Bressein
 
     void User::login()
     {
-
+        ssiLogin();
     }
 
     void User::keepAlive()
@@ -96,19 +96,28 @@ namespace Bressein
         //TODO if proxy
         QByteArray password = (hashV4 (info->userId, info->password));
         QByteArray data = ssiLoginData (info->loginNumber, password);
+        qDebug() << "Ssi login data";
+        qDebug() << data;
         QSslSocket socket;
         socket.connectToHostEncrypted ("uid.fetion.com.cn", 443);
 
         if (!socket.waitForEncrypted())
         {
             qDebug() << "waitForEncrypted" << socket.errorString();
+//             ssiLogin();
             return;
         }
 
         socket.write (data);
 
+        QByteArray responseData;
+
         while (socket.waitForReadyRead (-1))
-            handleSsiResponse (QByteArray (socket.readAll().data()));
+        {
+            responseData = socket.readAll();
+        }
+
+        handleSsiResponse (responseData);
     }
 
     void User::handleSsiResponse (QByteArray data)
@@ -116,6 +125,8 @@ namespace Bressein
         if (data.isEmpty())
         {
             qDebug() << "Ssi response is empty!!";
+            // TODO info user about this
+            // pop-up dialog ask user if to relogin
             return;
         }
 
@@ -123,13 +134,19 @@ namespace Bressein
 
         int e = data.indexOf ("; path", b);
         info->ssic = data.mid (b + 17, e - b - 17);
-        QByteArray xml = data.right (data.indexOf ("<?xml version=\"1.0\""));
-
+        QByteArray xml = data.mid (data.indexOf ("<?xml version=\"1.0\""));
         QDomDocument domDoc;
 
-        if (!domDoc.setContent (xml))
+        QString errorMsg;
+        int errorLine, errorColumn;
+        bool ok = domDoc.setContent (xml, false, &errorMsg, &errorLine, &errorColumn);
+        qDebug() << ok;
+
+        if (!ok)
         {
             qDebug() << "Failed to parse Ssi response!!";
+            qDebug() << errorMsg << errorLine << errorColumn;
+            qDebug() << xml;
             return;
         }
 
@@ -139,9 +156,9 @@ namespace Bressein
 
         if (domRoot.tagName() == "results")
         {
-            if (domRoot.hasAttribute ("status-code"))
+            if (domRoot.isNull() || !domRoot.hasAttribute ("status-code"))
             {
-                qDebug() << "No status-code";
+                qDebug() << "Null or  status-code";
                 return;
             }
 
@@ -171,12 +188,14 @@ namespace Bressein
                     info->verfication->tips = domE.attribute ("tips").toUtf8();
                 }
 
+                // TODO re-login with verification
                 return;
             }
             else if (statusCode == "401" || statusCode == "404")
             {
                 //401 wrong password
                 qDebug() << "Authorization error";
+                //TODO as user to re-input password
                 return;
             }
             else if (statusCode == "200")
@@ -209,8 +228,10 @@ namespace Bressein
                     }
                 }
 
+                emit ssiResponseDone();
+
                 //TODO emit signal here to invoke getServerConfig
-                // time to getServerConfig
+//                 getServerConfig();
             }
         }
     }
@@ -218,6 +239,7 @@ namespace Bressein
     void User::getServerConfig()
     {
         QByteArray body = configData (info->loginNumber);
+        qDebug() << "getServerConfig " << body;
         QTcpSocket socket;
         QHostInfo info = QHostInfo::fromName ("nav.fetion.com.cn");
         socket.connectToHost (info.addresses().first().toString(), 80);
@@ -230,8 +252,15 @@ namespace Bressein
 
         socket.write (body);
 
+        QByteArray responseData;
+
         while (socket.waitForReadyRead (-1))
-            parseServerConfig (socket.readAll());
+        {
+            responseData += socket.readAll();
+        }
+
+        if (socket.isWritable()&& !socket.isReadable())
+            parseServerConfig (responseData);
     }
 
     void User::parseServerConfig (QByteArray data)
@@ -246,7 +275,8 @@ namespace Bressein
 
         if (!domDoc.setContent (data))
         {
-            qDebug() << "Failed to parse Ssi response!!";
+            qDebug() << "Failed to parse server config response!!";
+            qDebug() << data;
             return;
         }
 
@@ -256,30 +286,31 @@ namespace Bressein
         {
             domRoot = domRoot.firstChildElement ("servers");
 
-            if (domRoot.hasAttribute ("version"));
+            if (!domRoot.isNull() && domRoot.hasAttribute ("version"))
+                info->systemconfig.serverVersion = domRoot.attribute ("version").toUtf8();
 
-            // configServerVersion = domRoot.attribute("version")
             domRoot = domRoot.nextSiblingElement ("parameters");
 
-            if (domRoot.hasAttribute ("version"));
+            if (!domRoot.isNull() && domRoot.hasAttribute ("version"))
+                info->systemconfig.parametersVersion = domRoot.attribute ("version").toUtf8();
 
-            // configParametersVersion = domRoot.attribute("version")
             domRoot = domRoot.nextSiblingElement ("hints");
 
-            if (domRoot.hasAttribute ("version"));
+            if (!domRoot.isNull() && domRoot.hasAttribute ("version"))
+                info->systemconfig.hintsVersion = domRoot.attribute ("version").toUtf8();
 
-            // confighintsVersion = domRoot.attribute("version")
             //TODO get phrase here
+
             domRoot = domRoot.nextSiblingElement ("sipc-proxy");
 
-            if (!domRoot.text().isEmpty());
+            if (!domRoot.text().isEmpty())
+                info->systemconfig.proxyIpPort = domRoot.text().toUtf8();
 
-            // sipcProxyIpPort = domRoot.text();
             domRoot = domRoot.nextSiblingElement ("get-uri");
 
-            if (!domRoot.text().isEmpty());
+            if (!domRoot.text().isEmpty())
+                info->systemconfig.serverNamePath = domRoot.text().toUtf8();
 
-            // portraitServerNamePath = domRoot.text();
             //when finish, start sip-c
             emit serverConfigGot();
         }
@@ -289,21 +320,22 @@ namespace Bressein
     {
         sipcSocket->setReadBufferSize (0);
 
-        int seperator = info->systemconfig.ProxyIpPort.indexOf (':');
-        QString ip = QString (info->systemconfig.ProxyIpPort.left (seperator));
-        quint16 port = info->systemconfig.ProxyIpPort.mid (seperator).toUInt();
+        int seperator = info->systemconfig.proxyIpPort.indexOf (':');
+        QString ip = QString (info->systemconfig.proxyIpPort.left (seperator));
+        quint16 port = info->systemconfig.proxyIpPort.mid (seperator).toUInt();
         sipcSocket->connectToHost (ip, port);
 
         if (!sipcSocket->waitForConnected()) /*30 seconds*/
         {
-            qDebug() << "#SipcHanlder::run waitForConnected" << sipcSocket->errorString();
+            qDebug() << "#SipcHanlder::run waitForConnected"
+            << sipcSocket->errorString();
             return;
         }
 
         QByteArray toSendMsg ("R fetion.com.cn SIP-C/4.0\r\n");
 
         toSendMsg.append ("F: ").append (info->fetionNumber).append ("\r\n");
-        toSendMsg.append ("I: ").append (QString::number (info->callId++)).append ("\r\n");
+        toSendMsg.append ("I: ").append (QByteArray::number (info->callId++)).append ("\r\n");
         toSendMsg.append ("Q: 2 ").append ("R\r\n");
         toSendMsg.append ("CN: ").append (info->cnonce).append ("\r\n");
         toSendMsg.append ("CL: type=\"pc\" ,version=\"" + PROTOCOL_VERSION + "\"\r\n\r\n");
@@ -316,18 +348,27 @@ namespace Bressein
 
         sipcSocket->waitForBytesWritten (-1);
 
+        //QCoreApplication::processEvents();
         sipcSocket->flush();
 
         while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
         {
             if (!sipcSocket->waitForReadyRead (30000))
             {
-                qDebug() << "#SipcHanlder::run waitForReadyRead" << sipcSocket->error() << sipcSocket->errorString();
+                qDebug() << "#SipcHanlder::run waitForReadyRead"
+                << sipcSocket->error() << sipcSocket->errorString();
                 return;
             }
         }
 
-        handleSipcRegisterResponse (sipcSocket->readAll());
+        QByteArray responseData;
+
+        while (sipcSocket->waitForReadyRead (-1))
+        {
+            responseData = sipcSocket->readAll();
+        }
+
+        handleSipcRegisterResponse (responseData);
     }
 
     void User::handleSipcRegisterResponse (QByteArray data)
@@ -335,6 +376,7 @@ namespace Bressein
         if (!data.startsWith ("SIP-C/4.0 401 Unauthoried"))
         {
             qDebug() << "Wrong Sipc register response.";
+            qDebug() << data;
             return;
         }
 
@@ -423,3 +465,4 @@ namespace Bressein
     }
 
 }
+#include "user.moc"
