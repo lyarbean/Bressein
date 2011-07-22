@@ -45,13 +45,14 @@ namespace Bressein
 
     User::~User()
     {
-        if (info) delete info;
 
         if (workerThread.isRunning())
         {
             workerThread.quit();
             workerThread.wait();
         }
+        if (info) delete info;
+
 
     }
 
@@ -70,6 +71,11 @@ namespace Bressein
     {
         QMetaObject::invokeMethod (this, "ssiLogin");
         // ssiLogin();
+    }
+
+    void User::close()
+    {
+        workerThread.deleteLater();
     }
 
     void User::keepAlive()
@@ -114,7 +120,7 @@ namespace Bressein
 
         qDebug () << responseData;
 
-        QTimer::singleShot (60000, this, SLOT (keepAlive()));
+        QTimer::singleShot (6000, this, SLOT (keepAlive()));
     }
 
     void User::sendMsg (QByteArray& fetionId, QByteArray& message)

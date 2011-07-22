@@ -52,9 +52,11 @@ namespace Bressein
     public slots:
         void setState (StateType&);
         void login();
+        void close();
         void keepAlive();//called in period when connection established
         void sendMsg (QByteArray& fetionId, QByteArray& message);
         void addBuddy (QByteArray& number, QByteArray& info);
+
         //number could either be fetionId or phone number.
 
     signals:

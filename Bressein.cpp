@@ -21,6 +21,8 @@ namespace Bressein
     }
 
     Bressein::~Bressein()
-    {}
+    {
+        user->close();
+    }
 }
 #include "Bressein.moc"
