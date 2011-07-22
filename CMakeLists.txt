@@ -14,7 +14,6 @@ include_directories(${QT_INCLUDES} ${CMAKE_CURRENT_BINARY_DIR})
 #
 # include(UseDoxygen OPTIONAL)
 
-
 add_subdirectory(gui)
 add_subdirectory(sipc)
 add_subdirectory(utils)
@@ -26,10 +25,10 @@ target_link_libraries(Bressein sipc ssl ${QT_LIBRARIES})
 
 ###########doxygen###########
 # prepare doxygen configuration file
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
-
-# add doxygen as target
-add_custom_target(doxygen ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+# build on doc
+# add doc as target
+add_custom_target(doc ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
 
 # cleanup $build/api-doc on "make clean"
 set_property(DIRECTORY APPEND PROPERTY

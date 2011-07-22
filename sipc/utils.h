@@ -118,7 +118,6 @@ namespace Bressein
         r->e = bne;
         r->d = 0;
         int flen = RSA_size (r);//128
-        qDebug() << "toEncrypt " << toEncrypt.constData();
         unsigned char *out = (unsigned char*) malloc (flen);
         memset (out , 0 , flen);
 
@@ -160,17 +159,17 @@ namespace Bressein
      * @param time  2 as default.
      * @return QByteArray
      **/
-    static QByteArray cnouce (quint16 time = 2)
+    static QByteArray cnouce (quint16 time = 4)
     {
         QByteArray t;
         qsrand (QDateTime::currentMSecsSinceEpoch ());
 
         for (quint16 i = 0; i < time; i++)
         {
-            t.append (QByteArray::number (qrand()).toHex());
+            t.append (QByteArray::number (qrand(),16));
         }
 
-        return t;
+        return t.toUpper();
     }
 
     /** \fn static QByteArray configData(QByteArray& number)
@@ -194,7 +193,7 @@ namespace Bressein
 
         part.append (number);
 
-        part.append ("\"/> <client type=\"PC\" version=\"");
+        part.append ("\"/><client type=\"PC\" version=\"");
         part.append (PROTOCOL_VERSION);
         part.append ("\" platform=\"W5.1\"/><servers version=\"0\"/>"
                      "<parameters version=\"0\"/><hints version=\"0\"/></config>");
@@ -202,11 +201,13 @@ namespace Bressein
         data.append ("User-Agent: IIC2.0/PC ");
         data.append (PROTOCOL_VERSION);
         data.append ("\r\nHost: ");
+        data.append (NAVIGATION);
         data.append ("\r\nConnection: Close\r\n");
         data.append ("Content-length: ");
         data.append (QByteArray::number (part.size()));
         data.append ("\r\n\r\n");
         data.append (part);
+        data.append ("\r\n");
         return data;
     }
 
@@ -317,8 +318,8 @@ namespace Bressein
         return data;
     }
 
-    /** \fn static QByteArray sipAuthorizeBody(QByteArray& mobileNumber, QByteArray& userId*, QByteArray& personalVersion, QByteArray& customConfigVersion, QByteArray& contactVersion, QByteArray& state)
-     * @brief Generate a body for sip authorization
+    /** \fn static QByteArray sipcAuthorizeBody(QByteArray& mobileNumber, QByteArray& userId*, QByteArray& personalVersion, QByteArray& customConfigVersion, QByteArray& contactVersion, QByteArray& state)
+     * @brief Generate a body for sipc authorization
      * @param mobileNumber ...
      * @param userId ...
      * @param personalVersion ...
@@ -327,7 +328,7 @@ namespace Bressein
      * @param state ...
      * @return QByteArray
      **/
-    static QByteArray sipAuthorizeBody (QByteArray& mobileNumber,
+    static QByteArray sipcAuthorizeBody (QByteArray& mobileNumber,
                                         QByteArray& userId,
                                         QByteArray& personalVersion,
                                         QByteArray& customConfigVersion,
@@ -354,6 +355,22 @@ namespace Bressein
         body.append ("\" desc=\"\"/></presence></args>\r\n");
         return body;
     }
+
+    static QByteArray keepAliveData (QByteArray &fetionNumber, int& callId)
+    {
+        static QByteArray keepAliveBody = "<args><credentials domains=\"fetion.com.cn\"/></args>\r\n";
+        QByteArray data ("R fetion.com.cn SIP-C/4.0\r\n");
+        data.append ("F: ").append (fetionNumber).append ("\r\n");
+        data.append ("I: ").append (QByteArray::number (callId++)).append ("\r\n");
+        data.append ("Q: 2 ").append ("R\r\n");
+        data.append ("N: KeepAlive\r\n");
+        data.append ("L: ");
+        data.append (QByteArray::number (keepAliveBody.size()));
+        data.append ("\r\n\r\n");
+        data.append (keepAliveBody);
+        return data;
+    }
+
 }
 
 /*! @} */

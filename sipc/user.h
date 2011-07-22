@@ -57,9 +57,11 @@ namespace Bressein
 
     signals:
         void showStatus (QByteArray& message);// the code
-        void serverConfigGot();
-        void ssiResponseDone();
-        void serverConfigDone();
+
+        void ssiResponseParsed();
+        void serverConfigParsed();
+        void sipcRegisterParsed();
+        void sipcAuthorizeParsed();
     private:
         /**
          * @brief try to load local configuration and initialize info
@@ -67,35 +69,19 @@ namespace Bressein
          * @return void
          **/
         void initialize (QByteArray number, QByteArray password);
-
-        /**
-         * @brief Ssi portal login
-         *
-         * @return void
-         **/
-        void ssiLogin();
-        void handleSsiResponse (QByteArray data);
-        void handleSipcRegisterResponse (QByteArray data);
-        void handleSipcAuthorizeResponse (QByteArray data);
-
     private slots:
-        /**
-         * @brief get server configuration
-         *
-         * @return void
-         **/
-        void getServerConfig();
-        /**
-         * @brief parse server configuration
-         *
-         * @param  ...
-         * @return void
-         **/
-        void parseServerConfig (QByteArray data);
+// functions that performance networking
+        void ssiLogin();
         void sipcRegister();
+        void systemConfig();
         void sipcAuthorize();
-        void getSsiPic();
-
+        void ssiVerify();
+// functions for parsing data
+        void parseSsiResponse (QByteArray &data);
+        void parseServerConfig (QByteArray &data);
+        void parseSipcRegister (QByteArray &data);
+        void parseSipcAuthorize (QByteArray &data);
+//         void parseSsiVerifyResponse (QByteArray &data);
     private:
 
         class  UserInfo;

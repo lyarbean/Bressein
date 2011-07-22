@@ -19,8 +19,9 @@
 #include <QSslSocket>
 #include <QDomDocument>
 #include <QHostInfo>
-#include "user.h"
-#include "userinfo.h"
+#include <QTimer>
+//#include "user.h"
+#include "userprivate.h"
 #include "utils.h"
 // N.B all data through socket are utf-8
 
@@ -29,14 +30,19 @@ namespace Bressein
     User::User (QByteArray number, QByteArray password)
     {
         sipcSocket = new QTcpSocket (this);
-        connect (this, SIGNAL (serverConfigGot()), this, SLOT (sipcRegister()));
-        connect (this, SIGNAL (ssiResponseDone()), this, SLOT (getServerConfig()));
+        sipcSocket->setReadBufferSize (0);
+        sipcSocket->setSocketOption (QAbstractSocket::KeepAliveOption, 1);
+        sipcSocket->setSocketOption (QAbstractSocket::LowDelayOption, 1);
+        connect (this, SIGNAL (ssiResponseParsed()), SLOT (systemConfig()));
+        connect (this, SIGNAL (serverConfigParsed()), SLOT (sipcRegister()));
+        connect (this, SIGNAL (sipcRegisterParsed()), SLOT (sipcAuthorize()));
+        connect (this, SIGNAL (sipcAuthorizeParsed()), SLOT (keepAlive()));
         initialize (number, password);
     }
 
     User::~User()
     {
-
+        if (info) delete info;
     }
 
     bool User::operator== (const User & other)
@@ -57,7 +63,46 @@ namespace Bressein
 
     void User::keepAlive()
     {
+        if (sipcSocket->state() != QAbstractSocket::ConnectedState)
+        {
+            qDebug() << "socket closed.";
+            return;
+        }
 
+        QByteArray toSendMsg = keepAliveData (info->fetionNumber, info->callId);
+
+        int length = 0;
+// TODO wrapped following segment
+
+        while (length < toSendMsg.length())
+        {
+            length += sipcSocket->write (toSendMsg.right (toSendMsg.size() - length));
+        }
+
+        sipcSocket->waitForBytesWritten (-1);
+
+        QByteArray responseData;
+
+        while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
+        {
+            if (!sipcSocket->waitForReadyRead (-1))
+            {
+                qDebug() << "sipcAuthorize waitForReadyRead"
+                << sipcSocket->error() << sipcSocket->errorString();
+                return;
+            }
+        }
+
+        while (sipcSocket->waitForReadyRead ())
+        {
+            responseData += sipcSocket->readAll();
+        }
+
+        //TODO ensure full of <results/> downloaded
+        qDebug() << "To keepAlive";
+        qDebug () << responseData;
+
+        QTimer::singleShot (6000, this, SLOT (keepAlive()));
     }
 
     void User::sendMsg (QByteArray& fetionId, QByteArray& message)
@@ -70,11 +115,11 @@ namespace Bressein
 
     }
 
-//private
+// private
     void User::initialize (QByteArray number, QByteArray password)
     {
         // TODO try to load saved configuration for this user
-        info = new UserInfo;
+        info = new UserInfo (this);
         info->loginNumber = number;
 
         if (number.size() == 11)
@@ -89,19 +134,20 @@ namespace Bressein
         info->password = password;
 
         info->state = "400";// online
+        info->cnonce = cnouce();
+        info->callId = 1;
     }
 
     void User::ssiLogin()
     {
         //TODO if proxy
+        qDebug() << "Begin ssi login";
         QByteArray password = (hashV4 (info->userId, info->password));
         QByteArray data = ssiLoginData (info->loginNumber, password);
-        qDebug() << "Ssi login data";
-        qDebug() << data;
         QSslSocket socket;
-        socket.connectToHostEncrypted ("uid.fetion.com.cn", 443);
+        socket.connectToHostEncrypted (UID_URI, 443);
 
-        if (!socket.waitForEncrypted())
+        if (!socket.waitForEncrypted (-1))
         {
             qDebug() << "waitForEncrypted" << socket.errorString();
 //             ssiLogin();
@@ -112,16 +158,199 @@ namespace Bressein
 
         QByteArray responseData;
 
-        while (socket.waitForReadyRead (-1))
-        {
-            responseData = socket.readAll();
-        }
+        while (socket.bytesAvailable() < (int) sizeof (quint16))
+            if (!socket.waitForReadyRead (-1))
+            {
+                qDebug() << "ssiLogin  waitForReadyRead"
+                << socket.error() << socket.errorString();
+            }
 
-        handleSsiResponse (responseData);
+        responseData = socket.readAll();
+
+        parseSsiResponse (responseData);
     }
 
-    void User::handleSsiResponse (QByteArray data)
+    void User::systemConfig()
     {
+        QByteArray body = configData (info->loginNumber);
+        qDebug() << "getServerConfig " << body;
+        QTcpSocket socket;
+        QHostInfo info = QHostInfo::fromName ("nav.fetion.com.cn");
+        socket.connectToHost (info.addresses().first().toString(), 80);
+
+        if (!socket.waitForConnected (-1))
+        {
+            qDebug() << "waitForEncrypted" << socket.errorString();
+            return;
+        }
+
+        socket.write (body);
+
+        QByteArray responseData;
+
+        while (socket.bytesAvailable() < (int) sizeof (quint16))
+            if (!socket.waitForReadyRead (-1))
+            {
+                qDebug() << "ssiLogin  waitForReadyRead"
+                << socket.error() << socket.errorString();
+            }
+
+        //FIXME get more data until <results/> is fully downloaded
+        while (socket.waitForReadyRead())
+            responseData += socket.readAll();
+
+        parseServerConfig (responseData);
+    }
+
+    /** \example
+     * R fetion.com.cn SIP-C/4.0
+     * F : 916098834
+     * I: 1
+     * Q: 1 R
+     * CN: 1CF1A05B2DD0281755997ADC70F82B16
+     * CL: type=”pc” ,version=”3.6.1900″
+     **/
+    void User::sipcRegister()
+    {
+
+        int seperator = info->systemconfig.proxyIpPort.indexOf (':');
+        QString ip = QString (info->systemconfig.proxyIpPort.left (seperator));
+        quint16 port = info->systemconfig.proxyIpPort.mid (seperator + 1).toUInt();
+
+        sipcSocket->connectToHost (ip, port);
+
+        if (!sipcSocket->waitForConnected (-1)) /*no time out*/
+        {
+            qDebug() << "#sipcRegister waitForConnected"
+            << sipcSocket->errorString();
+            return;
+        }
+
+        QByteArray toSendMsg ("R fetion.com.cn SIP-C/4.0\r\n");
+
+        toSendMsg.append ("F: ").append (info->fetionNumber).append ("\r\n");
+        toSendMsg.append ("I: ").append (QByteArray::number (info->callId++)).append ("\r\n");
+        toSendMsg.append ("Q: 2 ").append ("R\r\n");
+        toSendMsg.append ("CN: ").append (info->cnonce).append ("\r\n");
+        toSendMsg.append ("CL: type=\"pc\" ,version=\"" + PROTOCOL_VERSION + "\"\r\n\r\n");
+        int length = 0;
+
+        while (length < toSendMsg.length())
+        {
+            length += sipcSocket->write (toSendMsg.right (toSendMsg.size() - length));
+        }
+
+        sipcSocket->waitForBytesWritten (-1);
+
+        //QCoreApplication::processEvents();
+        qDebug() << "written " << toSendMsg;
+        sipcSocket->flush();
+        QByteArray responseData;
+
+        while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
+        {
+            if (!sipcSocket->waitForReadyRead (-1))
+            {
+                qDebug() << "#sipcRegister  waitForReadyRead"
+                << sipcSocket->error() << sipcSocket->errorString();
+                return;
+            }
+        }
+
+        //         while (sipcSocket->waitForReadyRead (-1))
+        //         {
+        responseData = sipcSocket->readAll();
+
+        //         }
+
+        qDebug() << responseData;
+
+        parseSipcRegister (responseData);
+    }
+
+
+
+    /** \example
+     * R fetion.com.cn SIP-C/4.0
+     * F: 916*098834
+     * I: 1
+     * Q: 2 R
+     * A: Digest response=”5041619..6036118″,algorithm=”SHA1-sess-v4″
+     * AK: ak-value
+     * L: 426
+     * \r\n\r\n
+     * <body>
+     **/
+    void User::sipcAuthorize ()
+    {
+
+        qDebug() << "begin sipcAuthorize";
+
+        if (sipcSocket->state() != QAbstractSocket::ConnectedState)
+        {
+            qDebug() << "socket closed.";
+            return;
+        }
+
+        QByteArray body = sipcAuthorizeBody (info->loginNumber,
+
+                                             info->userId,
+                                             info->client.version,
+                                             info->customConfig,
+                                             info->client.contactVersion,
+                                             info->state);
+        QByteArray toSendMsg ("R fetion.com.cn SIP-C/4.0\r\n");
+
+        toSendMsg.append ("F: ").append (info->fetionNumber).append ("\r\n");
+        toSendMsg.append ("I: ").append (QString::number (info->callId++)).append ("\r\n");
+        toSendMsg.append ("Q: 2 R\r\n");
+        toSendMsg.append ("A: Digest response=\"").append (info->response).append ("\",algorithm=\"SHA1-sess-v4\"\r\n");
+        toSendMsg.append ("AK: ak-value\r\n");
+        toSendMsg.append ("L: ");
+        toSendMsg.append (QByteArray::number (body.size()));
+        toSendMsg.append ("\r\n\r\n");
+        toSendMsg.append (body);
+        int length = 0;
+        qDebug() << toSendMsg;
+
+        while (length < toSendMsg.length())
+        {
+            length += sipcSocket->write (toSendMsg.right (toSendMsg.size() - length));
+        }
+
+        qDebug() << "waitForBytesWritten";
+
+        sipcSocket->waitForBytesWritten (-1);
+        sipcSocket->flush();
+
+        qDebug() << "To read response";
+        QByteArray responseData;
+
+        while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
+        {
+            if (!sipcSocket->waitForReadyRead (-1))
+            {
+                qDebug() << "sipcAuthorize waitForReadyRead"
+                << sipcSocket->error() << sipcSocket->errorString();
+                return;
+            }
+        }
+
+        while (sipcSocket->waitForReadyRead ())
+        {
+            responseData += sipcSocket->readAll();
+        }
+
+        //TODO ensure full of <results/> downloaded
+        parseSipcAuthorize (responseData);
+    }
+
+// functions for parsing data
+    void User::parseSsiResponse (QByteArray &data)
+    {
+
+        qDebug() << "Begin parse Ssi";
+
         if (data.isEmpty())
         {
             qDebug() << "Ssi response is empty!!";
@@ -140,7 +369,6 @@ namespace Bressein
         QString errorMsg;
         int errorLine, errorColumn;
         bool ok = domDoc.setContent (xml, false, &errorMsg, &errorLine, &errorColumn);
-        qDebug() << ok;
 
         if (!ok)
         {
@@ -212,7 +440,7 @@ namespace Bressein
                     e = info->sipuri.indexOf ("@", b);
                     info->fetionNumber = info->sipuri.mid (b + 4, e - b - 4);
                     info->mobileNumber = domE.attribute ("mobile-no").toUtf8();
-                    info->state = domE.attribute ("user-status").toUtf8();
+                    // info->state = domE.attribute ("user-status").toUtf8();
                     info->userId = domE.attribute ("user-id").toUtf8();
                 }
 
@@ -228,151 +456,14 @@ namespace Bressein
                     }
                 }
 
-                emit ssiResponseDone();
-
-                //TODO emit signal here to invoke getServerConfig
-//                 getServerConfig();
+                emit ssiResponseParsed();
             }
         }
     }
 
-    void User::getServerConfig()
+    void User::parseSipcRegister (QByteArray &data)
     {
-        QByteArray body = configData (info->loginNumber);
-        qDebug() << "getServerConfig " << body;
-        QTcpSocket socket;
-        QHostInfo info = QHostInfo::fromName ("nav.fetion.com.cn");
-        socket.connectToHost (info.addresses().first().toString(), 80);
 
-        if (!socket.waitForConnected())
-        {
-            qDebug() << "waitForEncrypted" << socket.errorString();
-            return;
-        }
-
-        socket.write (body);
-
-        QByteArray responseData;
-
-        while (socket.waitForReadyRead (-1))
-        {
-            responseData += socket.readAll();
-        }
-
-        if (socket.isWritable()&& !socket.isReadable())
-            parseServerConfig (responseData);
-    }
-
-    void User::parseServerConfig (QByteArray data)
-    {
-        if (data.isEmpty())
-        {
-            qDebug() << "Server Configuration response is empty!!";
-            return;
-        }
-
-        QDomDocument domDoc;
-
-        if (!domDoc.setContent (data))
-        {
-            qDebug() << "Failed to parse server config response!!";
-            qDebug() << data;
-            return;
-        }
-
-        QDomElement domRoot = domDoc.documentElement();
-
-        if (domRoot.tagName() == "config")
-        {
-            domRoot = domRoot.firstChildElement ("servers");
-
-            if (!domRoot.isNull() && domRoot.hasAttribute ("version"))
-                info->systemconfig.serverVersion = domRoot.attribute ("version").toUtf8();
-
-            domRoot = domRoot.nextSiblingElement ("parameters");
-
-            if (!domRoot.isNull() && domRoot.hasAttribute ("version"))
-                info->systemconfig.parametersVersion = domRoot.attribute ("version").toUtf8();
-
-            domRoot = domRoot.nextSiblingElement ("hints");
-
-            if (!domRoot.isNull() && domRoot.hasAttribute ("version"))
-                info->systemconfig.hintsVersion = domRoot.attribute ("version").toUtf8();
-
-            //TODO get phrase here
-
-            domRoot = domRoot.nextSiblingElement ("sipc-proxy");
-
-            if (!domRoot.text().isEmpty())
-                info->systemconfig.proxyIpPort = domRoot.text().toUtf8();
-
-            domRoot = domRoot.nextSiblingElement ("get-uri");
-
-            if (!domRoot.text().isEmpty())
-                info->systemconfig.serverNamePath = domRoot.text().toUtf8();
-
-            //when finish, start sip-c
-            emit serverConfigGot();
-        }
-    }
-
-    void User::sipcRegister()
-    {
-        sipcSocket->setReadBufferSize (0);
-
-        int seperator = info->systemconfig.proxyIpPort.indexOf (':');
-        QString ip = QString (info->systemconfig.proxyIpPort.left (seperator));
-        quint16 port = info->systemconfig.proxyIpPort.mid (seperator).toUInt();
-        sipcSocket->connectToHost (ip, port);
-
-        if (!sipcSocket->waitForConnected()) /*30 seconds*/
-        {
-            qDebug() << "#SipcHanlder::run waitForConnected"
-            << sipcSocket->errorString();
-            return;
-        }
-
-        QByteArray toSendMsg ("R fetion.com.cn SIP-C/4.0\r\n");
-
-        toSendMsg.append ("F: ").append (info->fetionNumber).append ("\r\n");
-        toSendMsg.append ("I: ").append (QByteArray::number (info->callId++)).append ("\r\n");
-        toSendMsg.append ("Q: 2 ").append ("R\r\n");
-        toSendMsg.append ("CN: ").append (info->cnonce).append ("\r\n");
-        toSendMsg.append ("CL: type=\"pc\" ,version=\"" + PROTOCOL_VERSION + "\"\r\n\r\n");
-        int length = 0;
-
-        while (length < toSendMsg.length())
-        {
-            length += sipcSocket->write (toSendMsg.right (toSendMsg.size() - length));
-        }
-
-        sipcSocket->waitForBytesWritten (-1);
-
-        //QCoreApplication::processEvents();
-        sipcSocket->flush();
-
-        while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
-        {
-            if (!sipcSocket->waitForReadyRead (30000))
-            {
-                qDebug() << "#SipcHanlder::run waitForReadyRead"
-                << sipcSocket->error() << sipcSocket->errorString();
-                return;
-            }
-        }
-
-        QByteArray responseData;
-
-        while (sipcSocket->waitForReadyRead (-1))
-        {
-            responseData = sipcSocket->readAll();
-        }
-
-        handleSipcRegisterResponse (responseData);
-    }
-
-    void User::handleSipcRegisterResponse (QByteArray data)
-    {
         if (!data.startsWith ("SIP-C/4.0 401 Unauthoried"))
         {
             qDebug() << "Wrong Sipc register response.";
@@ -380,6 +471,9 @@ namespace Bressein
             return;
         }
 
+        qDebug() << "parseSipcRegister=========";
+
+        qDebug() << QString::fromUtf8 (data);
         int b, e;
 
         b = data.indexOf ("\",nonce=\"");
@@ -397,72 +491,274 @@ namespace Bressein
         info->response = RSAPublicEncrypt (info->userId, info->password,
                                            info->nonce, info->aeskey, info->key);
         // DO authorize
-        sipcAuthorize();
+        qDebug() << "to sipcAuthorize";
+        emit sipcRegisterParsed();
     }
 
-    void User::sipcAuthorize ()
-    {
 
-        if (sipcSocket->state() != QAbstractSocket::ConnectedState)
+    void User::parseServerConfig (QByteArray &data)
+    {
+        if (data.isEmpty())
         {
-            qDebug() << "socket closed.";
+            qDebug() << "Server Configuration response is empty!!";
             return;
         }
 
-        QByteArray toSendMsg ("R fetion.com.cn SIP-C/4.0\r\n");
+        qDebug() << "parseServerConfig=========";
 
-        toSendMsg.append ("F: ").append (info->fetionNumber).append ("\r\n");
-        toSendMsg.append ("I: ").append (QString::number (info->callId++)).append ("\r\n");
-        toSendMsg.append ("Q: 2 ").append ("R\r\n");
-        toSendMsg.append ("CN: ").append (info->cnonce).append ("\r\n");
-        toSendMsg.append ("CL: type=\"pc\" ,version=\"" + PROTOCOL_VERSION + "\"\r\n\r\n");
-        int length = 0;
+        qDebug() << QString::fromUtf8 (data);
+        QDomDocument domDoc;
 
-        while (length < toSendMsg.length())
+        QByteArray xml = data.mid (data.indexOf ("<?xml version=\"1.0\""));
+        bool ok = domDoc.setContent (xml);
+
+        if (!ok)
         {
-            length += sipcSocket->write (toSendMsg.right (toSendMsg.size() - length));
+            qDebug() << "Failed to parse server config response!!";
+            qDebug() << xml;
+            qDebug() << "==============================";
+            return;
         }
 
-        sipcSocket->waitForBytesWritten (-1);
+        QDomElement domRoot = domDoc.documentElement();
 
-        sipcSocket->flush();
+        QDomElement domChild;
 
-        while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
+        if (domRoot.tagName() == "config")
         {
-            if (!sipcSocket->waitForReadyRead (30000))
+            domRoot = domRoot.firstChildElement ("servers");
+
+            if (!domRoot.isNull() && domRoot.hasAttribute ("version"))
             {
-                qDebug() << "#SipcHanlder::run waitForReadyRead" << sipcSocket->error() << sipcSocket->errorString();
-                return;
+                // process children
+                info->systemconfig.serverVersion = domRoot.attribute ("version").toUtf8();
+                domChild = domRoot.firstChildElement ("sipc-proxy");
+
+                if (!domChild.isNull() && !domChild.text().isEmpty())
+                {
+                    info->systemconfig.proxyIpPort = domChild.text().toUtf8();
+                }
+
+                domChild = domRoot.firstChildElement ("get-uri");
+
+                if (!domChild.isNull() && !domChild.text().isEmpty())
+                {
+                    info->systemconfig.serverNamePath = domChild.text().toUtf8();
+                }
             }
+
+            domRoot = domRoot.nextSiblingElement ("parameters");
+
+            if (!domRoot.isNull() && domRoot.hasAttribute ("version"))
+                info->systemconfig.parametersVersion = domRoot.attribute ("version").toUtf8();
+
+            domRoot = domRoot.nextSiblingElement ("hints");
+
+            if (!domRoot.isNull() && domRoot.hasAttribute ("version"))
+            {
+                info->systemconfig.hintsVersion = domRoot.attribute ("version").toUtf8();
+                domChild = domRoot.firstChildElement ("addbuddy-phrases");
+                QDomElement domGrand = domChild.firstChildElement ("phrases");
+
+                while (!domGrand.isNull() && domGrand.hasAttribute ("id"))
+                {
+                    info->phrases.append (domGrand.text().toUtf8());
+                    domGrand.nextSiblingElement ("phrases");
+                }
+            }
+
+            //when finish, start sip-c
+            qDebug() << "serverConfigGot";
+
+            emit serverConfigParsed();
+        }
+    }
+
+
+    void User::parseSipcAuthorize (QByteArray &data)
+    {
+        //TODO check if statusCode is 200
+        // if 420 or 421, inform user to verify // parse_add_buddy_verification
+        // if 200 goes following
+        // extract :
+        // public-ip, last-login-ip,last-login-time,
+        // custom-config,contact-list,chat-friends
+        // quota-frequency
+        if (data.isEmpty())
+        {
+            qDebug() << "data are empty";
         }
 
-        handleSipcAuthorizeResponse (sipcSocket->readAll());
+        qDebug() << "parseSipcAuthorize=========";
+
+        qDebug() << QString::fromUtf8 (data);
+        int b = data.indexOf ("<results>");
+        int e = data.indexOf ("</results>");
+        QByteArray xml = data.mid (b, e - b + 10);
+        QDomDocument domDoc;
+        QString errorMsg;
+        int errorLine, errorColumn;
+        bool ok = domDoc.setContent (xml, false, &errorMsg, &errorLine, &errorColumn);
+
+        if (!ok)
+        {
+            // perhaps need more data from  socket
+            qDebug() << "Wrong sipc authorize response";
+            return;
+        }
+
+        // begin to parse
+        domDoc.normalize();
+
+        qDebug() << QString::fromUtf8 (domDoc.toByteArray (4));
+
+        QDomElement domRoot = domDoc.documentElement();
+
+        QDomElement domChild;
+
+        if (domRoot.tagName() == "results")
+        {
+            domChild = domRoot.firstChildElement ("client");
+
+            if (!domChild.isNull() && domChild.hasAttribute ("public-ip") &&
+                domChild.hasAttribute ("last-login-time") &&
+                domChild.hasAttribute ("last-login-ip"))
+            {
+                info->client.publicIp = domChild.attribute ("public-ip").toUtf8();
+                info->client.lastLoginIp = domChild.attribute ("last-login-ip").toUtf8();
+                info->client.lastLoginTime = domChild.attribute ("last-login-time").toUtf8();
+            }
+
+            domChild = domRoot.firstChildElement ("user-info");
+
+            domChild = domChild.firstChildElement ("personal");
+
+            if (!domChild.isNull() && domChild.hasAttribute ("user-id") &&
+                domChild.hasAttribute ("carrier") && //should be CMCC?
+                domChild.hasAttribute ("version") &&
+                domChild.hasAttribute ("nickname") &&
+                domChild.hasAttribute ("gender") &&
+                domChild.hasAttribute ("birth-date") &&
+                domChild.hasAttribute ("mobile-no") &&
+                domChild.hasAttribute ("sms-online-status") &&
+                domChild.hasAttribute ("carrier-region") &&
+                domChild.hasAttribute ("carrier-status") &&
+                domChild.hasAttribute ("impresa"))
+            {
+                info->client.birthDate = domChild.attribute ("birth-date").toUtf8();
+                info->client.carrierRegion = domChild.attribute ("carrier_region").toUtf8();
+                info->client.carrierStatus = domChild.attribute ("carrier_status").toUtf8();
+                info->client.gender = domChild.attribute ("gender").toUtf8();
+                info->client.impresa = domChild.attribute ("impresa").toUtf8();
+                info->client.mobileNo = domChild.attribute ("mobile_no").toUtf8();
+                info->client.nickname = domChild.attribute ("nickname").toUtf8();
+                info->client.smsOnLineStatus = domChild.attribute ("sms-online-status").toUtf8();
+                info->client.version = domChild.attribute ("version").toUtf8();
+            }
+
+            domChild = domChild.nextSiblingElement ("custom-config");
+
+            if (!domChild.isNull() && domChild.hasAttribute ("version"))
+            {
+                info->client.customConfigVersion = domChild.attribute ("version").toUtf8();
+                //FIXME is that a xml segment?
+
+                if (!domChild.text().isEmpty())
+                    info->customConfig = domChild.text().toUtf8();
+            }
+
+            domChild = domChild.nextSiblingElement ("contact-list");
+
+// < contact-list version = "363826266" >
+//   < buddy-lists >
+//        < buddy-list id = "1" name = "我的好友" / >
+//   < / buddy-lists >
+//   <buddies>
+//         < b f="0" i="999999999" l="1" n="" o="0" p="identity=1;"
+//            r="1" u="sip:777777777@fetion.com.cn;p=4444" / >
+//         < b f="0" i="888888888" l="0" n="" o="0" p="identity=1;"
+//            r="2" u="sip:666666666@fetion.com.cn;p=3333" / >
+//   < / buddies >
+//   <chat-friends / >
+//   < blacklist / >
+//< / contact - list >
+// in buddies,
+// i: userId,  n:local name
+// o: group id, p: identity
+// r; relationStatus, u: sipuri
+
+            if (!domChild.isNull() && domChild.hasAttribute ("version"))
+            {
+                //TODO if the version is the same as that in local cache, means
+                // the list is the same too.
+                info->client.contactVersion = domChild.attribute ("version").toUtf8();
+                // for now, simply store this segment, we use it for view
+                // there are some properties
+                // groupCount
+                //TODO
+                // there is chat-friends and blacklist
+            }
+
+            domChild = domChild.nextSiblingElement ("quotas");
+
+            if (!domChild.isNull())
+            {
+                domChild = domChild.firstChildElement ("quota-frequency");
+
+                if (!domChild.isNull())
+                {
+                    domChild = domChild.firstChildElement ("frequency");
+
+                    if (!domChild.isNull() &&
+                        domChild.hasAttribute ("day-limit") &&
+                        domChild.hasAttribute ("day-count") &&
+                        domChild.hasAttribute ("month-limit") &&
+                        domChild.hasAttribute ("month-count"))
+                    {
+                        info->client.smsDayLimit = domChild.attribute ("day-limit").toUtf8();
+                        info->client.smsDayCount = domChild.attribute ("day-count").toUtf8();
+                        info->client.smsMonthCount = domChild.attribute ("month-limit").toUtf8();
+                        info->client.smsMonthCount = domChild.attribute ("month-count").toUtf8();
+                    }
+                }
+            }
+
+            emit sipcAuthorizeParsed();
+        }
     }
 
-    void User::handleSipcAuthorizeResponse (QByteArray data)
-    {
-        //if
-
-    }
-
-    void User::getSsiPic()
+    void User::ssiVerify()
     {
         QByteArray data = SsiPicData (info->verfication->algorithm, info->ssic);
         QTcpSocket socket;
         QHostInfo info = QHostInfo::fromName ("nav.fetion.com.cn");
         socket.connectToHost (info.addresses().first().toString(), 80);
 
-        if (!socket.waitForConnected())
+        if (!socket.waitForConnected (-1))
         {
+            //TODO handle exception here
             qDebug() << "waitForEncrypted" << socket.errorString();
             return;
         }
 
         socket.write (data);
 
-        while (socket.waitForReadyRead (-1))
-            parseServerConfig (socket.readAll());
+        QByteArray responseData;
+
+        while (socket.bytesAvailable() < (int) sizeof (quint16))
+            if (!socket.waitForReadyRead (-1))
+            {
+                qDebug() << "ssiLogin  waitForReadyRead"
+                << socket.error() << socket.errorString();
+            }
+
+        responseData += socket.readAll();
+
+//TODO
+//         parseServerConfig (responseData);
     }
 
 }
+
 #include "user.moc"
+
