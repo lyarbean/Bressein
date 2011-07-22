@@ -22,7 +22,9 @@
 #define BRESSEIN_USER_H
 
 #include <QtCore/QObject>
+#include <QtCore/QThread>
 #include <QtNetwork/QTcpSocket>
+
 #include "types.h"
 
 namespace Bressein
@@ -43,7 +45,7 @@ namespace Bressein
         Q_OBJECT
 
     public:
-        User (QByteArray number, QByteArray password);
+        User (QByteArray number, QByteArray password,QObject *parent = 0);
         virtual ~User();
         virtual bool operator== (const User& other);
 
@@ -83,7 +85,7 @@ namespace Bressein
         void parseSipcAuthorize (QByteArray &data);
 //         void parseSsiVerifyResponse (QByteArray &data);
     private:
-
+        QThread workerThread;
         class  UserInfo;
         typedef UserInfo * Info;
         Info info;

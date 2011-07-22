@@ -27,7 +27,8 @@
 
 namespace Bressein
 {
-    User::User (QByteArray number, QByteArray password)
+    User::User (QByteArray number, QByteArray password, QObject *parent) : QObject (parent)
+
     {
         sipcSocket = new QTcpSocket (this);
         sipcSocket->setReadBufferSize (0);
@@ -38,11 +39,20 @@ namespace Bressein
         connect (this, SIGNAL (sipcRegisterParsed()), SLOT (sipcAuthorize()));
         connect (this, SIGNAL (sipcAuthorizeParsed()), SLOT (keepAlive()));
         initialize (number, password);
+        this->moveToThread (&workerThread);
+        workerThread.start();
     }
 
     User::~User()
     {
         if (info) delete info;
+
+        if (workerThread.isRunning())
+        {
+            workerThread.quit();
+            workerThread.wait();
+        }
+
     }
 
     bool User::operator== (const User & other)
@@ -58,7 +68,8 @@ namespace Bressein
 
     void User::login()
     {
-        ssiLogin();
+        QMetaObject::invokeMethod (this, "ssiLogin");
+        // ssiLogin();
     }
 
     void User::keepAlive()
@@ -100,6 +111,7 @@ namespace Bressein
 
         //TODO ensure full of <results/> downloaded
         qDebug() << "To keepAlive";
+
         qDebug () << responseData;
 
         QTimer::singleShot (60000, this, SLOT (keepAlive()));
@@ -144,7 +156,7 @@ namespace Bressein
         qDebug() << "Begin ssi login";
         QByteArray password = (hashV4 (info->userId, info->password));
         QByteArray data = ssiLoginData (info->loginNumber, password);
-        QSslSocket socket;
+        QSslSocket socket (this);
         socket.connectToHostEncrypted (UID_URI, 443);
 
         if (!socket.waitForEncrypted (-1))
@@ -173,8 +185,7 @@ namespace Bressein
     void User::systemConfig()
     {
         QByteArray body = configData (info->loginNumber);
-        qDebug() << "getServerConfig " << body;
-        QTcpSocket socket;
+        QTcpSocket socket (this);
         QHostInfo info = QHostInfo::fromName ("nav.fetion.com.cn");
         socket.connectToHost (info.addresses().first().toString(), 80);
 
@@ -318,12 +329,9 @@ namespace Bressein
             length += sipcSocket->write (toSendMsg.right (toSendMsg.size() - length));
         }
 
-        qDebug() << "waitForBytesWritten";
-
         sipcSocket->waitForBytesWritten (-1);
         sipcSocket->flush();
 
-        qDebug() << "To read response";
         QByteArray responseData;
 
         while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
@@ -379,7 +387,7 @@ namespace Bressein
         }
 
         domDoc.normalize();
-
+        qDebug() << QString::fromUtf8 (domDoc.toByteArray (4));
         QDomElement domRoot = domDoc.documentElement();
 
         if (domRoot.tagName() == "results")
@@ -471,8 +479,6 @@ namespace Bressein
             return;
         }
 
-        qDebug() << "parseSipcRegister=========";
-
         qDebug() << QString::fromUtf8 (data);
         int b, e;
 
@@ -490,8 +496,6 @@ namespace Bressein
         // generate response
         info->response = RSAPublicEncrypt (info->userId, info->password,
                                            info->nonce, info->aeskey, info->key);
-        // DO authorize
-        qDebug() << "to sipcAuthorize";
         emit sipcRegisterParsed();
     }
 
@@ -504,9 +508,6 @@ namespace Bressein
             return;
         }
 
-        qDebug() << "parseServerConfig=========";
-
-        qDebug() << QString::fromUtf8 (data);
         QDomDocument domDoc;
 
         QByteArray xml = data.mid (data.indexOf ("<?xml version=\"1.0\""));
@@ -519,7 +520,8 @@ namespace Bressein
             qDebug() << "==============================";
             return;
         }
-
+        domDoc.normalize();
+        qDebug() << QString::fromUtf8 (domDoc.toByteArray (4));
         QDomElement domRoot = domDoc.documentElement();
 
         QDomElement domChild;
@@ -568,8 +570,6 @@ namespace Bressein
             }
 
             //when finish, start sip-c
-            qDebug() << "serverConfigGot";
-
             emit serverConfigParsed();
         }
     }
@@ -589,8 +589,6 @@ namespace Bressein
             qDebug() << "data are empty";
         }
 
-        qDebug() << "parseSipcAuthorize=========";
-
         qDebug() << QString::fromUtf8 (data);
         int b = data.indexOf ("<results>");
         int e = data.indexOf ("</results>");
@@ -609,8 +607,6 @@ namespace Bressein
 
         // begin to parse
         domDoc.normalize();
-
-        qDebug() << QString::fromUtf8 (domDoc.toByteArray (4));
 
         QDomElement domRoot = domDoc.documentElement();
 
