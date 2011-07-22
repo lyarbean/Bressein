@@ -104,8 +104,6 @@ namespace Bressein
         char *keyC = key.data(); // it points to key's data, never free it;
         char modulus[257];
         char exponent[7];
-        memset (modulus, 0, sizeof (modulus));
-        memset (exponent, 0, sizeof (exponent));
         memcpy (modulus , keyC, 256);
         memcpy (exponent, keyC + 256, 6);
         BIGNUM *bnn, *bne;
@@ -135,8 +133,8 @@ namespace Bressein
         // split ret into hex bytearray
         Q_ASSERT (ret == 128);
         char* result = (char*) malloc (ret * 2 + 1);
-        int i = 0;
         memset (result , 0 , ret * 2 + 1);
+        int i = 0;
 
         while (i < ret)
         {
@@ -166,7 +164,7 @@ namespace Bressein
 
         for (quint16 i = 0; i < time; i++)
         {
-            t.append (QByteArray::number (qrand(),16));
+            t.append (QByteArray::number (qrand(), 16));
         }
 
         return t.toUpper();
@@ -329,11 +327,11 @@ namespace Bressein
      * @return QByteArray
      **/
     static QByteArray sipcAuthorizeBody (QByteArray& mobileNumber,
-                                        QByteArray& userId,
-                                        QByteArray& personalVersion,
-                                        QByteArray& customConfigVersion,
-                                        QByteArray& contactVersion,
-                                        QByteArray& state)
+                                         QByteArray& userId,
+                                         QByteArray& personalVersion,
+                                         QByteArray& customConfigVersion,
+                                         QByteArray& contactVersion,
+                                         QByteArray& state)
     {
         QByteArray body = "<args><device machine-code=\"001676C0E351\"/>";
         body.append ("<caps value=\"1ff\"/><events value=\"7f\"/>"

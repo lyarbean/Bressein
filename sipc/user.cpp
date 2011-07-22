@@ -102,7 +102,7 @@ namespace Bressein
         qDebug() << "To keepAlive";
         qDebug () << responseData;
 
-        QTimer::singleShot (6000, this, SLOT (keepAlive()));
+        QTimer::singleShot (60000, this, SLOT (keepAlive()));
     }
 
     void User::sendMsg (QByteArray& fetionId, QByteArray& message)
