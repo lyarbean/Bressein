@@ -54,8 +54,6 @@ namespace Bressein
         }
 
         if (info) delete info;
-
-
     }
 
     bool User::operator== (const User & other)
@@ -751,6 +749,13 @@ namespace Bressein
 //         parseServerConfig (responseData);
     }
 
+    void User::contactInfo (QByteArray& userId)
+    {
+
+    }
+
+
+//private
     void User::activateTimer()
     {
         connect (timer, SIGNAL (timeout()), this, SLOT (keepAlive()));
