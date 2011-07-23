@@ -26,7 +26,7 @@
 #include <QtNetwork/QTcpSocket>
 
 #include "types.h"
-
+class QTimer;
 namespace Bressein
 {
     // As SSi login is a short-connection, we don't run it in another thread
@@ -54,8 +54,8 @@ namespace Bressein
         void login();
         void close();
         void keepAlive();//called in period when connection established
-        void sendMsg (QByteArray& fetionId, QByteArray& message);
-        void addBuddy (QByteArray& number, QByteArray& info);
+        void sendMessage (QByteArray& toSipuri, QByteArray& message);
+        void addBuddy (QByteArray& number, QByteArray buddyLists = "0", QByteArray localName = "", QByteArray desc ="",  QByteArray phraseId = "0");
 
         //number could either be fetionId or phone number.
 
@@ -73,6 +73,7 @@ namespace Bressein
          * @return void
          **/
         void initialize (QByteArray number, QByteArray password);
+        void sipcWriteRead(QByteArray& in, QByteArray& out);
     private slots:
 // functions that performance networking
         void ssiLogin();
@@ -86,8 +87,11 @@ namespace Bressein
         void parseSipcRegister (QByteArray &data);
         void parseSipcAuthorize (QByteArray &data);
 //         void parseSsiVerifyResponse (QByteArray &data);
+        void activateTimer();
+        //TODO inactivateTimer
     private:
         QThread workerThread;
+        QTimer* timer;
         class  UserInfo;
         typedef UserInfo * Info;
         Info info;

@@ -30,6 +30,7 @@ namespace Bressein
     User::User (QByteArray number, QByteArray password, QObject *parent) : QObject (parent)
 
     {
+        timer = new QTimer (this);
         sipcSocket = new QTcpSocket (this);
         sipcSocket->setReadBufferSize (0);
         sipcSocket->setSocketOption (QAbstractSocket::KeepAliveOption, 1);
@@ -37,7 +38,7 @@ namespace Bressein
         connect (this, SIGNAL (ssiResponseParsed()), SLOT (systemConfig()));
         connect (this, SIGNAL (serverConfigParsed()), SLOT (sipcRegister()));
         connect (this, SIGNAL (sipcRegisterParsed()), SLOT (sipcAuthorize()));
-        connect (this, SIGNAL (sipcAuthorizeParsed()), SLOT (keepAlive()));
+        connect (this, SIGNAL (sipcAuthorizeParsed()), SLOT (activateTimer()));
         initialize (number, password);
         this->moveToThread (&workerThread);
         workerThread.start();
@@ -51,6 +52,7 @@ namespace Bressein
             workerThread.quit();
             workerThread.wait();
         }
+
         if (info) delete info;
 
 
@@ -75,6 +77,7 @@ namespace Bressein
 
     void User::close()
     {
+        // note this is called from main thread
         workerThread.deleteLater();
     }
 
@@ -86,51 +89,33 @@ namespace Bressein
             return;
         }
 
-        QByteArray toSendMsg = keepAliveData (info->fetionNumber, info->callId);
-
-        int length = 0;
-// TODO wrapped following segment
-
-        while (length < toSendMsg.length())
-        {
-            length += sipcSocket->write (toSendMsg.right (toSendMsg.size() - length));
-        }
-
-        sipcSocket->waitForBytesWritten (-1);
-
-        QByteArray responseData;
-
-        while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
-        {
-            if (!sipcSocket->waitForReadyRead (-1))
-            {
-                qDebug() << "sipcAuthorize waitForReadyRead"
-                << sipcSocket->error() << sipcSocket->errorString();
-                return;
-            }
-        }
-
-        while (sipcSocket->waitForReadyRead ())
-        {
-            responseData += sipcSocket->readAll();
-        }
-
-        //TODO ensure full of <results/> downloaded
         qDebug() << "To keepAlive";
 
+        QByteArray toSendMsg = keepAliveData (info->fetionNumber, info->callId);
+
+        QByteArray responseData;
+        sipcWriteRead (toSendMsg, responseData);
+
+        //TODO ensure full of <results/> downloaded
         qDebug () << responseData;
-
-        QTimer::singleShot (6000, this, SLOT (keepAlive()));
     }
 
-    void User::sendMsg (QByteArray& fetionId, QByteArray& message)
+    void User::sendMessage (QByteArray& toSipuri, QByteArray& message)
     {
-
+        QByteArray toSendMsg = messagedata (info->fetionNumber, toSipuri, info->callId, message);
+        QByteArray responseData;
+        sipcWriteRead (toSendMsg, responseData);
+        // TODO handle
     }
 
-    void User::addBuddy (QByteArray& number, QByteArray& info)
+    void User::addBuddy (QByteArray& number, QByteArray buddyLists, QByteArray localName,
+                         QByteArray desc,  QByteArray phraseId)
     {
-
+        QByteArray toSendMsg = addBuddyData (info->fetionNumber, number, info->callId,
+                                             buddyLists, localName, desc, phraseId);
+        QByteArray responseData;
+        sipcWriteRead (toSendMsg, responseData);
+        // TODO handle
     }
 
 // private
@@ -154,6 +139,36 @@ namespace Bressein
         info->state = "400";// online
         info->cnonce = cnouce();
         info->callId = 1;
+    }
+
+    void User::sipcWriteRead (QByteArray& in, QByteArray& out)
+    {
+        int length = 0;
+        // TODO wrapped following segment
+
+        while (length < in.length())
+        {
+            length += sipcSocket->write (in.right (in.size() - length));
+        }
+
+        sipcSocket->waitForBytesWritten (-1);
+
+        sipcSocket->flush();
+
+        while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
+        {
+            if (!sipcSocket->waitForReadyRead (-1))
+            {
+                qDebug() << "When waitForReadyRead"
+                << sipcSocket->error() << sipcSocket->errorString();
+                return;
+            }
+        }
+
+        while (sipcSocket->waitForReadyRead ())
+        {
+            out += sipcSocket->readAll();
+        }
     }
 
     void User::ssiLogin()
@@ -250,38 +265,9 @@ namespace Bressein
         toSendMsg.append ("Q: 2 ").append ("R\r\n");
         toSendMsg.append ("CN: ").append (info->cnonce).append ("\r\n");
         toSendMsg.append ("CL: type=\"pc\" ,version=\"" + PROTOCOL_VERSION + "\"\r\n\r\n");
-        int length = 0;
 
-        while (length < toSendMsg.length())
-        {
-            length += sipcSocket->write (toSendMsg.right (toSendMsg.size() - length));
-        }
-
-        sipcSocket->waitForBytesWritten (-1);
-
-        //QCoreApplication::processEvents();
-        qDebug() << "written " << toSendMsg;
-        sipcSocket->flush();
         QByteArray responseData;
-
-        while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
-        {
-            if (!sipcSocket->waitForReadyRead (-1))
-            {
-                qDebug() << "#sipcRegister  waitForReadyRead"
-                << sipcSocket->error() << sipcSocket->errorString();
-                return;
-            }
-        }
-
-        //         while (sipcSocket->waitForReadyRead (-1))
-        //         {
-        responseData = sipcSocket->readAll();
-
-        //         }
-
-        qDebug() << responseData;
-
+        sipcWriteRead (toSendMsg, responseData);
         parseSipcRegister (responseData);
     }
 
@@ -328,7 +314,6 @@ namespace Bressein
         toSendMsg.append ("\r\n\r\n");
         toSendMsg.append (body);
         int length = 0;
-        qDebug() << toSendMsg;
 
         while (length < toSendMsg.length())
         {
@@ -336,6 +321,7 @@ namespace Bressein
         }
 
         sipcSocket->waitForBytesWritten (-1);
+
         sipcSocket->flush();
 
         QByteArray responseData;
@@ -393,6 +379,7 @@ namespace Bressein
         }
 
         domDoc.normalize();
+
         qDebug() << QString::fromUtf8 (domDoc.toByteArray (4));
         QDomElement domRoot = domDoc.documentElement();
 
@@ -486,6 +473,7 @@ namespace Bressein
         }
 
         qDebug() << QString::fromUtf8 (data);
+
         int b, e;
 
         b = data.indexOf ("\",nonce=\"");
@@ -526,7 +514,9 @@ namespace Bressein
             qDebug() << "==============================";
             return;
         }
+
         domDoc.normalize();
+
         qDebug() << QString::fromUtf8 (domDoc.toByteArray (4));
         QDomElement domRoot = domDoc.documentElement();
 
@@ -596,6 +586,7 @@ namespace Bressein
         }
 
         qDebug() << QString::fromUtf8 (data);
+
         int b = data.indexOf ("<results>");
         int e = data.indexOf ("</results>");
         QByteArray xml = data.mid (b, e - b + 10);
@@ -758,6 +749,12 @@ namespace Bressein
 
 //TODO
 //         parseServerConfig (responseData);
+    }
+
+    void User::activateTimer()
+    {
+        connect (timer, SIGNAL (timeout()), this, SLOT (keepAlive()));
+        timer->start (40000);
     }
 
 }

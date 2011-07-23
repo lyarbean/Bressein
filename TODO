@@ -1,2 +1,4 @@
 @. Better interaction
 @. Multitasking / Multi-threaded
+    @@ done?
+@. Use state machine to handle server's reply when sipc is on

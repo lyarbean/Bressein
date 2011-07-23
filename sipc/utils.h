@@ -21,7 +21,7 @@ namespace Bressein
     const static QByteArray UID_URI = "uid.fetion.com.cn";
     const static QByteArray SSI_URI = "/ssiportal/SSIAppSignInV4.aspx";
 
-    /** \fn static QByteArray hashV1 ( QByteArray &userIdInt, QByteArray &password )
+    /** @fn static QByteArray hashV1 ( QByteArray &userIdInt, QByteArray &password )
      * @brief Returns the Sha1 in Hex, of the catenation of userIdInt and password
      *
      * @param userId
@@ -35,7 +35,7 @@ namespace Bressein
     }
 
     /**
-     * \fn static QByteArray hashV2 ( QByteArray &userId, QByteArray &hashV4 )
+     * @fn static QByteArray hashV2 ( QByteArray &userId, QByteArray &hashV4 )
      * @brief hashV2
      *
      * @param userId in decimal
@@ -64,7 +64,7 @@ namespace Bressein
     }
 
     /**
-     * \fn static QByteArray hashV4 ( QByteArray &userId, QByteArray &password )
+     * @fn static QByteArray hashV4 ( QByteArray &userId, QByteArray &password )
      * @brief If userId is null then returns  hashV1 ( prefix, password ),
      *  otherwise returns hashV2 ( userId, hashV1 ( prefix,password )),
      *  where prefix is 'fetion.com.cn:'.
@@ -151,7 +151,7 @@ namespace Bressein
         return resultHex.toUpper();
     }
 
-    /** \fn static QByteArray cnouce(quint16 time = 2)
+    /** @fn static QByteArray cnouce(quint16 time = 2)
      * @brief generate a QByteArray in hex of length 16 * time
      *
      * @param time  2 as default.
@@ -170,7 +170,7 @@ namespace Bressein
         return t.toUpper();
     }
 
-    /** \fn static QByteArray configData(QByteArray& number)
+    /** @fn static QByteArray configData(QByteArray& number)
      * @brief Generate a body for fetching server's configuration
      *
      * @param number The phone number or fetion number
@@ -209,7 +209,7 @@ namespace Bressein
         return data;
     }
 
-    /** \fn static QByteArray ssiLoginData (QByteArray& number, QByteArray& passwordhashed4)
+    /** @fn static QByteArray ssiLoginData (QByteArray& number, QByteArray& passwordhashed4)
      * @brief A body that written to sslsocket on SsiLogin
      *
      * @param number The phone number or fetion number.
@@ -263,7 +263,7 @@ namespace Bressein
         return data;
     }
 
-    /** \fn static QByteArray ssiVerifyData (QByteArray& number, QByteArray& passwordha*shed4, QByteArray& guid, QByteArray& code, QByteArray& algorithm)
+    /** @fn static QByteArray ssiVerifyData (QByteArray& number, QByteArray& passwordha*shed4, QByteArray& guid, QByteArray& code, QByteArray& algorithm)
      * @brief A http body for Ssi Verification
      *
      * @param number The phone number or fetion number.
@@ -316,7 +316,7 @@ namespace Bressein
         return data;
     }
 
-    /** \fn static QByteArray sipcAuthorizeBody(QByteArray& mobileNumber, QByteArray& userId*, QByteArray& personalVersion, QByteArray& customConfigVersion, QByteArray& contactVersion, QByteArray& state)
+    /** @fn static QByteArray sipcAuthorizeBody(QByteArray& mobileNumber, QByteArray& userId*, QByteArray& personalVersion, QByteArray& customConfigVersion, QByteArray& contactVersion, QByteArray& state)
      * @brief Generate a body for sipc authorization
      * @param mobileNumber ...
      * @param userId ...
@@ -369,6 +369,70 @@ namespace Bressein
         return data;
     }
 
+    /** @fn
+     * @brief ...
+     *
+     * @param fromFetionNumber ...
+     * @param toSipuri ...
+     * @param callId ...
+     * @param message ...
+     * @return QByteArray
+     **/
+    static QByteArray messagedata (QByteArray &fromFetionNumber, QByteArray &toSipuri, int& callId, QByteArray& message)
+    {
+        QByteArray data ("M fetion.com.cn SIP-C/4.0\r\n");
+        data.append ("F: ").append (fromFetionNumber).append ("\r\n");
+        data.append ("I: ").append (QByteArray::number (callId++)).append ("\r\n");
+        data.append ("Q: 2 M\r\n");
+        data.append ("T: ");
+        data.append (toSipuri);
+        data.append ("\r\n");
+        data.append ("C: text/plain\r\n");
+        data.append ("K: SaveHistory");
+        data.append ("N: CatMsg\r\n");
+        data.append ("L: ");
+        data.append (QByteArray::number (message.size()));
+        data.append ("\r\n\r\n");
+        data.append (message);
+        return data;
+    }
+
+    static QByteArray addBuddyData (QByteArray& fromFetionNumber, QByteArray& buddyNumber,
+                                    int& callId, QByteArray& buddyLists, QByteArray& localName,
+                                    QByteArray& desc,  QByteArray& phraseId)
+    {
+        QByteArray body = "<args><contacts><buddies><buddy uri=\"";
+
+        if (buddyNumber.size() == 11)
+        {
+            body.append ("tel:").append (buddyNumber);
+        }
+        else
+        {
+            body.append ("sip:").append (buddyNumber);
+        }
+        body.append("\" localName=\"");
+        body.append(localName);
+        body.append("\" buddy-lists=\"");
+        body.append(buddyLists);
+        body.append("\" desc=\"");
+        body.append(desc);// in form &#xABCD;, where ABCD is the utf8 code of character
+        body.append("\" expose-mobile-no=\"1\" expose-name=\"1\" addbuddy-phrase-id=\"");
+        body.append(phraseId);
+        body.append ("\"/></buddies></contacts></args>");
+
+        QByteArray data ("S fetion.com.cn SIP-C/4.0\r\n");
+        data.append ("F: ").append (fromFetionNumber).append ("\r\n");
+        data.append ("I: ").append (QByteArray::number (callId++)).append ("\r\n");
+        data.append ("Q: 2 S\r\n");
+//TODO if verify
+        data.append ("N: AddBuddyV4\r\n");
+        data.append ("L: ");
+        data.append (QByteArray::number (body.size()));
+        data.append ("\r\n\r\n");
+        data.append (body);
+        return data;
+    }
 }
 
 /*! @} */
