@@ -11,60 +11,80 @@
 
 namespace Bressein
 {
-    /**
-     * @brief The current Fetion's version
-     **/
-    const static QByteArray PROTOCOL_VERSION = "4.3.0980";
-    const static QByteArray NAVIGATION = "nav.fetion.com.cn";
-    const static QByteArray DOMAIN = "fetion.com.cn";
-    const static QByteArray UID_URI = "uid.fetion.com.cn";
+/**
+ * @brief The current Fetion's version
+ **/
+const static QByteArray PROTOCOL_VERSION = "4.3.0980";
+const static QByteArray NAVIGATION = "nav.fetion.com.cn";
+const static QByteArray DOMAIN = "fetion.com.cn";
+const static QByteArray UID_URI = "uid.fetion.com.cn";
 
-    extern  QByteArray hashV1 (QByteArray &userId, QByteArray &password);
+extern QByteArray hashV1 (const QByteArray &userId, const QByteArray &password);
 
-    extern QByteArray hashV2 (QByteArray &userId, QByteArray &hashV4);
+extern QByteArray hashV2 (const QByteArray &userId, const QByteArray &hashV4);
 
-    extern QByteArray hashV4 (QByteArray &userId, QByteArray &password);
+extern QByteArray hashV4 (const QByteArray &userId, const QByteArray &password);
 
-    extern QByteArray RSAPublicEncrypt (QByteArray userId,
-                                        QByteArray password,
-                                        QByteArray nonce,
-                                        QByteArray aeskey,
-                                        QByteArray key/*public key*/);
+extern QByteArray RSAPublicEncrypt (
+        const QByteArray &userId,
+        const QByteArray &password,
+        const QByteArray &nonce,
+        const QByteArray &aeskey,
+        const QByteArray &key/*public key*/);
 
-    extern QByteArray cnouce (quint16 time = 4);
+extern QByteArray cnouce (quint16 time = 4);
 
-    extern QByteArray configData (QByteArray& number);
+extern QByteArray configData (const QByteArray &number);
 
-    extern QByteArray ssiLoginData (QByteArray& number,
-                                    QByteArray& passwordhashed4,
-                                    QByteArray passwordType = "1");
+extern QByteArray ssiLoginData (
+        const QByteArray &number,
+        const QByteArray &passwordhashed4,
+        const QByteArray passwordType = "1");
 
-    extern QByteArray SsiPicData (QByteArray algorithm, QByteArray ssic);
+extern QByteArray SsiPicData (
+        const QByteArray &algorithm, const QByteArray &ssic);
 
-    extern QByteArray ssiVerifyData (QByteArray& number,
-                                     QByteArray& passwordhashed4,
-                                     QByteArray& guid,
-                                     QByteArray& code,
-                                     QByteArray& algorithm,
-                                     QByteArray passwordType = "1");
+extern QByteArray ssiVerifyData (
+        const QByteArray &number,
+        const QByteArray &passwordhashed4,
+        const QByteArray &guid,
+        const QByteArray &code,
+        const QByteArray &algorithm,
+        QByteArray passwordType = "1");
 
-    extern QByteArray sipcAuthorizeBody (QByteArray& mobileNumber,
-                                         QByteArray& userId,
-                                         QByteArray& personalVersion,
-                                         QByteArray& customConfigVersion,
-                                         QByteArray& contactVersion,
-                                         QByteArray& state);
+extern QByteArray sipcAuthorizeData (
+        const QByteArray &mobileNumber,
+        const QByteArray &fetionNumber,
+        const QByteArray &userId,
+        int &callId,
+        const QByteArray &response,
+        const QByteArray &personalVersion,
+        const QByteArray &customConfigVersion,
+        const QByteArray &contactVersion,
+        const QByteArray &state);
 
-    extern QByteArray keepAliveData (QByteArray &fetionNumber, int& callId);
+extern QByteArray keepAliveData (const QByteArray &fetionNumber, int& callId);
 
-    extern QByteArray messagedata (QByteArray &fromFetionNumber, QByteArray &toSipuri, int& callId, QByteArray& message);
+extern QByteArray messagedata (
+        const QByteArray &fromFetionNumber,
+        const QByteArray &toSipuri,
+        int& callId,
+        const QByteArray &message);
 
-    extern QByteArray addBuddyData (QByteArray& fromFetionNumber, QByteArray& buddyNumber,
-                                    int& callId, QByteArray& buddyLists, QByteArray& localName,
-                                    QByteArray& desc,  QByteArray& phraseId);
+extern QByteArray addBuddyData (
+        const QByteArray &fromFetionNumber,
+        const QByteArray &buddyNumber,
+        int &callId,
+        const QByteArray &buddyLists,
+        const QByteArray &localName,
+        const QByteArray &desc,
+        const QByteArray &phraseId);
 
-    extern QByteArray contactInfoData (QByteArray& fetionNumber, QByteArray &userId, int& callId);
+extern QByteArray contactInfoData (
+        const QByteArray &fetionNumber,
+        const QByteArray &userId, int &callId);
 }
 
 /*! @} */
 #endif
+

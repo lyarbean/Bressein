@@ -7,22 +7,18 @@
 
 namespace Bressein
 {
-    Bressein::Bressein()
-    {
-        QLabel* l = new QLabel (this);
-        l->setText ("Hello World!");
-        setCentralWidget (l);
-        QAction* a = new QAction (this);
-        a->setText ("Quit");
-        connect (a, SIGNAL (triggered()), SLOT (close()));
-        menuBar()->addMenu ("File")->addAction (a);
-        user = new User ("13710940390", "3200614fetion");
-        user->login();
-    }
+Bressein::Bressein()
+{
 
-    Bressein::~Bressein()
-    {
-        user->close();
-    }
+    addText ("Hey, I'm Bressein!");
+    setForegroundBrush (QColor (255, 255, 255, 127));
+    user = new User ("13710940390", "3200614fetion");
+    user->login();
+}
+
+Bressein::~Bressein()
+{
+    user->close();
+}
 }
 #include "Bressein.moc"

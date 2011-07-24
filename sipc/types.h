@@ -53,7 +53,7 @@ namespace Bressein
         IMAGE_ALLREADY_SET
     };
 
-    struct contact
+    struct Contact
     {
         // from contact list
         // i: userId,  n:local name
@@ -86,11 +86,11 @@ namespace Bressein
         int dirty;             //whether the contact read from the server is latest
     };
 
-    struct group
+    struct Group
     {
         QByteArray groupname; // current buddy list name
-        int groupId;          // current buddy list Id
-        int dirty;
+        QByteArray groupId;          // current buddy list Id
+//         QByteArray dirty;
     };
     //TODO
     // pggroupmember
