@@ -26,12 +26,12 @@ namespace Bressein
     enum StatusType
     {
         STATUS_NORMAL = 1,       //normal status
-        STATUS_OFFLINE,          //user offline , deleted you from his list or out of service
+        STATUS_OFFLINE,          //user offline
         STATUS_NOT_AUTHENTICATED,//user has not accept your add buddy request
         STATUS_SMS_ONLINE,       //user has not start fetion service
-        STATUS_REJECTED,         //user rejected your add buddy request,wait for deleting
+        STATUS_REJECTED,         //user rejected your add buddy request
         STATUS_SERVICE_CLOSED,   //user has closed his fetion service
-        STATUS_NOT_BOUND         //user doesn`t bound fetion number to a mobile number
+        STATUS_NOT_BOUND         //user doesn`t bound fetion to a mobile number
     };
     /**
      * @brief some other buddylists
