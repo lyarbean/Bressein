@@ -813,7 +813,7 @@ void User::contactInfo (const QByteArray& Number, bool mobile)
 
 void User::sendMessage (const QByteArray& toSipuri, const QByteArray& message)
 {
-    QByteArray toSendMsg = messagedata (info->fetionNumber,
+    QByteArray toSendMsg = catMsgData (info->fetionNumber,
             toSipuri, info->callId, message);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData);
@@ -827,7 +827,7 @@ void User::addBuddy (
     QByteArray desc,
     QByteArray phraseId)
 {
-    QByteArray toSendMsg = addBuddyData (info->fetionNumber, number,
+    QByteArray toSendMsg = addBuddyV4Data (info->fetionNumber, number,
             info->callId, buddyLists, localName, desc, phraseId);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData);
@@ -837,7 +837,7 @@ void User::addBuddy (
 void User::deleteBuddy (const QByteArray& userId)
 {
     QByteArray toSendMsg =
-        deleteBuddyData (info->fetionNumber, userId, info->callId);
+        deleteBuddyV4Data (info->fetionNumber, userId, info->callId);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData);
     // TODO handle responseData
@@ -846,7 +846,7 @@ void User::deleteBuddy (const QByteArray& userId)
 void User::contactSubscribe()
 {
     QByteArray toSendMsg =
-        contactSubscribeData (info->fetionNumber, info->callId);
+        presenceV4Data (info->fetionNumber, info->callId);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData);
 }
@@ -883,7 +883,7 @@ void User::inviteFriend (const QByteArray& sipUri)
     while (socket.waitForReadyRead())
         responseData += socket.readAll();
     responseData.clear();
-    toSendMsg = invitateData (info->fetionNumber, info->callId, sipUri);
+    toSendMsg = inviteBuddyData (info->fetionNumber, info->callId, sipUri);
     sipcWriteRead (toSendMsg, responseData);
     // TODO check if 200
 }
@@ -891,7 +891,7 @@ void User::inviteFriend (const QByteArray& sipUri)
 void User::createBuddylist (const QByteArray &name)
 {
     QByteArray toSendMsg =
-        createGroupData (info->fetionNumber, info->callId, name);
+        createBuddyListData (info->fetionNumber, info->callId, name);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData);
     // TODO handle responseData, get version, name, id
@@ -900,7 +900,7 @@ void User::createBuddylist (const QByteArray &name)
 void User::deleteBuddylist (const QByteArray& id)
 {
     QByteArray toSendMsg =
-        deleteGroupData (info->fetionNumber, info->callId, id);
+        deleteBuddyListData (info->fetionNumber, info->callId, id);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData);
     // TODO handle responseData, get version, name, id
@@ -909,7 +909,7 @@ void User::deleteBuddylist (const QByteArray& id)
 void User::renameBuddylist (const QByteArray &id, const QByteArray &name)
 {
     QByteArray toSendMsg =
-        renameGroupData (info->fetionNumber, info->callId, id, name);
+        setBuddyListInfoData (info->fetionNumber, info->callId, id, name);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData);
     // TODO
@@ -917,7 +917,7 @@ void User::renameBuddylist (const QByteArray &id, const QByteArray &name)
 
 void User::updateInfo ()
 {
-    QByteArray toSendMsg = updateInfoData (
+    QByteArray toSendMsg = setUserInfoV4Data (
                 info->fetionNumber, info->callId,
                 info->client.impresa, info->client.nickname,
                 info->client.gender, info->client.customConfig,
@@ -929,7 +929,7 @@ void User::updateInfo ()
 
 void User::setImpresa (const QByteArray& impresa)
 {
-    QByteArray toSendMsg = impresaData (
+    QByteArray toSendMsg = setUserInfoV4Data (
                 info->fetionNumber, info->callId, impresa,
                 info->client.version,
                 info->client.customConfig,
@@ -941,17 +941,17 @@ void User::setImpresa (const QByteArray& impresa)
 
 void User::setMessageStatus (int days)
 {
-    QByteArray toSendMsg = messageStatusData (
+    QByteArray toSendMsg = setUserInfoV4Data (
                 info->fetionNumber, info->callId, days);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData);
 }
 
-void User::setClientState (StateType& st)
+void User::setClientState (StateType& state)
 {
-    QByteArray state = QByteArray::number ( (int) st);
-    QByteArray toSendMsg = clientStatusData (
-                info->fetionNumber, info->callId, state);
+    QByteArray statetype = QByteArray::number ( (int) state);
+    QByteArray toSendMsg = setPresenceV4Data (
+                info->fetionNumber, info->callId, statetype);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData);
 }

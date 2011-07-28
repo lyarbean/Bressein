@@ -12,7 +12,7 @@ Bressein::Bressein()
 
     addText ("Hey, I'm Bressein!");
     setForegroundBrush (QColor (255, 255, 255, 127));
-    user = new User (qgetenv("FETIONNUMBER"), qgetenv("FETIONPASSWORD"));
+    user = new User (qgetenv ("FETIONNUMBER"), qgetenv ("FETIONPASSWORD"));
     user->login();
 }
 

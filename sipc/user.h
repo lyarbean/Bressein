@@ -123,12 +123,14 @@ private slots:
     // FIXME
     // directMessage SIP_EVENT_DIRECTSMS SIP_EVENT_SENDDIRECTCATSMS
     // void replayContactRequest SIP_EVENT_HANDLECONTACTREQUEST
+    // PG
+    // getPgMembers SIP_EVENT_PGGETGROUPMEMBERS
     // getPgList SIP_EVENT_PGGETGROUPLIST
-    // getPgInfo SIP_EVENT_PGGETGROUPINFO
+    //void getPgInfo();//SIP_EVENT_PGGETGROUPINFO
     // subsribePg SIP_EVENT_PGPRESENCE
     // sendPgMessage SIP_EVENT_PGSENDCATSMS
 
-    void setClientState (StateType&);//SIP_EVENT_SETPRESENCE
+    void setClientState (StateType &state);//SIP_EVENT_SETPRESENCE
 
 // functions for parsing data
     void parseSsiResponse (QByteArray &data);

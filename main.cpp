@@ -7,8 +7,8 @@ int main (int argc, char** argv)
 {
     QApplication app (argc, argv);
     Bressein::Bressein foo;
-    QGraphicsView view(&foo);
-    view.setMinimumSize(128,64);
+    QGraphicsView view (&foo);
+    view.setMinimumSize (128, 64);
     view.show();
     return app.exec();
 }
