@@ -1,5 +1,5 @@
 #include "Bressein.h"
-
+#include "utils/singleton.h"
 #include <QtGui/QLabel>
 #include <QtGui/QMenu>
 #include <QtGui/QMenuBar>
@@ -12,7 +12,8 @@ Bressein::Bressein()
 
     addText ("Hey, I'm Bressein!");
     setForegroundBrush (QColor (255, 255, 255, 127));
-    user = new User (qgetenv ("FETIONNUMBER"), qgetenv ("FETIONPASSWORD"));
+    user = Singleton<User>::instance();
+    user->setAccount(qgetenv ("FETIONNUMBER"), qgetenv ("FETIONPASSWORD"));
     user->login();
 }
 

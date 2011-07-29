@@ -76,14 +76,14 @@ struct Contact
     QByteArray province;   //user`s province`s simplified form,like bj
     QByteArray city;       //user`s city`s code ,like 10 for beijing
 // other stuffs
-    int scoreLevel;        //user`s score level,unused now
-    int serviceStatus;     //basic service status
-    int carrierStatus;
+//     int scoreLevel;        //user`s score level,unused now
+//     int serviceStatus;     //basic service status
+//     int carrierStatus;
     QByteArray carrier;
     StateType state;       //state type like online,busy,etc
-    int gender;            //gender 1 for male 2 for female,0 for private
-    int imageChanged;      //whether user`s portrait has changed
-    int dirty;             //whether the contact read from the server is latest
+    QByteArray gender;            //gender '1' for male '2' for female,'0' for private
+/*    int imageChanged;      //whether user`s portrait has changed
+    int dirty;  */           //whether the contact read from the server is latest
 };
 
 struct Group

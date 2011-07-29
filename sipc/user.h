@@ -42,10 +42,10 @@ class User : public QObject
     Q_OBJECT
 
 public:
-    User (QByteArray number, QByteArray password, QObject *parent = 0);
+    explicit User(QObject* parent = 0);
     virtual ~User();
     virtual bool operator== (const User &other);
-
+    void setAccount(QByteArray number, QByteArray password);
 public slots:
 
     void login();
@@ -63,12 +63,6 @@ signals:
     void sipcAuthorizeParsed();
 // The following are executed in worker thread
 private:
-    /**
-     * @brief try to load local configuration and initialize info
-     *
-     * @return void
-     **/
-    void initialize (QByteArray number, QByteArray password);
     void sipcWriteRead (QByteArray &in, QByteArray &out);
 
 private slots:

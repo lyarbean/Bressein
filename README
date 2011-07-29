@@ -4,12 +4,12 @@ License.
 
 Code style:
 1. USE and not or xor not_eq instead of && ! || !=
-2. try to make one line not more that 80 characters
+2. try to make line length no more that 80 characters
 3. if a declaration or definition of a function is too long, try to put
  arguments in next line first to fit the rule above. If the arguments list is
  too long, align them.
 4. Use astyle to format codes, with a modified style ANSI:
-    --style=ansi --indent=space=4 --indent-preprocessor --indent-switches
-    --indent-cases --brackets=break --unpad-paren --pad-paren-out
-    --break-closing-brackets --align-pointer=name --min-conditional-indent=8
-    --max-instatement-indent=8 --lineend=linux
+    --style=ansi --indent=spaces=4 --indent-preprocessor --indent-switches
+    --indent-cases --brackets=break --pad-paren-out --pad-header --unpad-paren
+    --break-closing-brackets --align-pointer=name --min-conditional-indent=4
+    --max-instatement-indent=50 --lineend=linux

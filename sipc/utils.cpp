@@ -50,7 +50,7 @@ QByteArray hashV2 (const QByteArray &userId, const QByteArray &hashV4)
     QByteArray left;
     bool ok;
     unsigned int value = userId.toInt (&ok, 10);
-    if (!ok)
+    if (not ok)
     {
         return QByteArray ("");
     }
@@ -67,7 +67,7 @@ QByteArray hashV4 (const QByteArray &userId, const QByteArray &password)
     QByteArray prefix = DOMAIN;
     prefix.append (':');
     QByteArray res = hashV1 (prefix, password);
-    if (userId.isNull() || userId.isEmpty())
+    if (userId.isNull() or userId.isEmpty())
         return res;
     return hashV2 (userId, res);
 }
@@ -76,12 +76,11 @@ QByteArray hashV4 (const QByteArray &userId, const QByteArray &password)
  * @brief This generates a response for sipc authorization,
  * implemented following that of libofetion's.
  **/
-QByteArray RSAPublicEncrypt (
-    const QByteArray &userId,
-    const QByteArray &password,
-    const QByteArray &nonce,
-    const QByteArray &aeskey,
-    const QByteArray &key)
+QByteArray RSAPublicEncrypt (const QByteArray &userId,
+                             const QByteArray &password,
+                             const QByteArray &nonce,
+                             const QByteArray &aeskey,
+                             const QByteArray &key)
 {
     // Follow openfetion's method
     // in hex
@@ -182,10 +181,9 @@ QByteArray configData (const QByteArray &number)
     return data;
 }
 
-QByteArray ssiLoginData (
-    const QByteArray &number,
-    const QByteArray &passwordhashed4,
-    const QByteArray passwordType)
+QByteArray ssiLoginData (const QByteArray &number,
+                         const QByteArray &passwordhashed4,
+                         const QByteArray passwordType)
 {
     QByteArray numberString;
     if (number.size() == 11)
@@ -226,13 +224,12 @@ QByteArray SsiPicData (const QByteArray &algorithm, const QByteArray &ssic)
     return data;
 }
 
-QByteArray ssiVerifyData (
-    const QByteArray &number,
-    const QByteArray &passwordhashed4,
-    const QByteArray &id,
-    const QByteArray &code,
-    const QByteArray &algorithm,
-    const QByteArray passwordType)
+QByteArray ssiVerifyData (const QByteArray &number,
+                          const QByteArray &passwordhashed4,
+                          const QByteArray &id,
+                          const QByteArray &code,
+                          const QByteArray &algorithm,
+                          const QByteArray passwordType)
 {
     QByteArray numberString;
 
@@ -271,16 +268,15 @@ QByteArray ssiVerifyData (
 }
 
 
-QByteArray sipcAuthorizeData (
-    const QByteArray &mobileNumber,
-    const QByteArray &fetionNumber,
-    const QByteArray &userId,
-    int &callId,
-    const QByteArray &response,
-    const QByteArray &personalVersion,
-    const QByteArray &customConfigVersion,
-    const QByteArray &contactVersion,
-    const QByteArray &state)
+QByteArray sipcAuthorizeData (const QByteArray &mobileNumber,
+                              const QByteArray &fetionNumber,
+                              const QByteArray &userId,
+                              int &callId,
+                              const QByteArray &response,
+                              const QByteArray &personalVersion,
+                              const QByteArray &customConfigVersion,
+                              const QByteArray &contactVersion,
+                              const QByteArray &state)
 {
     QByteArray body = "<args><device machine-code=\"001676C0E351\"/>";
     body.append ("<caps value=\"1ff\"/><events value=\"7f\"/>"
@@ -330,11 +326,10 @@ QByteArray keepAliveData (const QByteArray &fetionNumber, int &callId)
     return data;
 }
 
-QByteArray catMsgData (
-    const QByteArray &fromFetionNumber,
-    const QByteArray &toSipuri,
-    int &callId,
-    const QByteArray &message)  // utf-8 encoded
+QByteArray catMsgData (const QByteArray &fromFetionNumber,
+                       const QByteArray &toSipuri,
+                       int &callId,
+                       const QByteArray &message)  // utf-8 encoded
 {
     QByteArray data ("M fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fromFetionNumber).append ("\r\n");
@@ -353,11 +348,10 @@ QByteArray catMsgData (
     return data;
 }
 
-QByteArray sendCatMsgSelfData (
-    const QByteArray &fetionNumber,
-    const QByteArray &sipuri,
-    int &callId,
-    const QByteArray &message)
+QByteArray sendCatMsgSelfData (const QByteArray &fetionNumber,
+                               const QByteArray &sipuri,
+                               int &callId,
+                               const QByteArray &message)
 {
     QByteArray data ("M fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fetionNumber).append ("\r\n");
@@ -373,13 +367,12 @@ QByteArray sendCatMsgSelfData (
     data.append (message);
     return data;
 }
-QByteArray sendCatMsgPhoneData (
-    const QByteArray &fromFetionNumber,
-    int &callId,
-    const QByteArray &toSipuri,
-    const QByteArray &id,
-    const QByteArray &code,
-    const QByteArray &message)
+QByteArray sendCatMsgPhoneData (const QByteArray &fromFetionNumber,
+                                int &callId,
+                                const QByteArray &toSipuri,
+                                const QByteArray &id,
+                                const QByteArray &code,
+                                const QByteArray &message)
 {
     QByteArray data ("M fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fromFetionNumber).append ("\r\n");
@@ -388,7 +381,7 @@ QByteArray sendCatMsgPhoneData (
     data.append ("T: ");
     data.append (toSipuri);
     data.append ("\r\n");
-    if (!id.isEmpty() && ! code.isEmpty())
+    if (not id.isEmpty() and not code.isEmpty())
     {
         data.append ("A: Verify algorithm=\"picc\",chid=\"");
         data.append (id);
@@ -404,14 +397,13 @@ QByteArray sendCatMsgPhoneData (
     return data;
 }
 
-QByteArray addBuddyV4Data (
-    const QByteArray &fromFetionNumber,
-    const QByteArray &buddyNumber,
-    int &callId,
-    const QByteArray &buddyLists,
-    const QByteArray &localName,
-    const QByteArray &desc,
-    const QByteArray &phraseId)
+QByteArray addBuddyV4Data (const QByteArray &fromFetionNumber,
+                           const QByteArray &buddyNumber,
+                           int &callId,
+                           const QByteArray &buddyLists,
+                           const QByteArray &localName,
+                           const QByteArray &desc,
+                           const QByteArray &phraseId)
 {
     QByteArray body = "<args><contacts><buddies><buddy uri=\"";
     if (buddyNumber.size() == 11)
@@ -446,10 +438,9 @@ QByteArray addBuddyV4Data (
     return data;
 }
 
-QByteArray contactInfoData (
-    const QByteArray &fetionNumber,
-    const QByteArray &userId,
-    int &callId)
+QByteArray contactInfoData (const QByteArray &fetionNumber,
+                            const QByteArray &userId,
+                            int &callId)
 {
     QByteArray body = "<args><contact user-id=\"";
     body.append (userId);
@@ -467,11 +458,10 @@ QByteArray contactInfoData (
 }
 
 
-QByteArray contactInfoData (
-    const QByteArray &fetionNumber,
-    const QByteArray &number,
-    int &callId,
-    bool mobile)
+QByteArray contactInfoData (const QByteArray &fetionNumber,
+                            const QByteArray &number,
+                            int &callId,
+                            bool mobile)
 {
     QByteArray uri;
     uri = mobile ? "tel:" : "sip:";
@@ -491,10 +481,9 @@ QByteArray contactInfoData (
     return data;
 }
 
-QByteArray deleteBuddyV4Data (
-    const QByteArray &fetionNumber,
-    const QByteArray &userId,
-    int &callId)
+QByteArray deleteBuddyV4Data (const QByteArray &fetionNumber,
+                              const QByteArray &userId,
+                              int &callId)
 {
     QByteArray body = "<args><contacts><buddies><buddy user-id=\"";
     body.append (userId);
@@ -527,9 +516,8 @@ QByteArray presenceV4Data (const QByteArray &fetionNumber, int &callId)
     return data;
 }
 
-QByteArray startChatData (
-    const QByteArray &fetionNumber,
-    int &callId)
+QByteArray startChatData (const QByteArray &fetionNumber,
+                          int &callId)
 {
     QByteArray data ("S fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fetionNumber).append ("\r\n");
@@ -539,10 +527,9 @@ QByteArray startChatData (
     return data;
 }
 
-QByteArray registerData (
-    const QByteArray &fetionNumber,
-    int &callId,
-    const QByteArray &credential)
+QByteArray registerData (const QByteArray &fetionNumber,
+                         int &callId,
+                         const QByteArray &credential)
 {
     QByteArray data ("R fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fetionNumber).append ("\r\n");
@@ -557,10 +544,9 @@ QByteArray registerData (
 
 //
 
-QByteArray inviteBuddyData (
-    const QByteArray &fromFetionNumber,
-    int &callId,
-    const QByteArray &toSipUri)
+QByteArray inviteBuddyData (const QByteArray &fromFetionNumber,
+                            int &callId,
+                            const QByteArray &toSipUri)
 {
     QByteArray body = "<args><contacts><contact uri=\"";
     body.append (toSipUri);
@@ -578,11 +564,10 @@ QByteArray inviteBuddyData (
 }
 
 // Whether show mobile number to userId
-QByteArray SetContactInfoV4 (
-    const QByteArray &fromFetionNumber,
-    const QByteArray &userId,
-    int &callId,
-    bool show)
+QByteArray SetContactInfoV4 (const QByteArray &fromFetionNumber,
+                             const QByteArray &userId,
+                             int &callId,
+                             bool show)
 {
     QByteArray body = "<args><contacts><contact user-id=\"";
     body.append (userId);
@@ -608,11 +593,10 @@ QByteArray SetContactInfoV4 (
     return data;
 }
 
-QByteArray SetContactInfoV4 (
-    const QByteArray &fromFetionNumber,
-    const QByteArray &userId,
-    int &callId,
-    const QByteArray &name)
+QByteArray SetContactInfoV4 (const QByteArray &fromFetionNumber,
+                             const QByteArray &userId,
+                             int &callId,
+                             const QByteArray &name)
 {
     QByteArray body = "<args><contacts><contact user-id=\"";
     body.append (userId);
@@ -631,11 +615,10 @@ QByteArray SetContactInfoV4 (
     return data;
 }
 
-QByteArray SetContactInfoV4 (
-    const QByteArray &fromFetionNumber,
-    const QByteArray &userId,
-    int &callId,
-    const int &moveGroup)
+QByteArray SetContactInfoV4 (const QByteArray &fromFetionNumber,
+                             const QByteArray &userId,
+                             int &callId,
+                             const int &moveGroup)
 {
     QByteArray body = "<args><contacts><contact user-id=\"";
     body.append (userId);
@@ -653,10 +636,9 @@ QByteArray SetContactInfoV4 (
     data.append (body);
     return data;
 }
-QByteArray createBuddyListData (
-    const QByteArray &fetionNumber,
-    int &callId,
-    const QByteArray &name)
+QByteArray createBuddyListData (const QByteArray &fetionNumber,
+                                int &callId,
+                                const QByteArray &name)
 {
     QByteArray body = "<args><contacts><buddy-lists><buddy-list name=\"";
     body.append (name);
@@ -673,10 +655,9 @@ QByteArray createBuddyListData (
     return data;
 }
 
-QByteArray deleteBuddyListData (
-    const QByteArray &fetionNumber,
-    int &callId,
-    const QByteArray &id)
+QByteArray deleteBuddyListData (const QByteArray &fetionNumber,
+                                int &callId,
+                                const QByteArray &id)
 {
     QByteArray body = "<args><contacts><buddy-lists><buddy-list id=\"";
     body.append (id);
@@ -693,11 +674,10 @@ QByteArray deleteBuddyListData (
     return data;
 }
 
-QByteArray setBuddyListInfoData (
-    const QByteArray &fetionNumber,
-    int &callId,
-    const QByteArray &id,
-    const QByteArray &name)
+QByteArray setBuddyListInfoData (const QByteArray &fetionNumber,
+                                 int &callId,
+                                 const QByteArray &id,
+                                 const QByteArray &name)
 {
     QByteArray body = "<args><contacts><buddy-lists><buddy-list name=\"";
     body.append (name);
@@ -715,14 +695,13 @@ QByteArray setBuddyListInfoData (
     data.append (body);
     return data;
 }
-QByteArray handleContactRequestV4Data (
-    const QByteArray &fetionNumber,
-    int &callId,
-    const QByteArray &userId,
-    const QByteArray &sipUri,
-    const QByteArray &localName,
-    const QByteArray &buddyLists,
-    const QByteArray &result)
+QByteArray handleContactRequestV4Data (const QByteArray &fetionNumber,
+                                       int &callId,
+                                       const QByteArray &userId,
+                                       const QByteArray &sipUri,
+                                       const QByteArray &localName,
+                                       const QByteArray &buddyLists,
+                                       const QByteArray &result)
 {
     QByteArray body = "<args><contacts><buddies><buddy user-id=\"";
     body.append (userId);
@@ -747,20 +726,19 @@ QByteArray handleContactRequestV4Data (
     return data;
 }
 
-QByteArray directSMSData (
-    const QByteArray &fetionNumber,
-    int &callId,
-    const QByteArray &algorithm,
-    const QByteArray &type,
-    const QByteArray &id,
-    const QByteArray &response)
+QByteArray directSMSData (const QByteArray &fetionNumber,
+                          int &callId,
+                          const QByteArray &algorithm,
+                          const QByteArray &type,
+                          const QByteArray &id,
+                          const QByteArray &response)
 {
     QByteArray data ("O fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fetionNumber).append ("\r\n");
     data.append ("I: ").append (QByteArray::number (callId++)).append ("\r\n");
     data.append ("Q: 2 M\r\n");
     data.append ("N: DirectSMS\r\n");
-    if (!response.isEmpty())
+    if (not response.isEmpty())
     {
         QByteArray A = "A: Verify algorithm=\"";
         A.append (algorithm);
@@ -776,11 +754,10 @@ QByteArray directSMSData (
     data.append ("\r\n");
     return data;
 }
-QByteArray sendDirectCatSMSData (
-    const QByteArray &fetionNumber,
-    int &callId,
-    const QByteArray &mobile,
-    const QByteArray &message)
+QByteArray sendDirectCatSMSData (const QByteArray &fetionNumber,
+                                 int &callId,
+                                 const QByteArray &mobile,
+                                 const QByteArray &message)
 {
     QByteArray data ("M fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fetionNumber).append ("\r\n");
@@ -800,9 +777,8 @@ QByteArray sendDirectCatSMSData (
 //PG
 
 // N.B. pgGroupCallId = callId
-QByteArray pgGetGroupListData (
-    const QByteArray &fetionNumber,
-    int &callId)
+QByteArray pgGetGroupListData (const QByteArray &fetionNumber,
+                               int &callId)
 {
     QByteArray body = "<args><group-list /></args>";
     QByteArray data ("S fetion.com.cn SIP-C/4.0\r\n");
@@ -817,10 +793,9 @@ QByteArray pgGetGroupListData (
     return data;
 }
 
-QByteArray pgGetGroupInfoData (
-    const QByteArray &fetionNumber,
-    int &callId,
-    const QList<QByteArray> &pguris)
+QByteArray pgGetGroupInfoData (const QByteArray &fetionNumber,
+                               int &callId,
+                               const QList<QByteArray> &pguris)
 {
     QByteArray body = "<args><groups attributes =\"all\">";
     foreach (const QByteArray& pguri, pguris)
@@ -840,10 +815,9 @@ QByteArray pgGetGroupInfoData (
     return data;
 }
 
-QByteArray pgPresenceData (
-    const QByteArray &fetionNumber,
-    int &callId,
-    const QByteArray &pguri)
+QByteArray pgPresenceData (const QByteArray &fetionNumber,
+                           int &callId,
+                           const QByteArray &pguri)
 {
     QByteArray body = "<args><subscription><groups><group uri=\"";
     body.append (pguri);
@@ -863,10 +837,9 @@ QByteArray pgPresenceData (
     return data;
 }
 
-QByteArray pgGetGroupMembersData (
-    const QByteArray &fetionNumber,
-    int &callId,
-    const QByteArray &pguri)
+QByteArray pgGetGroupMembersData (const QByteArray &fetionNumber,
+                                  int &callId,
+                                  const QByteArray &pguri)
 {
     QByteArray body = "<args><groups attributes=\"member-uri;member-nickname;"
                       "member-iicnickname;member-identity;member-t6svcid\">"
@@ -885,11 +858,10 @@ QByteArray pgGetGroupMembersData (
     return data;
 }
 
-QByteArray pgSendCatSMSData (
-    const QByteArray &fetionNumber,
-    int &callId,
-    const QByteArray &pguri,
-    const QByteArray &message)
+QByteArray pgSendCatSMSData (const QByteArray &fetionNumber,
+                             int &callId,
+                             const QByteArray &pguri,
+                             const QByteArray &message)
 {
     QByteArray data ("M fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fetionNumber).append ("\r\n");
@@ -907,14 +879,13 @@ QByteArray pgSendCatSMSData (
 }
 //User
 //update info
-QByteArray setUserInfoV4Data (
-    const QByteArray &fetionNumber,
-    int &callId,
-    const QByteArray &impresa,
-    const QByteArray &nickName,
-    const QByteArray &gender,
-    const QByteArray &customConfig,
-    const QByteArray &customConfigVersion)
+QByteArray setUserInfoV4Data (const QByteArray &fetionNumber,
+                              int &callId,
+                              const QByteArray &impresa,
+                              const QByteArray &nickName,
+                              const QByteArray &gender,
+                              const QByteArray &customConfig,
+                              const QByteArray &customConfigVersion)
 {
     QByteArray body = "<args><userinfo><personal impresa=\"";
     body.append (impresa);
@@ -939,13 +910,12 @@ QByteArray setUserInfoV4Data (
 }
 
 //set impresa
-QByteArray setUserInfoV4Data (
-    const QByteArray &fetionNumber,
-    int &callId,
-    const QByteArray &impresa,
-    const QByteArray &personalVersion,
-    const QByteArray &customConfig,
-    const QByteArray &customConfigVersion)
+QByteArray setUserInfoV4Data (const QByteArray &fetionNumber,
+                              int &callId,
+                              const QByteArray &impresa,
+                              const QByteArray &personalVersion,
+                              const QByteArray &customConfig,
+                              const QByteArray &customConfigVersion)
 {
     QByteArray body = "<args><userinfo><personal impresa=\"";
     body.append (impresa);
@@ -986,10 +956,9 @@ QByteArray setUserInfoV4Data (const QByteArray &fetionNumber,
 }
 
 //
-QByteArray setPresenceV4Data (
-    const QByteArray &fetionNumber,
-    int &callId,
-    const QByteArray &state)
+QByteArray setPresenceV4Data (const QByteArray &fetionNumber,
+                              int &callId,
+                              const QByteArray &state)
 {
     QByteArray body = "<args><presence><basic value=\"";
     body.append (state);

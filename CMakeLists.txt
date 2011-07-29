@@ -14,6 +14,7 @@ include_directories(${QT_INCLUDES} ${CMAKE_CURRENT_BINARY_DIR})
 #
 # include(UseDoxygen OPTIONAL)
 
+add_definitions(-std=c++0x -Wall)
 add_subdirectory(gui)
 add_subdirectory(sipc)
 add_subdirectory(utils)
