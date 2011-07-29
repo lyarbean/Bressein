@@ -41,8 +41,8 @@ QByteArray hashV1 (const QByteArray &userId, const QByteArray &password)
 {
     QByteArray data (userId);
     data.append (password);
-    return QCryptographicHash::hash (data,
-                                     QCryptographicHash::Sha1).toHex().toUpper();
+    return QCryptographicHash::hash (data, QCryptographicHash::Sha1)
+           .toHex().toUpper();
 }
 
 QByteArray hashV2 (const QByteArray &userId, const QByteArray &hashV4)
@@ -106,11 +106,14 @@ QByteArray RSAPublicEncrypt (
     r->n = bnn;
     r->e = bne;
     r->d = 0;
-    int flen = RSA_size (r);//128
+    int flen = RSA_size (r);   //128
     unsigned char *out = (unsigned char *) malloc (flen);
     memset (out , 0 , flen);
     int ret = RSA_public_encrypt (toEncrypt.size(),
-                                  (unsigned char *) toEncrypt.data(), out, r, RSA_PKCS1_PADDING);
+                                  (unsigned char *) toEncrypt.data(),
+                                  out,
+                                  r,
+                                  RSA_PKCS1_PADDING);
     if (ret < 0)
     {
         printf ("encrypt failed");
@@ -140,7 +143,7 @@ QByteArray RSAPublicEncrypt (
 QByteArray cnouce (quint16 time)
 {
     QByteArray t;
-    qsrand (QDateTime::currentMSecsSinceEpoch ());
+    qsrand (QDateTime::currentMSecsSinceEpoch());
     for (quint16 i = 0; i < time; i++)
     {
         t.append (QByteArray::number (qrand(), 16));
@@ -152,7 +155,7 @@ QByteArray configData (const QByteArray &number)
 {
     QByteArray part = ("<config><user ");
 
-    if (number.size() == 11) //mobileNumber
+    if (number.size() == 11)   //mobileNumber
     {
         part.append ("mobile-no=\"");
     }
@@ -204,7 +207,7 @@ QByteArray ssiLoginData (
     data.append (passwordhashed4);
     data.append ("\r\nUser-Agent: IIC2.0/pc ");
     data.append (PROTOCOL_VERSION);
-    data.append ("\r\nHost: uid.fetion.com.cn\r\n" // UID_URI
+    data.append ("\r\nHost: uid.fetion.com.cn\r\n"  // UID_URI
                  "Cache-Control: private\r\n"
                  "Connection: Keep-Alive\r\n\r\n");
     return data;
@@ -216,7 +219,7 @@ QByteArray SsiPicData (const QByteArray &algorithm, const QByteArray &ssic)
     data.append (algorithm);
     data.append (" HTTP/1.1\r\n");
     data.append (ssic);
-    data.append ("Host: nav.fetion.com.cn\r\n");// NAVIGATION_URI
+    data.append ("Host: nav.fetion.com.cn\r\n");   // NAVIGATION_URI
     data.append ("User-Agent: IIC2.0/PC ");
     data.append (PROTOCOL_VERSION);
     data.append ("\r\nConnection: close\r\n\r\n");
@@ -256,7 +259,7 @@ QByteArray ssiVerifyData (
     data.append (algorithm);
     data.append ("&v4digest-type=");
     data.append (passwordType);
-    data.append ("&v4digest="); // TODO v4digest-type
+    data.append ("&v4digest=");   // TODO v4digest-type
     data.append (passwordhashed4);
     data.append (" HTTP/1.1\r\n"
                  "User-Agent: IIC2.0/pc ");
@@ -331,7 +334,7 @@ QByteArray catMsgData (
     const QByteArray &fromFetionNumber,
     const QByteArray &toSipuri,
     int &callId,
-    const QByteArray &message) // utf-8 encoded
+    const QByteArray &message)  // utf-8 encoded
 {
     QByteArray data ("M fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fromFetionNumber).append ("\r\n");
@@ -866,7 +869,8 @@ QByteArray pgGetGroupMembersData (
     const QByteArray &pguri)
 {
     QByteArray body = "<args><groups attributes=\"member-uri;member-nickname;"
-                      "member-iicnickname;member-identity;member-t6svcid\"><group uri=\"";
+                      "member-iicnickname;member-identity;member-t6svcid\">"
+                      "<group uri=\"";
     body.append (pguri);
     body.append ("\"/></groups></args>");
     QByteArray data ("S fetion.com.cn SIP-C/4.0\r\n");
@@ -1002,4 +1006,3 @@ QByteArray setPresenceV4Data (
     return data;
 }
 }
-

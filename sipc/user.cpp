@@ -254,7 +254,7 @@ void User::sipcRegister()
     QString ip = QString (info->systemconfig.proxyIpPort.left (seperator));
     quint16 port = info->systemconfig.proxyIpPort.mid (seperator + 1).toUInt();
     sipcSocket->connectToHost (ip, port);
-    if (not sipcSocket->waitForConnected (-1)) /*no time out*/
+    if (not sipcSocket->waitForConnected (-1))     /*no time out*/
     {
         qDebug() << "#sipcRegister waitForConnected"
                  << sipcSocket->errorString();
@@ -284,22 +284,23 @@ void User::sipcRegister()
  * \r\n\r\n
  * <body>
  **/
-void User::sipcAuthorize ()
+void User::sipcAuthorize()
 {
     if (sipcSocket->state() not_eq QAbstractSocket::ConnectedState)
     {
         printf ("socket closed.");
         return;
     }
-    QByteArray toSendMsg = sipcAuthorizeData (info->loginNumber,
-                           info->fetionNumber,
-                           info->userId,
-                           info->callId,
-                           info->response,
-                           info->client.version,
-                           info->client.customConfigVersion,
-                           info->client.contactVersion,
-                           info->state);
+    QByteArray toSendMsg = sipcAuthorizeData (
+                               info->loginNumber,
+                               info->fetionNumber,
+                               info->userId,
+                               info->callId,
+                               info->response,
+                               info->client.version,
+                               info->client.customConfigVersion,
+                               info->client.contactVersion,
+                               info->state);
     int length = 0;
     while (length < toSendMsg.length())
     {
@@ -319,7 +320,7 @@ void User::sipcAuthorize ()
             return;
         }
     }
-    while (sipcSocket->waitForReadyRead ())
+    while (sipcSocket->waitForReadyRead())
     {
         responseData += sipcSocket->readAll();
     }
@@ -376,9 +377,9 @@ void User::parseSsiResponse (QByteArray &data)
             }
             QDomElement domE =  domRoot.firstChildElement ("verification");
             if (domE.hasAttribute ("algorithm") and
-                    domE.hasAttribute ("type=") and
-                    domE.hasAttribute ("text") and
-                    domE.hasAttribute ("tips"))
+                domE.hasAttribute ("type=") and
+                domE.hasAttribute ("text") and
+                domE.hasAttribute ("tips"))
             {
                 info->verification->algorithm =
                     domE.attribute ("algorithm").toUtf8();
@@ -399,30 +400,30 @@ void User::parseSsiResponse (QByteArray &data)
         }
         else if (statusCode == "200")
         {
-            QDomElement domE =  domRoot.firstChildElement ("user");
+            QDomElement domChild =  domRoot.firstChildElement ("user");
 
-            if (domE.hasAttribute ("uri") and
-                    domE.hasAttribute ("mobile-no") and
-                    domE.hasAttribute ("user-status") and
-                    domE.hasAttribute ("user-id"))
+            if (domChild.hasAttribute ("uri") and
+                domChild.hasAttribute ("mobile-no") and
+                domChild.hasAttribute ("user-status") and
+                domChild.hasAttribute ("user-id"))
             {
-                info->sipuri = domE.attribute ("uri").toUtf8();
+                info->sipuri = domChild.attribute ("uri").toUtf8();
                 b = info->sipuri.indexOf ("sip:");
                 e = info->sipuri.indexOf ("@", b);
                 info->fetionNumber = info->sipuri.mid (b + 4, e - b - 4);
-                info->mobileNumber = domE.attribute ("mobile-no").toUtf8();
+                info->mobileNumber = domChild.attribute ("mobile-no").toUtf8();
                 // info->state = domE.attribute ("user-status").toUtf8();
-                info->userId = domE.attribute ("user-id").toUtf8();
+                info->userId = domChild.attribute ("user-id").toUtf8();
             }
-            domE = domE.firstChildElement ("credentials");
-            if (not domE.isNull())
+            domChild = domChild.firstChildElement ("credentials");
+            if (not domChild.isNull())
             {
-                domE  = domE.firstChildElement ("credential");
+                domChild  = domChild.firstChildElement ("credential");
 
-                if (not domE.isNull() and domE.hasAttribute ("domain") and
-                        domE.hasAttribute ("c"))
+                if (not domChild.isNull() and domChild.hasAttribute ("domain") and
+                    domChild.hasAttribute ("c"))
                 {
-                    info->credential = domE.attribute ("c").toUtf8();
+                    info->credential = domChild.attribute ("c").toUtf8();
                 }
             }
             emit ssiResponseParsed();
@@ -442,10 +443,10 @@ void User::parseSipcRegister (QByteArray &data)
     int b, e;
     b = data.indexOf ("\",nonce=\"");
     e = data.indexOf ("\",key=\"", b);
-    info->nonce = data.mid (b + 9, e - b - 9); // need to store?
+    info->nonce = data.mid (b + 9, e - b - 9);   // need to store?
     b = data.indexOf ("\",key=\"");
     e = data.indexOf ("\",signature=\"", b);
-    info->key = data.mid (b + 7, e - b - 7); // need to store?
+    info->key = data.mid (b + 7, e - b - 7);   // need to store?
     b = data.indexOf ("\",signature=\"");
     e = data.indexOf ("\"", b);
     info->signature = data.mid (b + 14, e - b - 14);
@@ -503,8 +504,10 @@ void User::parseServerConfig (QByteArray &data)
         }
         domRoot = domRoot.nextSiblingElement ("parameters");
         if (not domRoot.isNull() and domRoot.hasAttribute ("version"))
+        {
             info->systemconfig.parametersVersion =
                 domRoot.attribute ("version").toUtf8();
+        }
         domRoot = domRoot.nextSiblingElement ("hints");
         if (not domRoot.isNull() and domRoot.hasAttribute ("version"))
         {
@@ -512,7 +515,6 @@ void User::parseServerConfig (QByteArray &data)
                 domRoot.attribute ("version").toUtf8();
             domChild = domRoot.firstChildElement ("addbuddy-phrases");
             QDomElement domGrand = domChild.firstChildElement ("phrases");
-
             while (not domGrand.isNull() and domGrand.hasAttribute ("id"))
             {
                 info->phrases.append (domGrand.text().toUtf8());
@@ -562,8 +564,8 @@ void User::parseSipcAuthorize (QByteArray &data)
         domChild = domRoot.firstChildElement ("client");
 
         if (not domChild.isNull() and domChild.hasAttribute ("public-ip") and
-                domChild.hasAttribute ("last-login-time") and
-                domChild.hasAttribute ("last-login-ip"))
+            domChild.hasAttribute ("last-login-time") and
+            domChild.hasAttribute ("last-login-ip"))
         {
             info->client.publicIp =
                 domChild.attribute ("public-ip").toUtf8();
@@ -575,16 +577,16 @@ void User::parseSipcAuthorize (QByteArray &data)
         domChild = domRoot.firstChildElement ("user-info");
         domChild = domChild.firstChildElement ("personal");
         if (not domChild.isNull() and domChild.hasAttribute ("user-id") and
-                domChild.hasAttribute ("carrier") and //should be CMCC?
-                domChild.hasAttribute ("version") and
-                domChild.hasAttribute ("nickname") and
-                domChild.hasAttribute ("gender") and
-                domChild.hasAttribute ("birth-date") and
-                domChild.hasAttribute ("mobile-no") and
-                domChild.hasAttribute ("sms-online-status") and
-                domChild.hasAttribute ("carrier-region") and
-                domChild.hasAttribute ("carrier-status") and
-                domChild.hasAttribute ("impresa"))
+            domChild.hasAttribute ("carrier") and   //should be CMCC?
+            domChild.hasAttribute ("version") and
+            domChild.hasAttribute ("nickname") and
+            domChild.hasAttribute ("gender") and
+            domChild.hasAttribute ("birth-date") and
+            domChild.hasAttribute ("mobile-no") and
+            domChild.hasAttribute ("sms-online-status") and
+            domChild.hasAttribute ("carrier-region") and
+            domChild.hasAttribute ("carrier-status") and
+            domChild.hasAttribute ("impresa"))
         {
             info->client.birthDate =
                 domChild.attribute ("birth-date").toUtf8();
@@ -643,7 +645,7 @@ void User::parseSipcAuthorize (QByteArray &data)
             {
                 domGrand = domGrand.firstChildElement ("buddy-list");
                 while (not domGrand.isNull() and domGrand.hasAttribute ("id") and
-                        domGrand.hasAttribute ("name"))
+                       domGrand.hasAttribute ("name"))
                 {
                     Group *group = new Group;
                     group->groupId = domGrand.attribute ("id").toUtf8();
@@ -657,14 +659,14 @@ void User::parseSipcAuthorize (QByteArray &data)
             {
                 domGrand = domGrand.firstChildElement ("b");
                 while (not domGrand.isNull() and
-                        domGrand.hasAttribute ("f") and
-                        domGrand.hasAttribute ("i") and
-                        domGrand.hasAttribute ("l") and
-                        domGrand.hasAttribute ("n") and
-                        //  domGrand.hasAttribute ("o") and
-                        domGrand.hasAttribute ("p") and
-                        domGrand.hasAttribute ("r") and
-                        domGrand.hasAttribute ("u"))
+                       domGrand.hasAttribute ("f") and
+                       domGrand.hasAttribute ("i") and
+                       domGrand.hasAttribute ("l") and
+                       domGrand.hasAttribute ("n") and
+                       //  domGrand.hasAttribute ("o") and
+                       domGrand.hasAttribute ("p") and
+                       domGrand.hasAttribute ("r") and
+                       domGrand.hasAttribute ("u"))
                 {
                     Contact *contact = new Contact;
                     contact->userId = domGrand.attribute ("i").toUtf8();
@@ -689,10 +691,10 @@ void User::parseSipcAuthorize (QByteArray &data)
                 domChild = domChild.firstChildElement ("frequency");
 
                 if (not domChild.isNull() and
-                        domChild.hasAttribute ("day-limit") and
-                        domChild.hasAttribute ("day-count") and
-                        domChild.hasAttribute ("month-limit") and
-                        domChild.hasAttribute ("month-count"))
+                    domChild.hasAttribute ("day-limit") and
+                    domChild.hasAttribute ("day-count") and
+                    domChild.hasAttribute ("month-limit") and
+                    domChild.hasAttribute ("month-count"))
                 {
                     info->client.smsDayLimit =
                         domChild.attribute ("day-limit").toUtf8();
@@ -758,7 +760,7 @@ void User::ssiPic()
     {
         domRoot = domRoot.firstChildElement ("pic-certificate");
         if (not domRoot.isNull() and domRoot.hasAttribute ("id") and
-                domRoot.hasAttribute ("pic"))
+            domRoot.hasAttribute ("pic"))
         {
             info->verification->id = domRoot.attribute ("id").toUtf8();
             info->verification->pic = domRoot.attribute ("pic").toUtf8();
@@ -930,7 +932,7 @@ void User::renameBuddylist (const QByteArray &id, const QByteArray &name)
     // TODO
 }
 
-void User::updateInfo ()
+void User::updateInfo()
 {
     QByteArray toSendMsg = setUserInfoV4Data (
                                info->fetionNumber, info->callId,

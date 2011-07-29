@@ -49,7 +49,7 @@ public:
 public slots:
 
     void login();
-    void loginVerify (QByteArray code); //only called when verification required
+    void loginVerify (QByteArray code);   //only called when verification required
     void close();
     //TODO may not be called from main thread,
     // use QMetaObject::invokeMethod to dispatch
@@ -96,8 +96,8 @@ private slots:
                    QByteArray buddyLists = "0",
                    QByteArray localName = "",
                    QByteArray desc = "",
-                   QByteArray phraseId = "0"); //SIP_EVENT_ADDBUDDY
-    void deleteBuddy (const QByteArray &userId); //SIP_EVENT_DELETEBUDDY
+                   QByteArray phraseId = "0");  //SIP_EVENT_ADDBUDDY
+    void deleteBuddy (const QByteArray &userId);   //SIP_EVENT_DELETEBUDDY
     void contactSubscribe();// SIP_EVENT_PRESENCE
     void sendMessage (const QByteArray &toSipuri, const QByteArray &message);
     // SIP_EVENT_CATMESSAGE
@@ -106,8 +106,8 @@ private slots:
 
     void inviteFriend (const QByteArray &sipUri);
     // SIP_EVENT_STARTCHAT SIP_EVENT_INVITEBUDDY
-    void createBuddylist (const QByteArray &name);// SIP_EVENT_CREATEBUDDYLIST
-    void deleteBuddylist (const QByteArray &id);//SIP_EVENT_DELETEBUDDYLIST
+    void createBuddylist (const QByteArray &name);   // SIP_EVENT_CREATEBUDDYLIST
+    void deleteBuddylist (const QByteArray &id);   //SIP_EVENT_DELETEBUDDYLIST
     void renameBuddylist (const QByteArray &id, const QByteArray &name);
     //SIP_EVENT_SETBUDDYLISTINFO
     // void permitPhonenumber SIP_EVENT_SETCONTACTINFO
@@ -116,9 +116,9 @@ private slots:
     // void joinGroup SIP_EVENT_SETCONTACTINFO
     // void leaveGroup SIP_EVENT_SETCONTACTINFO
     // void setMoodphrase SIP_EVENT_SETUSERINFO
-    void updateInfo ();//SIP_EVENT_SETUSERINFO
+    void updateInfo(); //SIP_EVENT_SETUSERINFO
     void setImpresa (const QByteArray &impresa);
-    void setMessageStatus (int days); //SIP_EVENT_SETUSERINFO
+    void setMessageStatus (int days);   //SIP_EVENT_SETUSERINFO
 
     // FIXME
     // directMessage SIP_EVENT_DIRECTSMS SIP_EVENT_SENDDIRECTCATSMS
@@ -130,7 +130,7 @@ private slots:
     // subsribePg SIP_EVENT_PGPRESENCE
     // sendPgMessage SIP_EVENT_PGSENDCATSMS
 
-    void setClientState (StateType &state);//SIP_EVENT_SETPRESENCE
+    void setClientState (StateType &state);   //SIP_EVENT_SETPRESENCE
 
 // functions for parsing data
     void parseSsiResponse (QByteArray &data);

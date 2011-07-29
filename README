@@ -9,13 +9,7 @@ Code style:
  arguments in next line first to fit the rule above. If the arguments list is
  too long, align them.
 4. Use astyle to format codes, with a modified style ANSI:
-    - indent preprocessor.
-    - 'case' statement indent within 'switch' statement with 4 spaces.
-    - No padding space inside parenthesis, but insert padding spaces out side
-     parenthesis.
-    - break closing brackets.
-    - align pointer with name.
-    use following option would obey above rules.
     --style=ansi --indent=space=4 --indent-preprocessor --indent-switches
     --indent-cases --brackets=break --unpad-paren --pad-paren-out
-    --break-closing-brackets --align-pointer=name
+    --break-closing-brackets --align-pointer=name --min-conditional-indent=8
+    --max-instatement-indent=8 --lineend=linux
