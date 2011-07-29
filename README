@@ -1,3 +1,21 @@
 This is Bressein, a fetion similiar client, written in Qt framework.
 And This software is distributed under the terms of the GNU Lesser General Public
 License.
+
+Code style:
+1. USE and not or xor not_eq instead of && ! || !=
+2. try to make one line not more that 80 characters
+3. if a declaration or definition of a function is too long, try to put
+ arguments in next line first to fit the rule above. If the arguments list is
+ too long, align them.
+4. Use astyle to format codes, with a modified style ANSI:
+    - indent preprocessor.
+    - 'case' statement indent within 'switch' statement with 4 spaces.
+    - No padding space inside parenthesis, but insert padding spaces out side
+     parenthesis.
+    - break closing brackets.
+    - align pointer with name.
+    use following option would obey above rules.
+    --style=ansi --indent=space=4 --indent-preprocessor --indent-switches
+    --indent-cases --brackets=break --unpad-paren --pad-paren-out
+    --break-closing-brackets --align-pointer=name

@@ -67,11 +67,11 @@ User::~User()
         delete info;
     }
     qDebug() << "delete contacts";
-    while (!contacts.isEmpty())
+    while (not contacts.isEmpty())
         delete contacts.takeFirst();
 
     qDebug() << "delete groups";
-    while (!groups.isEmpty())
+    while (not groups.isEmpty())
         delete groups.takeFirst();
     if (workerThread.isRunning())
     {
@@ -110,6 +110,7 @@ void User::close()
 void User::initialize (QByteArray number, QByteArray password)
 {
     // TODO try to load saved configuration for this user
+    if (number.isEmpty() or password.isEmpty()) return;
     info->loginNumber = number;
     if (number.size() == 11)
     {
@@ -138,7 +139,7 @@ void User::sipcWriteRead (QByteArray& in, QByteArray& out)
     sipcSocket->flush();
     while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
     {
-        if (!sipcSocket->waitForReadyRead (-1))
+        if (not sipcSocket->waitForReadyRead (-1))
         {
             qDebug() << "When waitForReadyRead"
             << sipcSocket->error() << sipcSocket->errorString();
@@ -161,7 +162,7 @@ void User::sipcWriteRead (QByteArray& in, QByteArray& out)
 //private slots
 void User::keepAlive()
 {
-    if (sipcSocket->state() != QAbstractSocket::ConnectedState)
+    if (sipcSocket->state() not_eq QAbstractSocket::ConnectedState)
     {
         printf ("socket closed.");
         return;
@@ -178,6 +179,7 @@ void User::keepAlive()
 
 void User::ssiLogin()
 {
+    if (info->loginNumber.isEmpty()) return;
     //TODO if proxy
     QByteArray password = (hashV4 (info->userId, info->password));
     qDebug() << info->loginNumber;
@@ -185,7 +187,7 @@ void User::ssiLogin()
     QSslSocket socket (this);
     socket.connectToHostEncrypted (UID_URI, 443);
 
-    if (!socket.waitForEncrypted (-1))
+    if (not socket.waitForEncrypted (-1))
     {
         // TODO handle socket.error() or inform user what happened
         qDebug() << "waitForEncrypted" << socket.errorString();
@@ -197,7 +199,7 @@ void User::ssiLogin()
     QByteArray responseData;
     while (socket.bytesAvailable() < (int) sizeof (quint16))
     {
-        if (!socket.waitForReadyRead (-1))
+        if (not socket.waitForReadyRead (-1))
         {
             // TODO handle socket.error() or inform user what happened
             qDebug() << "ssiLogin  waitForReadyRead"
@@ -215,7 +217,7 @@ void User::systemConfig()
     QTcpSocket socket (this);
     QHostInfo info = QHostInfo::fromName ("nav.fetion.com.cn");
     socket.connectToHost (info.addresses().first().toString(), 80);
-    if (!socket.waitForConnected (-1))
+    if (not socket.waitForConnected (-1))
     {
         qDebug() << "waitForEncrypted" << socket.errorString();
         return;
@@ -224,7 +226,7 @@ void User::systemConfig()
     QByteArray responseData;
     while (socket.bytesAvailable() < (int) sizeof (quint16))
     {
-        if (!socket.waitForReadyRead (-1))
+        if (not socket.waitForReadyRead (-1))
         {
             // TODO handle socket.error() or inform user what happened
             qDebug() << "ssiLogin  waitForReadyRead"
@@ -239,7 +241,7 @@ void User::systemConfig()
 
 /**
  * R fetion.com.cn SIP-C/4.0
- * F : 916098834
+ * F: 916098834
  * I: 1
  * Q: 1 R
  * CN: 1CF1A05B2DD0281755997ADC70F82B16
@@ -252,7 +254,7 @@ void User::sipcRegister()
     QString ip = QString (info->systemconfig.proxyIpPort.left (seperator));
     quint16 port = info->systemconfig.proxyIpPort.mid (seperator + 1).toUInt();
     sipcSocket->connectToHost (ip, port);
-    if (!sipcSocket->waitForConnected (-1)) /*no time out*/
+    if (not sipcSocket->waitForConnected (-1)) /*no time out*/
     {
         qDebug() << "#sipcRegister waitForConnected"
         << sipcSocket->errorString();
@@ -284,7 +286,7 @@ void User::sipcRegister()
  **/
 void User::sipcAuthorize ()
 {
-    if (sipcSocket->state() != QAbstractSocket::ConnectedState)
+    if (sipcSocket->state() not_eq QAbstractSocket::ConnectedState)
     {
         printf ("socket closed.");
         return;
@@ -309,7 +311,7 @@ void User::sipcAuthorize ()
     QByteArray responseData;
     while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
     {
-        if (!sipcSocket->waitForReadyRead (-1))
+        if (not sipcSocket->waitForReadyRead (-1))
         {
             // TODO handle socket.error() or inform user what happened
             qDebug() << "sipcAuthorize waitForReadyRead"
@@ -330,7 +332,7 @@ void User::parseSsiResponse (QByteArray &data)
 {
     if (data.isEmpty())
     {
-        qDebug() << "Ssi response is empty!!";
+        qDebug() << "Ssi response is empty!";
         // TODO info user about this
         // pop-up dialog ask user if to relogin
         return;
@@ -344,9 +346,9 @@ void User::parseSsiResponse (QByteArray &data)
     int errorLine, errorColumn;
     bool ok = domDoc.setContent (xml, false,
             &errorMsg, &errorLine, &errorColumn);
-    if (!ok)
+    if (not ok)
     {
-        qDebug() << "Failed to parse Ssi response!!";
+        qDebug() << "Failed to parse Ssi response!";
         qDebug() << errorMsg << errorLine << errorColumn;
         qDebug() << xml;
         return;
@@ -357,25 +359,25 @@ void User::parseSsiResponse (QByteArray &data)
 
     if (domRoot.tagName() == "results")
     {
-        if (domRoot.isNull() || !domRoot.hasAttribute ("status-code"))
+        if (domRoot.isNull() or not domRoot.hasAttribute ("status-code"))
         {
             qDebug() << "Null or  status-code";
             return;
         }
         QString statusCode = domRoot.attribute ("status-code");
-        if (statusCode == "421" || statusCode == "420")
+        if (statusCode == "421" or statusCode == "420")
         {
             //420 wrong input validation numbers
             //421 requires validation
 
-            if (!info->verification)
+            if (not info->verification)
             {
                 info->verification = new UserInfo::Verfication;
             }
             QDomElement domE =  domRoot.firstChildElement ("verification");
-            if (domE.hasAttribute ("algorithm") &&
-                    domE.hasAttribute ("type=") &&
-                    domE.hasAttribute ("text") &&
+            if (domE.hasAttribute ("algorithm") and
+                    domE.hasAttribute ("type=") and
+                    domE.hasAttribute ("text") and
                     domE.hasAttribute ("tips"))
             {
                 info->verification->algorithm =
@@ -387,7 +389,7 @@ void User::parseSsiResponse (QByteArray &data)
             }
             return;
         }
-        else if (statusCode == "401" || statusCode == "404")
+        else if (statusCode == "401" or statusCode == "404")
         {
             //401 wrong password
             //TODO inform user that password is wrong
@@ -399,9 +401,9 @@ void User::parseSsiResponse (QByteArray &data)
         {
             QDomElement domE =  domRoot.firstChildElement ("user");
 
-            if (domE.hasAttribute ("uri") &&
-                    domE.hasAttribute ("mobile-no") &&
-                    domE.hasAttribute ("user-status") &&
+            if (domE.hasAttribute ("uri") and
+                    domE.hasAttribute ("mobile-no") and
+                    domE.hasAttribute ("user-status") and
                     domE.hasAttribute ("user-id"))
             {
                 info->sipuri = domE.attribute ("uri").toUtf8();
@@ -413,11 +415,11 @@ void User::parseSsiResponse (QByteArray &data)
                 info->userId = domE.attribute ("user-id").toUtf8();
             }
             domE = domE.firstChildElement ("credentials");
-            if (!domE.isNull())
+            if (not domE.isNull())
             {
                 domE  = domE.firstChildElement ("credential");
 
-                if (!domE.isNull() && domE.hasAttribute ("domain") &&
+                if (not domE.isNull() and domE.hasAttribute ("domain") and
                         domE.hasAttribute ("c"))
                 {
                     info->credential = domE.attribute ("c").toUtf8();
@@ -430,7 +432,7 @@ void User::parseSsiResponse (QByteArray &data)
 
 void User::parseSipcRegister (QByteArray &data)
 {
-    if (!data.startsWith ("SIP-C/4.0 401 Unauthoried"))
+    if (not data.startsWith ("SIP-C/4.0 401 Unauthoried"))
     {
         qDebug() << "Wrong Sipc register response.";
         qDebug() << data;
@@ -460,15 +462,15 @@ void User::parseServerConfig (QByteArray &data)
 {
     if (data.isEmpty())
     {
-        qDebug() << "Server Configuration response is empty!!";
+        qDebug() << "Server Configuration response is empty!";
         return;
     }
     QDomDocument domDoc;
     QByteArray xml = data.mid (data.indexOf ("<?xml version=\"1.0\""));
     bool ok = domDoc.setContent (xml);
-    if (!ok)
+    if (not ok)
     {
-        qDebug() << "Failed to parse server config response!!";
+        qDebug() << "Failed to parse server config response!";
         qDebug() << xml;
         qDebug() << "==============================";
         return;
@@ -480,38 +482,38 @@ void User::parseServerConfig (QByteArray &data)
     if (domRoot.tagName() == "config")
     {
         domRoot = domRoot.firstChildElement ("servers");
-        if (!domRoot.isNull() && domRoot.hasAttribute ("version"))
+        if (not domRoot.isNull() and domRoot.hasAttribute ("version"))
         {
             // process children
             info->systemconfig.serverVersion =
                 domRoot.attribute ("version").toUtf8();
             domChild = domRoot.firstChildElement ("sipc-proxy");
 
-            if (!domChild.isNull() && !domChild.text().isEmpty())
+            if (not domChild.isNull() and not domChild.text().isEmpty())
             {
                 info->systemconfig.proxyIpPort = domChild.text().toUtf8();
             }
 
             domChild = domRoot.firstChildElement ("get-uri");
 
-            if (!domChild.isNull() && !domChild.text().isEmpty())
+            if (not domChild.isNull() and not domChild.text().isEmpty())
             {
                 info->systemconfig.serverNamePath = domChild.text().toUtf8();
             }
         }
         domRoot = domRoot.nextSiblingElement ("parameters");
-        if (!domRoot.isNull() && domRoot.hasAttribute ("version"))
+        if (not domRoot.isNull() and domRoot.hasAttribute ("version"))
             info->systemconfig.parametersVersion =
                 domRoot.attribute ("version").toUtf8();
         domRoot = domRoot.nextSiblingElement ("hints");
-        if (!domRoot.isNull() && domRoot.hasAttribute ("version"))
+        if (not domRoot.isNull() and domRoot.hasAttribute ("version"))
         {
             info->systemconfig.hintsVersion =
                 domRoot.attribute ("version").toUtf8();
             domChild = domRoot.firstChildElement ("addbuddy-phrases");
             QDomElement domGrand = domChild.firstChildElement ("phrases");
 
-            while (!domGrand.isNull() && domGrand.hasAttribute ("id"))
+            while (not domGrand.isNull() and domGrand.hasAttribute ("id"))
             {
                 info->phrases.append (domGrand.text().toUtf8());
                 domGrand.nextSiblingElement ("phrases");
@@ -545,7 +547,7 @@ void User::parseSipcAuthorize (QByteArray &data)
     int errorLine, errorColumn;
     bool ok = domDoc.setContent (xml, false,
             &errorMsg, &errorLine, &errorColumn);
-    if (!ok)
+    if (not ok)
     {
         // perhaps need more data from  socket
         qDebug() << "Wrong sipc authorize response";
@@ -559,8 +561,8 @@ void User::parseSipcAuthorize (QByteArray &data)
     {
         domChild = domRoot.firstChildElement ("client");
 
-        if (!domChild.isNull() && domChild.hasAttribute ("public-ip") &&
-                domChild.hasAttribute ("last-login-time") &&
+        if (not domChild.isNull() and domChild.hasAttribute ("public-ip") and
+                domChild.hasAttribute ("last-login-time") and
                 domChild.hasAttribute ("last-login-ip"))
         {
             info->client.publicIp =
@@ -572,16 +574,16 @@ void User::parseSipcAuthorize (QByteArray &data)
         }
         domChild = domRoot.firstChildElement ("user-info");
         domChild = domChild.firstChildElement ("personal");
-        if (!domChild.isNull() && domChild.hasAttribute ("user-id") &&
-                domChild.hasAttribute ("carrier") && //should be CMCC?
-                domChild.hasAttribute ("version") &&
-                domChild.hasAttribute ("nickname") &&
-                domChild.hasAttribute ("gender") &&
-                domChild.hasAttribute ("birth-date") &&
-                domChild.hasAttribute ("mobile-no") &&
-                domChild.hasAttribute ("sms-online-status") &&
-                domChild.hasAttribute ("carrier-region") &&
-                domChild.hasAttribute ("carrier-status") &&
+        if (not domChild.isNull() and domChild.hasAttribute ("user-id") and
+                domChild.hasAttribute ("carrier") and //should be CMCC?
+                domChild.hasAttribute ("version") and
+                domChild.hasAttribute ("nickname") and
+                domChild.hasAttribute ("gender") and
+                domChild.hasAttribute ("birth-date") and
+                domChild.hasAttribute ("mobile-no") and
+                domChild.hasAttribute ("sms-online-status") and
+                domChild.hasAttribute ("carrier-region") and
+                domChild.hasAttribute ("carrier-status") and
                 domChild.hasAttribute ("impresa"))
         {
             info->client.birthDate =
@@ -599,13 +601,13 @@ void User::parseSipcAuthorize (QByteArray &data)
             info->client.version = domChild.attribute ("version").toUtf8();
         }
         domChild = domChild.nextSiblingElement ("custom-config");
-        if (!domChild.isNull() && domChild.hasAttribute ("version"))
+        if (not domChild.isNull() and domChild.hasAttribute ("version"))
         {
             info->client.customConfigVersion =
                 domChild.attribute ("version").toUtf8();
             //FIXME is that a xml segment?
 
-            if (!domChild.text().isEmpty())
+            if (not domChild.text().isEmpty())
                 info->client.customConfig = domChild.text().toUtf8();
         }
         domChild = domChild.nextSiblingElement ("contact-list");
@@ -630,17 +632,17 @@ void User::parseSipcAuthorize (QByteArray &data)
 // r; relationStatus, u: sipuri
 //what about o
 
-        if (!domChild.isNull() && domChild.hasAttribute ("version"))
+        if (not domChild.isNull() and domChild.hasAttribute ("version"))
         {
             //TODO if the version is the same as that in local cache, means
             // the list is the same too.
             info->client.contactVersion =
                 domChild.attribute ("version").toUtf8();
             domGrand = domChild.firstChildElement ("buddy-lists");
-            if (!domGrand.isNull())
+            if (not domGrand.isNull())
             {
                 domGrand = domGrand.firstChildElement ("buddy-list");
-                while (!domGrand.isNull() && domGrand.hasAttribute ("id") &&
+                while (not domGrand.isNull() and domGrand.hasAttribute ("id") and
                         domGrand.hasAttribute ("name"))
                 {
                     Group *group = new Group;
@@ -651,17 +653,17 @@ void User::parseSipcAuthorize (QByteArray &data)
                 }
             }
             domGrand = domChild.firstChildElement ("buddies");
-            if (!domGrand.isNull())
+            if (not domGrand.isNull())
             {
                 domGrand = domGrand.firstChildElement ("b");
-                while (!domGrand.isNull() &&
-                        domGrand.hasAttribute ("f") &&
-                        domGrand.hasAttribute ("i") &&
-                        domGrand.hasAttribute ("l") &&
-                        domGrand.hasAttribute ("n") &&
-                        //  domGrand.hasAttribute ("o") &&
-                        domGrand.hasAttribute ("p") &&
-                        domGrand.hasAttribute ("r") &&
+                while (not domGrand.isNull() and
+                        domGrand.hasAttribute ("f") and
+                        domGrand.hasAttribute ("i") and
+                        domGrand.hasAttribute ("l") and
+                        domGrand.hasAttribute ("n") and
+                        //  domGrand.hasAttribute ("o") and
+                        domGrand.hasAttribute ("p") and
+                        domGrand.hasAttribute ("r") and
                         domGrand.hasAttribute ("u"))
                 {
                     Contact *contact = new Contact;
@@ -678,18 +680,18 @@ void User::parseSipcAuthorize (QByteArray &data)
             }
         }
         domChild = domChild.nextSiblingElement ("quotas");
-        if (!domChild.isNull())
+        if (not domChild.isNull())
         {
             domChild = domChild.firstChildElement ("quota-frequency");
 
-            if (!domChild.isNull())
+            if (not domChild.isNull())
             {
                 domChild = domChild.firstChildElement ("frequency");
 
-                if (!domChild.isNull() &&
-                        domChild.hasAttribute ("day-limit") &&
-                        domChild.hasAttribute ("day-count") &&
-                        domChild.hasAttribute ("month-limit") &&
+                if (not domChild.isNull() and
+                        domChild.hasAttribute ("day-limit") and
+                        domChild.hasAttribute ("day-count") and
+                        domChild.hasAttribute ("month-limit") and
                         domChild.hasAttribute ("month-count"))
                 {
                     info->client.smsDayLimit =
@@ -714,7 +716,7 @@ void User::ssiPic()
     QHostInfo hostinfo = QHostInfo::fromName ("nav.fetion.com.cn");
     socket.connectToHost (hostinfo.addresses().first().toString(), 80);
 
-    if (!socket.waitForConnected (-1))
+    if (not socket.waitForConnected (-1))
     {
         //TODO handle exception here
         qDebug() << "waitForEncrypted" << socket.errorString();
@@ -724,7 +726,7 @@ void User::ssiPic()
     QByteArray responseData;
     while (socket.bytesAvailable() < (int) sizeof (quint16))
     {
-        if (!socket.waitForReadyRead (-1))
+        if (not socket.waitForReadyRead (-1))
         {
             qDebug() << "ssiLogin  waitForReadyRead"
             << socket.error() << socket.errorString();
@@ -745,7 +747,7 @@ void User::ssiPic()
     int errorLine, errorColumn;
     bool ok = domDoc.setContent (xml, false,
             &errorMsg, &errorLine, &errorColumn);
-    if (!ok)
+    if (not ok)
     {
         // perhaps need more data from  socket
         qDebug() << "Wrong response";
@@ -755,7 +757,7 @@ void User::ssiPic()
     if (domRoot.tagName() == "results")
     {
         domRoot = domRoot.firstChildElement ("pic-certificate");
-        if (!domRoot.isNull() && domRoot.hasAttribute ("id") &&
+        if (not domRoot.isNull() and domRoot.hasAttribute ("id") and
                 domRoot.hasAttribute ("pic"))
         {
             info->verification->id = domRoot.attribute ("id").toUtf8();
@@ -781,7 +783,7 @@ void User::ssiVerify()
     QSslSocket socket (this);
     socket.connectToHostEncrypted (UID_URI, 443);
 
-    if (!socket.waitForEncrypted (-1))
+    if (not socket.waitForEncrypted (-1))
     {
         // TODO handle socket.error() or inform user what happened
         qDebug() << "waitForEncrypted" << socket.errorString();
@@ -792,7 +794,7 @@ void User::ssiVerify()
     QByteArray responseData;
     while (socket.bytesAvailable() < (int) sizeof (quint16))
     {
-        if (!socket.waitForReadyRead (-1))
+        if (not socket.waitForReadyRead (-1))
         {
             // TODO handle socket.error() or inform user what happened
             qDebug() << "ssiLogin  waitForReadyRead"
@@ -877,7 +879,7 @@ void User::inviteFriend (const QByteArray& sipUri)
     toSendMsg = registerData (info->fetionNumber, info->callId, credential);
     QTcpSocket socket (this);
     socket.connectToHost (ip, port.toInt());
-    if (!socket.waitForConnected (-1))
+    if (not socket.waitForConnected (-1))
     {
         qDebug() << "waitForEncrypted" << socket.errorString();
         return;
@@ -885,7 +887,7 @@ void User::inviteFriend (const QByteArray& sipUri)
     socket.write (toSendMsg);
     while (socket.bytesAvailable() < (int) sizeof (quint16))
     {
-        if (!socket.waitForReadyRead (-1))
+        if (not socket.waitForReadyRead (-1))
         {
             // TODO handle socket.error() or inform user what happened
             qDebug() << "ssiLogin  waitForReadyRead"
