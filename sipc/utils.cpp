@@ -17,10 +17,23 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "utils.h"
+/*
+ *  OpenSSL linking exception
+ *  --------------------------
+ *  If you modify this Program, or any covered work, by linking or
+ *  combining it with the OpenSSL project's "OpenSSL" library (or a
+ *  modified version of that library), containing parts covered by
+ *  the terms of OpenSSL/SSLeay license, the licensors of this
+ *  Program grant you additional permission to convey the resulting
+ *  work. Corresponding Source for a non-source form of such a
+ *  combination shall include the source code for the parts of the
+ *  OpenSSL library used as well as that of the covered work.
+ */
+
 #include <QDateTime>
 #include <QCryptographicHash>
 #include <openssl/rsa.h>
+#include "utils.h"
 namespace Bressein
 {
 
@@ -624,7 +637,7 @@ QByteArray SetContactInfoV4 (
     QByteArray body = "<args><contacts><contact user-id=\"";
     body.append (userId);
     body.append ("\" buddy-lists=\"");
-    body.append (QByteArray::number(moveGroup));
+    body.append (QByteArray::number (moveGroup));
     body.append ("\"/></contacts></args>");
     QByteArray data ("S fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fromFetionNumber).append ("\r\n");
@@ -989,3 +1002,4 @@ QByteArray setPresenceV4Data (
     return data;
 }
 }
+

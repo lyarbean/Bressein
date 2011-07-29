@@ -1,1 +1,4 @@
 This is kinda rewritten of libofetion, see https://ofetion.googlecode.com/hg/
+
+We use openssl for RSA encyption, please see
+License.OpenSSL for detail about `OpenSSL linking exception'.
