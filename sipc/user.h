@@ -44,7 +44,7 @@ class User : public QObject
 public:
     User (QByteArray number, QByteArray password, QObject *parent = 0);
     virtual ~User();
-    virtual bool operator== (const User& other);
+    virtual bool operator== (const User &other);
 
 public slots:
 
@@ -93,13 +93,13 @@ private slots:
     //void groupInfo;// SIP_EVENT_GETCONTACTINFO
 
     void addBuddy (const QByteArray &number,
-            QByteArray buddyLists = "0",
-            QByteArray localName = "",
-            QByteArray desc = "",
-            QByteArray phraseId = "0"); //SIP_EVENT_ADDBUDDY
+                   QByteArray buddyLists = "0",
+                   QByteArray localName = "",
+                   QByteArray desc = "",
+                   QByteArray phraseId = "0"); //SIP_EVENT_ADDBUDDY
     void deleteBuddy (const QByteArray &userId); //SIP_EVENT_DELETEBUDDY
     void contactSubscribe();// SIP_EVENT_PRESENCE
-    void sendMessage (const QByteArray &toSipuri, const QByteArray& message);
+    void sendMessage (const QByteArray &toSipuri, const QByteArray &message);
     // SIP_EVENT_CATMESSAGE
     // void sendMessageMyself();// SIP_EVENT_SENDCATMESSAGE
     // void sendMessagePhone SIP_EVENT_SENDCATMESSAGE
@@ -117,7 +117,7 @@ private slots:
     // void leaveGroup SIP_EVENT_SETCONTACTINFO
     // void setMoodphrase SIP_EVENT_SETUSERINFO
     void updateInfo ();//SIP_EVENT_SETUSERINFO
-    void setImpresa (const QByteArray & impresa);
+    void setImpresa (const QByteArray &impresa);
     void setMessageStatus (int days); //SIP_EVENT_SETUSERINFO
 
     // FIXME

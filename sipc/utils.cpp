@@ -42,7 +42,7 @@ QByteArray hashV1 (const QByteArray &userId, const QByteArray &password)
     QByteArray data (userId);
     data.append (password);
     return QCryptographicHash::hash (data,
-            QCryptographicHash::Sha1).toHex().toUpper();
+                                     QCryptographicHash::Sha1).toHex().toUpper();
 }
 
 QByteArray hashV2 (const QByteArray &userId, const QByteArray &hashV4)
@@ -62,7 +62,7 @@ QByteArray hashV2 (const QByteArray &userId, const QByteArray &hashV4)
     return  hashV1 (left, right);
 }
 
-QByteArray hashV4 (const QByteArray& userId, const QByteArray& password)
+QByteArray hashV4 (const QByteArray &userId, const QByteArray &password)
 {
     QByteArray prefix = DOMAIN;
     prefix.append (':');
@@ -107,10 +107,10 @@ QByteArray RSAPublicEncrypt (
     r->e = bne;
     r->d = 0;
     int flen = RSA_size (r);//128
-    unsigned char *out = (unsigned char*) malloc (flen);
+    unsigned char *out = (unsigned char *) malloc (flen);
     memset (out , 0 , flen);
     int ret = RSA_public_encrypt (toEncrypt.size(),
-            (unsigned char *) toEncrypt.data(), out, r, RSA_PKCS1_PADDING);
+                                  (unsigned char *) toEncrypt.data(), out, r, RSA_PKCS1_PADDING);
     if (ret < 0)
     {
         printf ("encrypt failed");
@@ -120,7 +120,7 @@ QByteArray RSAPublicEncrypt (
     //clean up
     // split ret into hex bytearray
     Q_ASSERT (ret == 128);
-    char* result = (char*) malloc (ret * 2 + 1);
+    char *result = (char *) malloc (ret * 2 + 1);
     memset (result , 0 , ret * 2 + 1);
     int i = 0;
     while (i < ret)
@@ -148,7 +148,7 @@ QByteArray cnouce (quint16 time)
     return t.toUpper();
 }
 
-QByteArray configData (const QByteArray& number)
+QByteArray configData (const QByteArray &number)
 {
     QByteArray part = ("<config><user ");
 
@@ -164,7 +164,7 @@ QByteArray configData (const QByteArray& number)
     part.append ("\"/><client type=\"PC\" version=\"");
     part.append (PROTOCOL_VERSION);
     part.append ("\" platform=\"W5.1\"/><servers version=\"0\"/>"
-            "<parameters version=\"0\"/><hints version=\"0\"/></config>");
+                 "<parameters version=\"0\"/><hints version=\"0\"/></config>");
     QByteArray data ("POST /nav/getsystemconfig.aspx HTTP/1.1\r\n");
     data.append ("User-Agent: IIC2.0/PC ");
     data.append (PROTOCOL_VERSION);
@@ -205,8 +205,8 @@ QByteArray ssiLoginData (
     data.append ("\r\nUser-Agent: IIC2.0/pc ");
     data.append (PROTOCOL_VERSION);
     data.append ("\r\nHost: uid.fetion.com.cn\r\n" // UID_URI
-            "Cache-Control: private\r\n"
-            "Connection: Keep-Alive\r\n\r\n");
+                 "Cache-Control: private\r\n"
+                 "Connection: Keep-Alive\r\n\r\n");
     return data;
 }
 
@@ -259,11 +259,11 @@ QByteArray ssiVerifyData (
     data.append ("&v4digest="); // TODO v4digest-type
     data.append (passwordhashed4);
     data.append (" HTTP/1.1\r\n"
-            "User-Agent: IIC2.0/pc ");
+                 "User-Agent: IIC2.0/pc ");
     data.append (PROTOCOL_VERSION);
     data.append ("\r\nHost: uid.fetion.com.cn\r\n"
-            "Cache-Control: private\r\n"
-            "Connection: Keep-Alive\r\n\r\n");
+                 "Cache-Control: private\r\n"
+                 "Connection: Keep-Alive\r\n\r\n");
     return data;
 }
 
@@ -281,7 +281,7 @@ QByteArray sipcAuthorizeData (
 {
     QByteArray body = "<args><device machine-code=\"001676C0E351\"/>";
     body.append ("<caps value=\"1ff\"/><events value=\"7f\"/>"
-            "<user-info mobile-no=\"");
+                 "<user-info mobile-no=\"");
     body.append (mobileNumber);
     body.append ("\" user-id=\"");
     body.append (userId);
@@ -292,7 +292,7 @@ QByteArray sipcAuthorizeData (
     body.append ("\"/><contact-list version=\"");
     body.append (contactVersion);
     body.append ("\" buddy-attributes=\"v4default\"/>"
-            "</user-info><credentials domains=\"");
+                 "</user-info><credentials domains=\"");
     body.append (DOMAIN);
     body.append ("\"/><presence><basic value=\"");
     body.append (state);
@@ -353,7 +353,7 @@ QByteArray catMsgData (
 QByteArray sendCatMsgSelfData (
     const QByteArray &fetionNumber,
     const QByteArray &sipuri,
-    int& callId,
+    int &callId,
     const QByteArray &message)
 {
     QByteArray data ("M fetion.com.cn SIP-C/4.0\r\n");
@@ -372,7 +372,7 @@ QByteArray sendCatMsgSelfData (
 }
 QByteArray sendCatMsgPhoneData (
     const QByteArray &fromFetionNumber,
-    int& callId,
+    int &callId,
     const QByteArray &toSipuri,
     const QByteArray &id,
     const QByteArray &code,
@@ -427,7 +427,7 @@ QByteArray addBuddyV4Data (
     body.append (desc);
     // in form &#xABCD;, where ABCD is the utf8 code of character
     body.append ("\" expose-mobile-no=\"1\" expose-name=\"1\""
-            " addbuddy-phrase-id=\"");
+                 " addbuddy-phrase-id=\"");
     body.append (phraseId);
     body.append ("\"/></buddies></contacts></args>");
     QByteArray data ("S fetion.com.cn SIP-C/4.0\r\n");
@@ -491,7 +491,7 @@ QByteArray contactInfoData (
 QByteArray deleteBuddyV4Data (
     const QByteArray &fetionNumber,
     const QByteArray &userId,
-    int& callId)
+    int &callId)
 {
     QByteArray body = "<args><contacts><buddies><buddy user-id=\"";
     body.append (userId);
@@ -511,7 +511,7 @@ QByteArray deleteBuddyV4Data (
 QByteArray presenceV4Data (const QByteArray &fetionNumber, int &callId)
 {
     QByteArray body = "<args><subscription self=\"v4default;mail-count\" "
-            "buddy=\"v4default\" version=\"0\"/></args>";
+                      "buddy=\"v4default\" version=\"0\"/></args>";
     QByteArray data ("SUB fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fetionNumber).append ("\r\n");
     data.append ("I: ").append (QByteArray::number (callId++)).append ("\r\n");
@@ -776,8 +776,8 @@ QByteArray directSMSData (
 QByteArray sendDirectCatSMSData (
     const QByteArray &fetionNumber,
     int &callId,
-    const QByteArray& mobile,
-    const QByteArray& message)
+    const QByteArray &mobile,
+    const QByteArray &message)
 {
     QByteArray data ("M fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fetionNumber).append ("\r\n");
@@ -845,9 +845,9 @@ QByteArray pgPresenceData (
     QByteArray body = "<args><subscription><groups><group uri=\"";
     body.append (pguri);
     body.append ("\"/></groups><presence><basic attributes=\"all\"/>"
-            "<member attributes=\"identity\"/>"
-            "<management attributes=\"all\"/>"
-            "</presence></subscription></args>");
+                 "<member attributes=\"identity\"/>"
+                 "<management attributes=\"all\"/>"
+                 "</presence></subscription></args>");
     QByteArray data ("S fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fetionNumber).append ("\r\n");
     data.append ("I: ").append (QByteArray::number (callId++)).append ("\r\n");
@@ -866,7 +866,7 @@ QByteArray pgGetGroupMembersData (
     const QByteArray &pguri)
 {
     QByteArray body = "<args><groups attributes=\"member-uri;member-nickname;"
-            "member-iicnickname;member-identity;member-t6svcid\"><group uri=\"";
+                      "member-iicnickname;member-identity;member-t6svcid\"><group uri=\"";
     body.append (pguri);
     body.append ("\"/></groups></args>");
     QByteArray data ("S fetion.com.cn SIP-C/4.0\r\n");
@@ -885,7 +885,7 @@ QByteArray pgSendCatSMSData (
     const QByteArray &fetionNumber,
     int &callId,
     const QByteArray &pguri,
-    const QByteArray & message)
+    const QByteArray &message)
 {
     QByteArray data ("M fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fetionNumber).append ("\r\n");
@@ -964,7 +964,7 @@ QByteArray setUserInfoV4Data (
 
 // set SMS status
 QByteArray setUserInfoV4Data (const QByteArray &fetionNumber,
-        int &callId, const int days)
+                              int &callId, const int days)
 {
     QByteArray body = "<args><userinfo><personal sms-online-status=\"";
     body.append (QByteArray::number (days));

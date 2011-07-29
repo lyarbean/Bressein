@@ -42,7 +42,7 @@
 namespace Bressein
 {
 User::User (QByteArray number, QByteArray password, QObject *parent)
-        : QObject (parent)
+    : QObject (parent)
 {
     timer = new QTimer (this);
     info = new UserInfo (this);
@@ -81,7 +81,7 @@ User::~User()
 
 }
 
-bool User::operator== (const User & other)
+bool User::operator== (const User &other)
 {
     return this->info->fetionNumber == other.info->fetionNumber;
 }
@@ -126,7 +126,7 @@ void User::initialize (QByteArray number, QByteArray password)
     info->callId = 1;
 }
 
-void User::sipcWriteRead (QByteArray& in, QByteArray& out)
+void User::sipcWriteRead (QByteArray &in, QByteArray &out)
 {
     printf ("To write\n");
     printf ("%s\n", in.data());
@@ -142,7 +142,7 @@ void User::sipcWriteRead (QByteArray& in, QByteArray& out)
         if (not sipcSocket->waitForReadyRead (-1))
         {
             qDebug() << "When waitForReadyRead"
-            << sipcSocket->error() << sipcSocket->errorString();
+                     << sipcSocket->error() << sipcSocket->errorString();
             timer->stop();
             return;
         }
@@ -203,7 +203,7 @@ void User::ssiLogin()
         {
             // TODO handle socket.error() or inform user what happened
             qDebug() << "ssiLogin  waitForReadyRead"
-            << socket.error() << socket.errorString();
+                     << socket.error() << socket.errorString();
         }
     }
     qDebug() << "ssiLogin";
@@ -230,7 +230,7 @@ void User::systemConfig()
         {
             // TODO handle socket.error() or inform user what happened
             qDebug() << "ssiLogin  waitForReadyRead"
-            << socket.error() << socket.errorString();
+                     << socket.error() << socket.errorString();
         }
     }
     //FIXME get more data until <results/> is fully downloaded
@@ -257,7 +257,7 @@ void User::sipcRegister()
     if (not sipcSocket->waitForConnected (-1)) /*no time out*/
     {
         qDebug() << "#sipcRegister waitForConnected"
-        << sipcSocket->errorString();
+                 << sipcSocket->errorString();
         return;
     }
     QByteArray toSendMsg ("R fetion.com.cn SIP-C/4.0\r\n");
@@ -292,14 +292,14 @@ void User::sipcAuthorize ()
         return;
     }
     QByteArray toSendMsg = sipcAuthorizeData (info->loginNumber,
-            info->fetionNumber,
-            info->userId,
-            info->callId,
-            info->response,
-            info->client.version,
-            info->client.customConfigVersion,
-            info->client.contactVersion,
-            info->state);
+                           info->fetionNumber,
+                           info->userId,
+                           info->callId,
+                           info->response,
+                           info->client.version,
+                           info->client.customConfigVersion,
+                           info->client.contactVersion,
+                           info->state);
     int length = 0;
     while (length < toSendMsg.length())
     {
@@ -315,7 +315,7 @@ void User::sipcAuthorize ()
         {
             // TODO handle socket.error() or inform user what happened
             qDebug() << "sipcAuthorize waitForReadyRead"
-            << sipcSocket->error() << sipcSocket->errorString();
+                     << sipcSocket->error() << sipcSocket->errorString();
             return;
         }
     }
@@ -345,7 +345,7 @@ void User::parseSsiResponse (QByteArray &data)
     QString errorMsg;
     int errorLine, errorColumn;
     bool ok = domDoc.setContent (xml, false,
-            &errorMsg, &errorLine, &errorColumn);
+                                 &errorMsg, &errorLine, &errorColumn);
     if (not ok)
     {
         qDebug() << "Failed to parse Ssi response!";
@@ -453,7 +453,7 @@ void User::parseSipcRegister (QByteArray &data)
     // need to store?
     // generate response
     info->response = RSAPublicEncrypt (info->userId, info->password,
-            info->nonce, info->aeskey, info->key);
+                                       info->nonce, info->aeskey, info->key);
     emit sipcRegisterParsed();
 }
 
@@ -546,7 +546,7 @@ void User::parseSipcAuthorize (QByteArray &data)
     QString errorMsg;
     int errorLine, errorColumn;
     bool ok = domDoc.setContent (xml, false,
-            &errorMsg, &errorLine, &errorColumn);
+                                 &errorMsg, &errorLine, &errorColumn);
     if (not ok)
     {
         // perhaps need more data from  socket
@@ -729,7 +729,7 @@ void User::ssiPic()
         if (not socket.waitForReadyRead (-1))
         {
             qDebug() << "ssiLogin  waitForReadyRead"
-            << socket.error() << socket.errorString();
+                     << socket.error() << socket.errorString();
         }
         responseData += socket.readAll();
     }
@@ -746,7 +746,7 @@ void User::ssiPic()
     QString errorMsg;
     int errorLine, errorColumn;
     bool ok = domDoc.setContent (xml, false,
-            &errorMsg, &errorLine, &errorColumn);
+                                 &errorMsg, &errorLine, &errorColumn);
     if (not ok)
     {
         // perhaps need more data from  socket
@@ -777,9 +777,9 @@ void User::ssiVerify()
 {
     QByteArray password = (hashV4 (info->userId, info->password));
     QByteArray data = ssiVerifyData (info->loginNumber, password,
-            info->verification->id,
-            info->verification->code,
-            info->verification->algorithm);
+                                     info->verification->id,
+                                     info->verification->code,
+                                     info->verification->algorithm);
     QSslSocket socket (this);
     socket.connectToHostEncrypted (UID_URI, 443);
 
@@ -798,27 +798,27 @@ void User::ssiVerify()
         {
             // TODO handle socket.error() or inform user what happened
             qDebug() << "ssiLogin  waitForReadyRead"
-            << socket.error() << socket.errorString();
+                     << socket.error() << socket.errorString();
         }
     }
     responseData = socket.readAll();
     parseSsiResponse (responseData);
 }
 
-void User::contactInfo (const QByteArray& userId)
+void User::contactInfo (const QByteArray &userId)
 {
     QByteArray toSendMsg = contactInfoData (info->fetionNumber,
-            userId, info->callId);
+                                            userId, info->callId);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData);
     //TODO handle responseData
     // carrier-region
 }
 
-void User::contactInfo (const QByteArray& Number, bool mobile)
+void User::contactInfo (const QByteArray &Number, bool mobile)
 {
     QByteArray toSendMsg = contactInfoData (info->fetionNumber, Number,
-            info->callId, mobile);
+                                            info->callId, mobile);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData);
     //TODO handle responseData
@@ -826,10 +826,10 @@ void User::contactInfo (const QByteArray& Number, bool mobile)
 }
 
 
-void User::sendMessage (const QByteArray& toSipuri, const QByteArray& message)
+void User::sendMessage (const QByteArray &toSipuri, const QByteArray &message)
 {
     QByteArray toSendMsg = catMsgData (info->fetionNumber,
-            toSipuri, info->callId, message);
+                                       toSipuri, info->callId, message);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData);
     // TODO handle responseData
@@ -843,13 +843,13 @@ void User::addBuddy (
     QByteArray phraseId)
 {
     QByteArray toSendMsg = addBuddyV4Data (info->fetionNumber, number,
-            info->callId, buddyLists, localName, desc, phraseId);
+                                           info->callId, buddyLists, localName, desc, phraseId);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData);
     // TODO handle responseData
 }
 
-void User::deleteBuddy (const QByteArray& userId)
+void User::deleteBuddy (const QByteArray &userId)
 {
     QByteArray toSendMsg =
         deleteBuddyV4Data (info->fetionNumber, userId, info->callId);
@@ -866,7 +866,7 @@ void User::contactSubscribe()
     sipcWriteRead (toSendMsg, responseData);
 }
 
-void User::inviteFriend (const QByteArray& sipUri)
+void User::inviteFriend (const QByteArray &sipUri)
 {
     QByteArray toSendMsg = startChatData (info->fetionNumber, info->callId);
     QByteArray responseData;
@@ -891,7 +891,7 @@ void User::inviteFriend (const QByteArray& sipUri)
         {
             // TODO handle socket.error() or inform user what happened
             qDebug() << "ssiLogin  waitForReadyRead"
-            << socket.error() << socket.errorString();
+                     << socket.error() << socket.errorString();
         }
     }
     //FIXME get more data until <results/> is fully downloaded
@@ -912,7 +912,7 @@ void User::createBuddylist (const QByteArray &name)
     // TODO handle responseData, get version, name, id
 }
 
-void User::deleteBuddylist (const QByteArray& id)
+void User::deleteBuddylist (const QByteArray &id)
 {
     QByteArray toSendMsg =
         deleteBuddyListData (info->fetionNumber, info->callId, id);
@@ -933,22 +933,22 @@ void User::renameBuddylist (const QByteArray &id, const QByteArray &name)
 void User::updateInfo ()
 {
     QByteArray toSendMsg = setUserInfoV4Data (
-                info->fetionNumber, info->callId,
-                info->client.impresa, info->client.nickname,
-                info->client.gender, info->client.customConfig,
-                info->client.customConfigVersion);
+                               info->fetionNumber, info->callId,
+                               info->client.impresa, info->client.nickname,
+                               info->client.gender, info->client.customConfig,
+                               info->client.customConfigVersion);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData);
     // TODO handle responseData
 }
 
-void User::setImpresa (const QByteArray& impresa)
+void User::setImpresa (const QByteArray &impresa)
 {
     QByteArray toSendMsg = setUserInfoV4Data (
-                info->fetionNumber, info->callId, impresa,
-                info->client.version,
-                info->client.customConfig,
-                info->client.customConfigVersion);
+                               info->fetionNumber, info->callId, impresa,
+                               info->client.version,
+                               info->client.customConfig,
+                               info->client.customConfigVersion);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData);
     // TODO handle responseData
@@ -957,16 +957,16 @@ void User::setImpresa (const QByteArray& impresa)
 void User::setMessageStatus (int days)
 {
     QByteArray toSendMsg = setUserInfoV4Data (
-                info->fetionNumber, info->callId, days);
+                               info->fetionNumber, info->callId, days);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData);
 }
 
-void User::setClientState (StateType& state)
+void User::setClientState (StateType &state)
 {
     QByteArray statetype = QByteArray::number ( (int) state);
     QByteArray toSendMsg = setPresenceV4Data (
-                info->fetionNumber, info->callId, statetype);
+                               info->fetionNumber, info->callId, statetype);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData);
 }
