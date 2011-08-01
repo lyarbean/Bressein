@@ -30,7 +30,7 @@
  *  OpenSSL library used as well as that of the covered work.
  */
 #include "bressein.h"
-#include "utils/singleton.h"
+#include "singleton.h"
 
 namespace Bressein
 {

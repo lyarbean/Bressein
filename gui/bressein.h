@@ -35,7 +35,7 @@
 
 #include <QtGui/QGraphicsView>
 #include "sipc/user.h"
-#include "gui/contactsscene.h"
+#include "contactsscene.h"
 // This is for test, will be rewritten with Qt graphics view framework
 // and will be moved to gui;
 

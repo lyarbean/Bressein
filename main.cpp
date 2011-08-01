@@ -31,7 +31,7 @@
  */
 #include <QtGui/QApplication>
 #include <QLabel>
-#include "bressein.h"
+#include "gui/bressein.h"
 
 // #include "sipc/user.h"
 #include "gui/contactsscene.h"
