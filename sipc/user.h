@@ -53,10 +53,11 @@ class User : public QObject
     Q_OBJECT
 
 public:
-    explicit User(QObject* parent = 0);
+    explicit User (QObject *parent = 0);
     virtual ~User();
     virtual bool operator== (const User &other);
-    void setAccount(QByteArray number, QByteArray password);
+    void setAccount (QByteArray number, QByteArray password);
+    const Contacts& getContacts() const;
 public slots:
 
     void login();
@@ -66,7 +67,9 @@ public slots:
     // use QMetaObject::invokeMethod to dispatch
     // move followings to private slots
 signals:
+
     void needConfirm();
+    void contactsChanged();
 //private use
     void ssiResponseParsed();
     void serverConfigParsed();
@@ -154,7 +157,7 @@ private:
     Info info;
     QThread workerThread;
     QTimer *timer;
-    QList<Contact *> contacts;
+    Contacts contacts;
     QList<Group *> groups;
     // groups
     //pggroups

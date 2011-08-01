@@ -9,3 +9,13 @@ Using Graphics View Framework
 
 Main Panel has a List-View, showing its items via QGraphicsItem subclassing, and
 a QGraphicsScene per se;
+
+
+Design:
+    The item has a key siPuri which get from data.
+    To initialize a scene, let scene use the data to generate items via a item
+    factory. When data changed, for each item, assign new datum, and if amount
+    of data is increased, generate more to fit it else if decreased, that is
+    some items'datum are removed, the 'remove' them. Then the item is activated,
+    a signal with the key pos will be emitted and find the datum via the data
+    and then call User to start a chat session by pass the datum.

@@ -1,5 +1,5 @@
 /*
- *  The Bressein, a client per se
+ *  An scene to display contact in views*
  *  Copyright (C) 2011  颜烈彬 <slbyan@gmail.com>
  *
  *  This library is free software; you can redistribute it and/or
@@ -29,19 +29,37 @@
  *  combination shall include the source code for the parts of the
  *  OpenSSL library used as well as that of the covered work.
  */
-#include <QtGui/QApplication>
-#include <QLabel>
-#include "bressein.h"
 
-// #include "sipc/user.h"
-#include "gui/contactsscene.h"
-int main (int argc, char** argv)
+
+#ifndef CONTACTSSCENE_H
+#define CONTACTSSCENE_H
+
+#include <QtGui/QGraphicsScene>
+#include "sipc/types.h"
+
+namespace Bressein
 {
-    QApplication app (argc, argv);
-    Bressein::ContactsScene cscene;
-    Bressein::Bressein foo(&cscene);
-    foo.show();
-    foo.login();
-    return app.exec();
+class ContactItem;
+class ContactsScene : public QGraphicsScene
+{
+    Q_OBJECT
+public:
+    ContactsScene();
+    virtual ~ContactsScene();
+public slots:
+    // just pass one contact each time
+    void onDataChanged (const Contact& contact);
+    void onDataRemoved (const Contact& contact);
+signals:
+    void contactActivated (QByteArray userId);
+protected:
+    void mousePressEvent (QGraphicsSceneMouseEvent *mouseEvent);
+    void mouseMoveEvent (QGraphicsSceneMouseEvent *mouseEvent);
+    void mouseReleaseEvent (QGraphicsSceneMouseEvent *mouseEvent);
+    void mouseDoubleClickEvent (QGraphicsSceneMouseEvent *mouseEvent);
+private:
+    QList<ContactItem *> itemList;
+};
 }
 
+#endif // CONTACTSSCENE_H

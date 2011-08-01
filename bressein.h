@@ -29,19 +29,32 @@
  *  combination shall include the source code for the parts of the
  *  OpenSSL library used as well as that of the covered work.
  */
-#include <QtGui/QApplication>
-#include <QLabel>
-#include "bressein.h"
 
-// #include "sipc/user.h"
+#ifndef Bressein_H
+#define Bressein_H
+
+#include <QtGui/QGraphicsView>
+#include "sipc/user.h"
 #include "gui/contactsscene.h"
-int main (int argc, char** argv)
-{
-    QApplication app (argc, argv);
-    Bressein::ContactsScene cscene;
-    Bressein::Bressein foo(&cscene);
-    foo.show();
-    foo.login();
-    return app.exec();
-}
+// This is for test, will be rewritten with Qt graphics view framework
+// and will be moved to gui;
 
+namespace Bressein
+{
+
+class Bressein : public QGraphicsView
+{
+    Q_OBJECT
+public:
+    Bressein(QGraphicsScene * scene, QWidget * parent = 0);
+    virtual ~Bressein();
+    void login();
+private slots:
+    void onDataChanged();
+    void setRenderingSystem();
+private:
+    User * user;
+
+};
+}
+#endif // Bressein_H

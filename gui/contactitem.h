@@ -1,5 +1,5 @@
 /*
- *  The Bressein, a client per se
+ *  An Item to display contact in views*
  *  Copyright (C) 2011  颜烈彬 <slbyan@gmail.com>
  *
  *  This library is free software; you can redistribute it and/or
@@ -29,19 +29,31 @@
  *  combination shall include the source code for the parts of the
  *  OpenSSL library used as well as that of the covered work.
  */
-#include <QtGui/QApplication>
-#include <QLabel>
-#include "bressein.h"
 
-// #include "sipc/user.h"
-#include "gui/contactsscene.h"
-int main (int argc, char** argv)
+
+#ifndef CONTACTITEM_H
+#define CONTACTITEM_H
+
+#include <QtGui/QGraphicsItem>
+#include "sipc/types.h"
+namespace Bressein
 {
-    QApplication app (argc, argv);
-    Bressein::ContactsScene cscene;
-    Bressein::Bressein foo(&cscene);
-    foo.show();
-    foo.login();
-    return app.exec();
-}
+class ContactItem : public QGraphicsItem
+{
+public:
+    ContactItem (QGraphicsItem *parent = 0, QGraphicsScene *scene = 0);
+    virtual ~ContactItem();
 
+    void paint (QPainter *painter,
+                const QStyleOptionGraphicsItem *option,
+                QWidget *widget = 0);
+    QRectF boundingRect() const;
+//     ContactItem();
+//     virtual ~ContactItem();
+    void setData (const Contact& contact);
+    const Contact& data();
+private:
+    Contact contact;
+};
+}
+#endif // CONTACTITEM_H

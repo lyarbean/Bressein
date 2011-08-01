@@ -10,7 +10,7 @@ find_package(Doxygen REQUIRED)
 find_package(Qt4 REQUIRED)
 
 include(${QT_USE_FILE} )
-include_directories(${QT_INCLUDES} ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${QT_INCLUDES} ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 #
 # include(UseDoxygen OPTIONAL)
 
@@ -19,10 +19,10 @@ add_subdirectory(gui)
 add_subdirectory(sipc)
 add_subdirectory(utils)
 
-set(Bressein_SRCS Bressein.cpp main.cpp)
+set(Bressein_SRCS bressein.cpp main.cpp)
 qt4_automoc(${Bressein_SRCS})
 add_executable(Bressein ${Bressein_SRCS})
-target_link_libraries(Bressein sipc ssl ${QT_LIBRARIES})
+target_link_libraries(Bressein bressein_sipc ssl bressein_gui ${QT_LIBRARIES})
 
 ###########doxygen###########
 # prepare doxygen configuration file

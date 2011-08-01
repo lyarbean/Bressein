@@ -1,5 +1,5 @@
 /*
- *  Some types
+ *  Some types, basic
  *  Copyright (C) 2011  颜烈彬 <slbyan@gmail.com>
  *
  *  This library is free software; you can redistribute it and/or
@@ -31,6 +31,8 @@
  */
 #ifndef BRESSIEN_TYPES_H
 #define BRESSIEN_TYPES_H
+#include <QDebug>
+#include <QMetaType>
 class QByteArray;
 namespace Bressein
 {
@@ -113,10 +115,11 @@ struct Contact
     QByteArray carrier;
     StateType state;       //state type like online,busy,etc
     QByteArray gender;            //gender '1' for male '2' for female,'0' for private
-/*    int imageChanged;      //whether user`s portrait has changed
-    int dirty;  */           //whether the contact read from the server is latest
+    /*    int imageChanged;      //whether user`s portrait has changed
+        int dirty;  */           //whether the contact read from the server is latest
 };
 
+typedef QList<const Contact *> Contacts;
 struct Group
 {
     QByteArray groupname; // current buddy list name
@@ -127,4 +130,5 @@ struct Group
 // pggroupmember
 // pggroup
 }
+
 #endif

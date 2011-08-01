@@ -88,6 +88,7 @@ bool User::operator== (const User &other)
 
 void User::login()
 {
+    qDebug() << "To Login";
     QMetaObject::invokeMethod (this, "ssiLogin");
     // ssiLogin();
 }
@@ -123,6 +124,12 @@ void User::setAccount (QByteArray number, QByteArray password)
     info->cnonce = cnouce();
     info->callId = 1;
 }
+
+const Bressein::Contacts& User::getContacts() const
+{
+    return contacts;
+}
+
 // private
 void User::sipcWriteRead (QByteArray &in, QByteArray &out)
 {
@@ -165,9 +172,10 @@ void User::keepAlive()
         printf ("socket closed.");
         return;
     }
+    qDebug() << "To keepAlive" << info->callId;
     QByteArray toSendMsg = keepAliveData (info->fetionNumber, info->callId);
     QByteArray responseData;
-    qDebug() << "To keepAlive";
+    qDebug() << "To keepAlive" << info->callId;
     sipcWriteRead (toSendMsg, responseData);
 
     //TODO Handle any responseData
@@ -177,6 +185,7 @@ void User::keepAlive()
 
 void User::ssiLogin()
 {
+    qDebug() << "ssiLogin 1";
     if (info->loginNumber.isEmpty()) return;
     // Do we need to clean up first
     //TODO if proxy
@@ -204,13 +213,14 @@ void User::ssiLogin()
                      << socket.error() << socket.errorString();
         }
     }
-    qDebug() << "ssiLogin";
+    qDebug() << "ssiLogin 2";
     responseData = socket.readAll();
     parseSsiResponse (responseData);
 }
 
 void User::systemConfig()
 {
+    qDebug() << "systemConfig";
     QByteArray body = configData (info->loginNumber);
     QTcpSocket socket (this);
     QHostInfo info = QHostInfo::fromName ("nav.fetion.com.cn");
@@ -284,6 +294,7 @@ void User::sipcRegister()
  **/
 void User::sipcAuthorize()
 {
+    qDebug() << "sipcAuthorize";
     if (sipcSocket->state() not_eq QAbstractSocket::ConnectedState)
     {
         printf ("socket closed.");
@@ -296,6 +307,7 @@ void User::sipcAuthorize()
                             info->client.customConfigVersion,
                             info->client.contactVersion, info->state);
     int length = 0;
+    qDebug() << "toSendMsg" << toSendMsg;
     while (length < toSendMsg.length())
     {
         length +=
@@ -318,6 +330,7 @@ void User::sipcAuthorize()
     {
         responseData += sipcSocket->readAll();
     }
+        qDebug() << responseData;
     //TODO ensure full of <results/> downloaded
     parseSipcAuthorize (responseData);
 }
@@ -440,7 +453,7 @@ void User::parseSipcRegister (QByteArray &data)
         qDebug() << data;
         return;
     }
-    qDebug() << QString::fromUtf8 (data);
+        qDebug() <<"parseSipcRegister"<< QString::fromUtf8 (data);
     int b, e;
     b = data.indexOf ("\",nonce=\"");
     e = data.indexOf ("\",key=\"", b);
@@ -451,9 +464,10 @@ void User::parseSipcRegister (QByteArray &data)
     b = data.indexOf ("\",signature=\"");
     e = data.indexOf ("\"", b);
     info->signature = data.mid (b + 14, e - b - 14);
-    info->aeskey = QByteArray::fromHex (cnouce (9)).left (32);
+    info->aeskey = QByteArray::fromHex (cnouce (8)).left (32);
     // need to store?
     // generate response
+    // check if emptyq
     info->response = RSAPublicEncrypt (info->userId, info->password,
                                        info->nonce, info->aeskey, info->key);
     emit sipcRegisterParsed();
@@ -672,6 +686,7 @@ void User::parseSipcAuthorize (QByteArray &data)
             domGrand = domChild.firstChildElement ("buddies");
             if (not domGrand.isNull())
             {
+                contacts.clear();
                 domGrand = domGrand.firstChildElement ("b");
                 QList<QByteArray> attributes;
                 attributes << "i" << "l" << "n" << "p" << "r" << "u";
@@ -692,7 +707,7 @@ void User::parseSipcAuthorize (QByteArray &data)
                     }
                     if (ok)
                     {
-                        Contact *contact = new Contact;
+                        Contact* contact = new Contact;
                         contact->userId = domGrand.attribute ("i").toUtf8();
                         contact->groupId = domGrand.attribute ("l").toUtf8();
                         contact->localName = domGrand.attribute ("n").toUtf8();
@@ -705,6 +720,8 @@ void User::parseSipcAuthorize (QByteArray &data)
                     }
                     domGrand = domGrand.nextSiblingElement ("b");
                 }
+                qDebug() << "Contacts Changed";
+                emit contactsChanged();
             }
         }
         domChild = domChild.nextSiblingElement ("quotas");
