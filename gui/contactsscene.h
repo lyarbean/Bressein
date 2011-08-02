@@ -1,5 +1,5 @@
 /*
- *  An scene to display contact in views*
+ *  This file is part of Bressein.
  *  Copyright (C) 2011  颜烈彬 <slbyan@gmail.com>
  *
  *  This library is free software; you can redistribute it and/or
@@ -34,31 +34,19 @@
 #ifndef CONTACTSSCENE_H
 #define CONTACTSSCENE_H
 
-#include <QtGui/QGraphicsScene>
-#include "sipc/types.h"
+#include <QtGui>
 
 namespace Bressein
 {
-class ContactItem;
 class ContactsScene : public QGraphicsScene
 {
     Q_OBJECT
 public:
-    ContactsScene();
+    ContactsScene (QObject *parent);
     virtual ~ContactsScene();
-public slots:
-    // just pass one contact each time
-    void onDataChanged (const Contact& contact);
-    void onDataRemoved (const Contact& contact);
-signals:
-    void contactActivated (QByteArray userId);
 protected:
-    void mousePressEvent (QGraphicsSceneMouseEvent *mouseEvent);
-    void mouseMoveEvent (QGraphicsSceneMouseEvent *mouseEvent);
-    void mouseReleaseEvent (QGraphicsSceneMouseEvent *mouseEvent);
-    void mouseDoubleClickEvent (QGraphicsSceneMouseEvent *mouseEvent);
-private:
-    QList<ContactItem *> itemList;
+    void drawItems (QPainter *painter, int numItems, QGraphicsItem *items[],
+                    const QStyleOptionGraphicsItem options[], QWidget *widget);
 };
 }
 

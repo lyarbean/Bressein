@@ -38,8 +38,7 @@
 int main (int argc, char** argv)
 {
     QApplication app (argc, argv);
-    Bressein::ContactsScene cscene;
-    Bressein::Bressein foo(&cscene);
+    Bressein::Bressein foo;
     foo.show();
     foo.login();
     return app.exec();

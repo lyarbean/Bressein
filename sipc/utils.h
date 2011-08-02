@@ -1,5 +1,5 @@
 /*
- *  Some utils of Bressein
+ *  This file is part of Bressein.
  *  Copyright (C) 2011  颜烈彬 <slbyan@gmail.com>
  *
  *  This library is free software; you can redistribute it and/or

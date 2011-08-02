@@ -1,5 +1,5 @@
 /*
- *  Some types, basic
+ *  This file is part of Bressein.
  *  Copyright (C) 2011  颜烈彬 <slbyan@gmail.com>
  *
  *  This library is free software; you can redistribute it and/or
@@ -119,7 +119,12 @@ struct Contact
         int dirty;  */           //whether the contact read from the server is latest
 };
 
-typedef QList<const Contact *> Contacts;
+typedef QList<Contact *> Contacts;
+static bool userIdLessThan (const Contact *left, const Contact *right)
+{
+    return left->userId.toLower() < right->userId.toLower();
+}
+
 struct Group
 {
     QByteArray groupname; // current buddy list name

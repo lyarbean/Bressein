@@ -1,5 +1,5 @@
 /*
- *  The Bressein, a client per se
+ *  This file is part of Bressein.
  *  Copyright (C) 2011  颜烈彬 <slbyan@gmail.com>
  *
  *  This library is free software; you can redistribute it and/or
@@ -34,14 +34,15 @@
 
 namespace Bressein
 {
-Bressein::Bressein(QGraphicsScene * scene, QWidget * parent)
-    :QGraphicsView (scene, parent)
+Bressein::Bressein (QWidget *parent)
+    : QGraphicsView (parent) , gwidget (new QGraphicsWidget)
 {
     setRenderingSystem();
+    setupScene();
     user = Singleton<User>::instance();
-    user->setAccount(qgetenv ("FETIONNUMBER"), qgetenv ("FETIONPASSWORD"));
-    connect(user, SIGNAL(contactsChanged()),
-            this, SLOT(onDataChanged()));
+    user->setAccount (qgetenv ("FETIONNUMBER"), qgetenv ("FETIONPASSWORD"));
+    connect (user, SIGNAL (contactsChanged()),
+             this, SLOT (onDataChanged()));
 }
 
 Bressein::~Bressein()
@@ -54,21 +55,44 @@ void Bressein::login()
     user->login();
 }
 
+
+//TODO move to gscene
 void Bressein::onDataChanged ()
 {
-    const Contacts& list = user->getContacts();
-    ContactsScene* cscene = (ContactsScene*) scene();
-    if (cscene)
+    //TODO add lock
+    const Contacts &list = user->getContacts();
+
+    // N**2
+    bool updated = false;
+    int itemlists = itemList.size();
+    int lists = list.size();
+    for (int i = 0; i < lists; i++)
     {
-        qDebug() << "Bressein::onDataChanged ";
-        for (int i=0; i<list.size(); i++)
+        updated = false;
+        for (int j = 0; j < itemlists; j++)
         {
-            cscene->onDataChanged(*list.at(i));
+            if (itemList.at (i)->data().sipuri == list.at (i)->sipuri)
+            {
+                // update this
+                itemList.at (i)->setData (*list.at (i));
+                updated = true;
+                break;
+            }
+        }
+        if (not updated)
+        {
+            ContactItem *item;
+            item = new ContactItem (gwidget,gscene);
+            item->setData (*list.at (i));
+            item->setZValue (10);
+            item->setVisible (true);
+            item->setPos (0,item->boundingRect().height() *i);
+            itemList.append (item);
         }
     }
-    update();
 }
 
+//TODO onContactRemoved
 void Bressein::setRenderingSystem()
 {
     QWidget *viewport = 0;
@@ -84,11 +108,27 @@ void Bressein::setRenderingSystem()
 //     #endif
     // software rendering
     viewport = new QWidget;
-    setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
-    setCacheMode(QGraphicsView::CacheBackground);
-    setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
-    setDragMode(QGraphicsView::ScrollHandDrag);
-    setViewport(viewport);
+    setRenderHints (QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+    setCacheMode (QGraphicsView::CacheBackground);
+    setViewportUpdateMode (QGraphicsView::BoundingRectViewportUpdate);
+    setDragMode (QGraphicsView::ScrollHandDrag);
+    setViewport (viewport);
 }
+
+void Bressein::setupScene()
+{
+    gscene = new ContactsScene (this);
+    gscene->setSceneRect (0, 0, 100, 600);
+    setScene (gscene);
+    gscene->setItemIndexMethod (QGraphicsScene::NoIndex);
+    gscene->addItem (gwidget);
+}
+
+void Bressein::setupSceneItems()
+{
+    // setup buttons
+    //
+}
+
 }
 #include "bressein.moc"

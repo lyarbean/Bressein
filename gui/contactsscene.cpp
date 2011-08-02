@@ -1,5 +1,5 @@
 /*
- *  An scene to display contact in views*
+ *  This file is part of Bressein.
  *  Copyright (C) 2011  颜烈彬 <slbyan@gmail.com>
  *
  *  This library is free software; you can redistribute it and/or
@@ -31,18 +31,17 @@
  */
 
 
-#include <QGraphicsSceneMouseEvent>
 #include "contactsscene.h"
 #include "contactitem.h"
 
 namespace Bressein
 {
-ContactsScene::ContactsScene()
+ContactsScene::ContactsScene (QObject *parent) : QGraphicsScene (parent)
 {
     qDebug() <<"on ctor";
-    QGraphicsItem *item = addText("Hello Bressein");
-    QGraphicsItem *item2 = addText("Author: lyarbean");
-    item->setPos(item2->pos()+QPointF(0,32));
+//     QGraphicsItem *item = addText("Hello Bressein");
+//     QGraphicsItem *item2 = addText("Author: lyarbean");
+//     item->setPos(item2->pos()+QPointF(0,32));
     qDebug() << "right after addText";
 }
 
@@ -50,73 +49,21 @@ ContactsScene::~ContactsScene()
 {
 
 }
-void ContactsScene::mouseMoveEvent (QGraphicsSceneMouseEvent *mouseEvent)
-{
-    QGraphicsScene::mouseMoveEvent (mouseEvent);
-}
 
-void ContactsScene::mousePressEvent (QGraphicsSceneMouseEvent *mouseEvent)
+void ContactsScene::drawItems (QPainter *painter, int numItems,
+                               QGraphicsItem *items[],
+                               const QStyleOptionGraphicsItem options[],
+                               QWidget *widget)
 {
-    QGraphicsScene::mousePressEvent (mouseEvent);
-}
-
-void ContactsScene::mouseReleaseEvent (QGraphicsSceneMouseEvent *mouseEvent)
-{
-    QGraphicsScene::mouseReleaseEvent (mouseEvent);
-}
-
-void ContactsScene::mouseDoubleClickEvent
-(QGraphicsSceneMouseEvent *mouseEvent)
-{
-    ContactItem *item = qgraphicsitem_cast<ContactItem *>
-                        (itemAt (mouseEvent->pos()));
-    if (item)
+    for (int i=0; i<numItems; ++i)
     {
-        emit contactActivated (item->data().userId);
-        qDebug() << "item->data()->userId" << item->data().userId;
+        painter->save();
+        painter->setMatrix (items[i]->sceneMatrix(), true);
+        items[i]->paint (painter, &options[i], widget);
+        painter->restore();
     }
 }
 
-void ContactsScene::onDataChanged (const Contact& contact)
-{
-    qDebug() << "onDataChanged" << contact.sipuri;
-    bool updated = false;
-    for (int i=0, s=itemList.size(); i < s; i++)
-    {
-        if (itemList.at(i)->data().sipuri == contact.sipuri)
-        {
-            // update this
-            itemList.at(i)->setData(contact);
-            updated = true;
-        }
-    }
-    if (not updated)
-    {
-        ContactItem * item;
-        if ( itemList.isEmpty())
-        {
-            item = new ContactItem;
-        } else {
-            item = new ContactItem(itemList.last());
-        }
-        item->setData(contact);
-        this->addItem(item);
-    }
-}
-
-void ContactsScene::onDataRemoved (const Contact& contact)
-{
-    for (int i=0; i< itemList.size(); i++)
-    {
-        if (itemList.at(i)->data().sipuri == contact.sipuri)
-        {
-            // update this
-            removeItem(itemList.at(i));
-            itemList.removeAt(i);
-        }
-    }
-
-}
 
 }
 #include "contactsscene.moc"

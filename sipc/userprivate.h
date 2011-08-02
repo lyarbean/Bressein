@@ -1,5 +1,5 @@
 /*
- *  The private implement of Bressein User
+ *  This file is part of Bressein.
  *  Copyright (C) 2011  颜烈彬 <slbyan@gmail.com>
  *
  *  This library is free software; you can redistribute it and/or
@@ -47,6 +47,8 @@ struct User::UserInfo
     {
         if (verification)
             delete verification;
+        while (not conversations.isEmpty())
+            delete conversations.takeFirst();
     }
 
     // from input
@@ -130,6 +132,13 @@ struct User::UserInfo
 
     QList<QByteArray> phrases;
 
+    struct Conversation
+    {
+        Contact contact;
+        QTcpSocket *socket;
+    };
+    typedef QList<Conversation *> Conversations;
+    Conversations conversations;
 protected:
     User *_p;
 };

@@ -1,5 +1,5 @@
 /*
- *  An Item to display contact in views*
+ *  This file is part of Bressein.
  *  Copyright (C) 2011  颜烈彬 <slbyan@gmail.com>
  *
  *  This library is free software; you can redistribute it and/or
@@ -32,14 +32,17 @@
 
 
 #include "contactitem.h"
-#include <QPainter>
+#include <QtGui>
 #include <QStyleOptionGraphicsItem>
+#include <QGraphicsSceneMouseEvent>
+#include "sipc/user.h"
+#include "singleton.h"
+#include <QApplication>
 namespace Bressein
 {
 ContactItem::ContactItem (QGraphicsItem *parent, QGraphicsScene *scene)
-    : QGraphicsItem (parent, scene)
+    : QGraphicsItem (parent, scene), state (OFFLINE)
 {
-    qDebug() << "being called";
 }
 
 ContactItem::~ContactItem()
@@ -51,27 +54,56 @@ void ContactItem::paint (QPainter *painter,
                          const QStyleOptionGraphicsItem *option,
                          QWidget *widget)
 {
-    qDebug() << "on item paint";
     if (contact.sipuri.isEmpty())
     {
         return;
     }
+//     QMatrix m = painter->worldMatrix();
+//     painter->setWorldMatrix (QMatrix());
+    painter->drawRect (boundingRect());
+    painter->setPen (Qt::red);
     if (not contact.localName.isEmpty())
     {
-        painter->drawText (0,0, QString::fromUtf8(contact.localName));
+        painter->drawText (25-QApplication::desktop()->screenGeometry().width()
+        /2, 14, QString::fromUtf8 (contact.localName));
     }
     else
     {
-        painter->drawText (0,0, QString::fromUtf8(contact.userId));
+        painter->drawText (25-QApplication::desktop()->screenGeometry().width()
+        /2, 14, QString::fromUtf8 (contact.sipuri));
     }
-        painter->drawText (0,10, QString::fromUtf8(contact.imprea));
+    painter->drawText (25-QApplication::desktop()->screenGeometry().width() /2,
+                       28, QString::fromUtf8 (contact.userId));
+    if (not contact.imprea.isEmpty())
+    {
+        painter->drawText (25-QApplication::desktop()->screenGeometry().width()
+        /2, 42, QString::fromUtf8 (contact.imprea));
+    }
+}
+
+void ContactItem::mousePressEvent (QGraphicsSceneMouseEvent *event)
+{
+    state = PRESSED;
+}
+
+void ContactItem::mouseReleaseEvent (QGraphicsSceneMouseEvent *event)
+{
+    if (state == PRESSED)
+    {
+        if (this->boundingRect().contains (event->pos()))
+        {
+            //TODO
+            // call singleton to open chat room
+            qDebug() << "to call" << contact.sipuri;
+            Singleton<User>::instance()->startChat (contact.sipuri);
+        }
+    }
 }
 
 QRectF ContactItem::boundingRect() const
 {
-    qreal penWidth = 1;
-    return QRectF (-10 - penWidth / 2, -10 - penWidth / 2,
-                   80 + penWidth, 20 + penWidth);
+    return QRectF (25-QApplication::desktop()->screenGeometry().width() /2, -25,
+                   QApplication::desktop()->screenGeometry().width(),50);
 }
 
 void ContactItem::setData (const Contact &contact)
@@ -79,7 +111,7 @@ void ContactItem::setData (const Contact &contact)
     this->contact = contact;
 }
 
-const Contact& ContactItem::data()
+const Contact &ContactItem::data()
 {
     return contact;
 }

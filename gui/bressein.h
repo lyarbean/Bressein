@@ -1,5 +1,5 @@
 /*
- *  The Bressein, a client per se
+ *  This file is part of Bressein.
  *  Copyright (C) 2011  颜烈彬 <slbyan@gmail.com>
  *
  *  This library is free software; you can redistribute it and/or
@@ -34,27 +34,33 @@
 #define Bressein_H
 
 #include <QtGui/QGraphicsView>
+#include <QtGui/QGraphicsWidget>
 #include "sipc/user.h"
 #include "contactsscene.h"
-// This is for test, will be rewritten with Qt graphics view framework
-// and will be moved to gui;
-
+#include "contactitem.h"
 namespace Bressein
 {
 
+/**
+ * @brief The main view of Bressein
+ **/
 class Bressein : public QGraphicsView
 {
     Q_OBJECT
 public:
-    Bressein(QGraphicsScene * scene, QWidget * parent = 0);
+    Bressein (QWidget *parent = 0);
     virtual ~Bressein();
     void login();
 private slots:
     void onDataChanged();
     void setRenderingSystem();
+    void setupScene();
+    void setupSceneItems();
 private:
-    User * user;
-
+    User *user;  // singleton for the moment, that is solo mode
+    QGraphicsScene *gscene;
+    QGraphicsWidget *gwidget;
+    QList<ContactItem *> itemList;
 };
 }
 #endif // Bressein_H

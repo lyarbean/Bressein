@@ -1,5 +1,5 @@
 /*
- *  An Item to display contact in views*
+ *  This file is part of Bressein.
  *  Copyright (C) 2011  颜烈彬 <slbyan@gmail.com>
  *
  *  This library is free software; you can redistribute it and/or
@@ -41,6 +41,7 @@ namespace Bressein
 class ContactItem : public QGraphicsItem
 {
 public:
+    enum STATE {PRESSED, RELEASED, ONLINE, OFFLINE,INVALIE=0xFFFF};
     ContactItem (QGraphicsItem *parent = 0, QGraphicsScene *scene = 0);
     virtual ~ContactItem();
 
@@ -48,12 +49,17 @@ public:
                 const QStyleOptionGraphicsItem *option,
                 QWidget *widget = 0);
     QRectF boundingRect() const;
+//     virtual void hoverEnterEvent(QGraphicsSceneHoverEvent *event);
+//     virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent *event);
+    virtual void mousePressEvent (QGraphicsSceneMouseEvent *event);
+    virtual void mouseReleaseEvent (QGraphicsSceneMouseEvent *event);
 //     ContactItem();
 //     virtual ~ContactItem();
-    void setData (const Contact& contact);
-    const Contact& data();
+    void setData (const Contact &contact);
+    const Contact &data();
 private:
     Contact contact;
+    STATE state;
 };
 }
 #endif // CONTACTITEM_H
