@@ -65,19 +65,19 @@ void ContactItem::paint (QPainter *painter,
     if (not contact.basic.localName.isEmpty())
     {
         painter->drawText (25-QApplication::desktop()->screenGeometry().width()
-        /2, 14, QString::fromUtf8 (contact.basic.localName));
+                           /2, 14, QString::fromUtf8 (contact.basic.localName));
     }
     else
     {
         painter->drawText (25-QApplication::desktop()->screenGeometry().width()
-        /2, 14, QString::fromUtf8 (sipuri));
+                           /2, 14, QString::fromUtf8 (sipuri));
     }
     painter->drawText (25-QApplication::desktop()->screenGeometry().width() /2,
                        28, QString::fromUtf8 (contact.basic.userId));
     if (not contact.basic.imprea.isEmpty())
     {
         painter->drawText (25-QApplication::desktop()->screenGeometry().width()
-        /2, 42, QString::fromUtf8 (contact.basic.imprea));
+                           /2, 42, QString::fromUtf8 (contact.basic.imprea));
     }
 }
 
@@ -116,7 +116,7 @@ const ContactInfo &ContactItem::getContact() const
     return contact;
 }
 
-void ContactItem::setSipuri (const QByteArray& sipuri)
+void ContactItem::setSipuri (const QByteArray &sipuri)
 {
     this->sipuri = sipuri;
 }

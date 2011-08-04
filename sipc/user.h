@@ -90,7 +90,7 @@ private slots:
     void ssiVerify();
     void systemConfig();
 
-    bool downloadPortrait(const QByteArray &sipuri);
+    bool downloadPortrait (const QByteArray &sipuri);
     // uploadPortrait(/*file*/);
     void sipcRegister();
     void sipcAuthorize();

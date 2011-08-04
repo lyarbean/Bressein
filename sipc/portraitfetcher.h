@@ -23,21 +23,31 @@
 
 #include <QObject>
 #include <QThread>
+#include <QMutex>
+#include <QWaitCondition>
 class QTcpSocket;
-namespace Bressein{
+namespace Bressein
+{
 class PortraitFetcher : public QObject
 {
     Q_OBJECT
 public:
-    PortraitFetcher(QObject * parent = 0);
+    PortraitFetcher (QObject *parent = 0);
     virtual ~PortraitFetcher();
+    void setData (const QByteArray &server,
+                  const QByteArray &path,
+                  const QByteArray &ssic);
 public slots:
-    void toGet(const QByteArray &server, const QByteArray &path,
-             const QByteArray &sipuri, const QByteArray &ssic);
-    void get(const QByteArray &server, const QByteArray &path,
-             const QByteArray &sipuri, const QByteArray &ssic);
+    void toGet (const QByteArray &sipuri);
+    void get (const QByteArray &sipuri);
 private:
     QThread workerThread;
+    QMutex mutex;
+    QWaitCondition enterCondition;
+    QByteArray server;
+    QByteArray path;
+    QByteArray ssic;
+//     QWaitCondition exitCondition;
     QTcpSocket *socket;
 };
 }

@@ -35,14 +35,14 @@
 namespace Bressein
 {
 Bressein::Bressein (QWidget *parent)
-        : QGraphicsView (parent) , gwidget (new QGraphicsWidget)
+    : QGraphicsView (parent) , gwidget (new QGraphicsWidget)
 {
     setRenderingSystem();
     setupScene();
     user = Singleton<User>::instance();
     user->setAccount (qgetenv ("FETIONNUMBER"), qgetenv ("FETIONPASSWORD"));
     connect (user, SIGNAL (contactsChanged()),
-            this, SLOT (onDataChanged()));
+             this, SLOT (onDataChanged()));
 }
 
 Bressein::~Bressein()
@@ -73,11 +73,11 @@ void Bressein::onDataChanged ()
         updated = false;
         for (int j = 0; j < itemlists; j++)
         {
-            if (itemList.at(i)->getSipuri() == keys.at(i))
+            if (itemList.at (i)->getSipuri() == keys.at (i))
             {
                 // update this
                 itemList.at (i)->setSipuri (keys.at (i));
-                itemList.at (i)->setContact(*list.value(keys.at (i)));
+                itemList.at (i)->setContact (*list.value (keys.at (i)));
                 updated = true;
                 break;
             }
@@ -87,7 +87,7 @@ void Bressein::onDataChanged ()
             ContactItem *item;
             item = new ContactItem (gwidget, gscene);
             item->setSipuri (keys.at (i));
-            item->setContact(*list.value(keys.at (i)));
+            item->setContact (*list.value (keys.at (i)));
             item->setZValue (10);
             item->setVisible (true);
             item->setPos (0, item->boundingRect().height() * i *1.2);

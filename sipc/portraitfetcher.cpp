@@ -26,8 +26,8 @@
 #include "utils.h"
 namespace Bressein
 {
-PortraitFetcher::PortraitFetcher (QObject * parent) : QObject (parent),
-        socket (new QTcpSocket (this))
+PortraitFetcher::PortraitFetcher (QObject *parent) : QObject (parent),
+    socket (new QTcpSocket (this))
 {
     this->moveToThread (&workerThread);
     workerThread.start();
@@ -41,23 +41,34 @@ PortraitFetcher::~PortraitFetcher()
         workerThread.quit();
         workerThread.wait();
     }
-
 }
 
-void PortraitFetcher::toGet (const QByteArray& server, const QByteArray& path, const QByteArray& sipuri, const QByteArray& ssic)
+void PortraitFetcher::setData (const QByteArray &server,
+                               const QByteArray &path,
+                               const QByteArray &ssic)
 {
-    //TODO  add qmutex and qwaitcondition
+    mutex.lock();
+    this->server = server;
+    this->path = path;
+    this->ssic = ssic;
+    mutex.unlock();
+}
+
+void PortraitFetcher::toGet (const QByteArray &sipuri)
+{
+    //FIXME I'm sure this is buggy!!
+    mutex.lock();
+    qDebug() << "to invoke";
     QMetaObject::invokeMethod (this, "get", Qt::QueuedConnection,
-            Q_ARG (const QByteArray&, server),
-            Q_ARG (const QByteArray&, path),
-            Q_ARG (const QByteArray&, sipuri),
-            Q_ARG (const QByteArray&, ssic));
+
+                               Q_ARG (const QByteArray &, sipuri));
+    mutex.unlock();
+    enterCondition.wakeOne();
 }
 
-void PortraitFetcher::get (const QByteArray& server, const QByteArray& path,
-        const QByteArray& sipuri, const QByteArray& ssic)
+void PortraitFetcher::get (const QByteArray &sipuri)
 {
-
+    mutex.lock();
     //http://hdss1fta.fetion.com.cn/HDS_S00/geturi.aspx
     if (server.isEmpty() or path.isEmpty())
     {
@@ -83,7 +94,7 @@ void PortraitFetcher::get (const QByteArray& server, const QByteArray& path,
         {
             // TODO handle socket->error() or inform user what happened
             qDebug() << "ssiLogin  waitForReadyRead"
-            << socket->error() << socket->errorString();
+                     << socket->error() << socket->errorString();
             return;
         }
     }
@@ -102,6 +113,7 @@ void PortraitFetcher::get (const QByteArray& server, const QByteArray& path,
         qDebug() << "not ok" << responseData;
         return;
     }
+    qDebug() << "not ok" << responseData;
     int received = responseData.size();
     while (received < length + pos_ + 4)
     {
@@ -110,26 +122,31 @@ void PortraitFetcher::get (const QByteArray& server, const QByteArray& path,
             if (not socket->waitForReadyRead ())
             {
                 // TODO handle socket->error() or inform user what happened
-                            qDebug() << "ssiLogin  waitForReadyRead"
-                            << socket->error() << socket->errorString();
-                            return;
+                qDebug() << "ssiLogin  waitForReadyRead"
+                         << socket->error() << socket->errorString();
+                return;
             }
         }
         responseData.append (socket->readAll());
         received = responseData.size();
     }
     // TODO get image from responseData
-
-    QByteArray bytes = responseData.mid(pos_+4);
+    QByteArray bytes = responseData.mid (pos_ + 4);
     qDebug() << "bytes size" << bytes.size();
-    qDebug() << bytes.at(4);
     QByteArray filename = sipuri;
-    filename.replace(":","_");
-    filename.append(".jpeg");
-    QFile file(filename);
-    file.open(QIODevice::WriteOnly);
-    file.write(bytes);
+    filename.replace (":", "_");
+    filename.replace ("@", "_");
+    filename.replace (";", "_");
+    filename.replace ("=", "_");
+    filename.append (".jpeg");
+    QFile file (filename);
+    file.open (QIODevice::WriteOnly);
+    QDataStream out (&file);
+    out.writeRawData (bytes.data(), bytes.size());
     file.close();
+    socket->waitForDisconnected (0);
+    enterCondition.wait (&mutex);
+    mutex.unlock();
 }
 }
 #include "portraitfetcher.moc"

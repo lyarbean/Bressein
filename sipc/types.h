@@ -89,7 +89,7 @@ enum ImageChangedType
 struct ContactInfo
 {
     // from contact list
-        // i: userId,  n:local name
+    // i: userId,  n:local name
     // o: group id, p: identity
     // r; relationStatus, u: sipuri
 
@@ -98,7 +98,8 @@ struct ContactInfo
     QTcpSocket *socket;
     // a socket for its  conversation, close the socket if conversion ends.
     // struct that will be display in contact item
-    struct Basic {
+    struct Basic
+    {
         QByteArray userId;
         QByteArray localName;
         QByteArray groupId;  //TODO use group name
@@ -111,7 +112,8 @@ struct ContactInfo
         StateType state;        //state type like online,busy,etc
     } basic;
     // contact info when query
-    struct Detail {
+    struct Detail
+    {
         QByteArray birthdate;   //user`s bitrhday
         QByteArray country;    //user`s country`s simplified form,like CN
         QByteArray province;   //user`s province`s simplified form,like bj

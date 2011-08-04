@@ -35,7 +35,7 @@
 
 // #include "sipc/user.h"
 #include "gui/contactsscene.h"
-int main (int argc, char** argv)
+int main (int argc, char **argv)
 {
     QApplication app (argc, argv);
     Bressein::Bressein foo;
