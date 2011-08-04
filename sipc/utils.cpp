@@ -29,11 +29,11 @@
  *  combination shall include the source code for the parts of the
  *  OpenSSL library used as well as that of the covered work.
  */
-
+#include "utils.h"
 #include <QDateTime>
 #include <QCryptographicHash>
 #include <openssl/rsa.h>
-#include "utils.h"
+
 namespace Bressein
 {
 
@@ -264,6 +264,35 @@ QByteArray ssiVerifyData (const QByteArray &number,
     data.append ("\r\nHost: uid.fetion.com.cn\r\n"
                  "Cache-Control: private\r\n"
                  "Connection: Keep-Alive\r\n\r\n");
+    return data;
+}
+
+QByteArray percentEncodingLowercase(const QByteArray & string)
+{
+    QByteArray result = string;
+    result.replace("/","%2f");
+    result.replace("@","%40");
+    result.replace("=","%3d");
+    result.replace(":","%3a");
+    result.replace(";","%3b");
+    result.replace("+","%2b");
+    return result;
+}
+QByteArray downloadPortraitData (const QByteArray& portraitName, const QByteArray& portraitPath, const QByteArray& sipuri, const QByteArray& ssic)
+{
+    QByteArray data("GET ");
+    data.append (portraitPath);
+    data.append ("/getportrait.aspx?Uri=");
+    data.append (percentEncodingLowercase(sipuri));
+    data.append ("&Size=120&c=");
+    data.append (percentEncodingLowercase(ssic));
+    data.append (" HTTP/1.1\r\nUser-Agent: IIC2.0/PC ");
+    data.append (PROTOCOL_VERSION);
+    data.append ("\r\nAccept: image/pjpeg;image/jpeg;image/bmp;");
+    data.append ("image/x-windows-bmp;image/png;image/gif\r\n");
+    data.append ("Host: ");
+    data.append (portraitName);
+    data.append ("\r\nConnection: Keep-Alive\r\n\r\n");
     return data;
 }
 

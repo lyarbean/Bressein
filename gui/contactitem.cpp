@@ -54,7 +54,7 @@ void ContactItem::paint (QPainter *painter,
                          const QStyleOptionGraphicsItem *option,
                          QWidget *widget)
 {
-    if (contact.sipuri.isEmpty())
+    if (sipuri.isEmpty())
     {
         return;
     }
@@ -62,22 +62,22 @@ void ContactItem::paint (QPainter *painter,
 //     painter->setWorldMatrix (QMatrix());
     painter->drawRect (boundingRect());
     painter->setPen (Qt::red);
-    if (not contact.localName.isEmpty())
+    if (not contact.basic.localName.isEmpty())
     {
         painter->drawText (25-QApplication::desktop()->screenGeometry().width()
-        /2, 14, QString::fromUtf8 (contact.localName));
+        /2, 14, QString::fromUtf8 (contact.basic.localName));
     }
     else
     {
         painter->drawText (25-QApplication::desktop()->screenGeometry().width()
-        /2, 14, QString::fromUtf8 (contact.sipuri));
+        /2, 14, QString::fromUtf8 (sipuri));
     }
     painter->drawText (25-QApplication::desktop()->screenGeometry().width() /2,
-                       28, QString::fromUtf8 (contact.userId));
-    if (not contact.imprea.isEmpty())
+                       28, QString::fromUtf8 (contact.basic.userId));
+    if (not contact.basic.imprea.isEmpty())
     {
         painter->drawText (25-QApplication::desktop()->screenGeometry().width()
-        /2, 42, QString::fromUtf8 (contact.imprea));
+        /2, 42, QString::fromUtf8 (contact.basic.imprea));
     }
 }
 
@@ -94,8 +94,8 @@ void ContactItem::mouseReleaseEvent (QGraphicsSceneMouseEvent *event)
         {
             //TODO
             // call singleton to open chat room
-            qDebug() << "to call" << contact.sipuri;
-            Singleton<User>::instance()->startChat (contact.sipuri);
+            qDebug() << "to call" << sipuri;
+            Singleton<User>::instance()->startChat (sipuri);
         }
     }
 }
@@ -106,15 +106,24 @@ QRectF ContactItem::boundingRect() const
                    QApplication::desktop()->screenGeometry().width(),50);
 }
 
-void ContactItem::setData (const Contact &contact)
+void ContactItem::setContact (const ContactInfo &contact)
 {
     this->contact = contact;
 }
 
-const Contact &ContactItem::data()
+const ContactInfo &ContactItem::getContact() const
 {
     return contact;
 }
 
+void ContactItem::setSipuri (const QByteArray& sipuri)
+{
+    this->sipuri = sipuri;
+}
+
+const QByteArray &ContactItem::getSipuri() const
+{
+    return sipuri;
+}
 
 }

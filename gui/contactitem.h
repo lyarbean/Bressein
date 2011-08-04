@@ -55,10 +55,13 @@ public:
     virtual void mouseReleaseEvent (QGraphicsSceneMouseEvent *event);
 //     ContactItem();
 //     virtual ~ContactItem();
-    void setData (const Contact &contact);
-    const Contact &data();
+    void setContact (const ContactInfo &contact);
+    const ContactInfo &getContact() const ;
+    void setSipuri (const QByteArray &sipuri);
+    const QByteArray &getSipuri () const ;
 private:
-    Contact contact;
+    QByteArray sipuri;
+    ContactInfo contact;
     STATE state;
 };
 }

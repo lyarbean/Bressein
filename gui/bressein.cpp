@@ -35,14 +35,14 @@
 namespace Bressein
 {
 Bressein::Bressein (QWidget *parent)
-    : QGraphicsView (parent) , gwidget (new QGraphicsWidget)
+        : QGraphicsView (parent) , gwidget (new QGraphicsWidget)
 {
     setRenderingSystem();
     setupScene();
     user = Singleton<User>::instance();
     user->setAccount (qgetenv ("FETIONNUMBER"), qgetenv ("FETIONPASSWORD"));
     connect (user, SIGNAL (contactsChanged()),
-             this, SLOT (onDataChanged()));
+            this, SLOT (onDataChanged()));
 }
 
 Bressein::~Bressein()
@@ -65,16 +65,19 @@ void Bressein::onDataChanged ()
     // N**2
     bool updated = false;
     int itemlists = itemList.size();
-    int lists = list.size();
-    for (int i = 0; i < lists; i++)
+
+    QList<QByteArray> keys = list.keys();
+    int keysCount = keys.size();
+    for (int i = 0; i < keysCount; i++)
     {
         updated = false;
         for (int j = 0; j < itemlists; j++)
         {
-            if (itemList.at (i)->data().sipuri == list.at (i)->sipuri)
+            if (itemList.at(i)->getSipuri() == keys.at(i))
             {
                 // update this
-                itemList.at (i)->setData (*list.at (i));
+                itemList.at (i)->setSipuri (keys.at (i));
+                itemList.at (i)->setContact(*list.value(keys.at (i)));
                 updated = true;
                 break;
             }
@@ -82,11 +85,12 @@ void Bressein::onDataChanged ()
         if (not updated)
         {
             ContactItem *item;
-            item = new ContactItem (gwidget,gscene);
-            item->setData (*list.at (i));
+            item = new ContactItem (gwidget, gscene);
+            item->setSipuri (keys.at (i));
+            item->setContact(*list.value(keys.at (i)));
             item->setZValue (10);
             item->setVisible (true);
-            item->setPos (0,item->boundingRect().height() *i);
+            item->setPos (0, item->boundingRect().height() * i *1.2);
             itemList.append (item);
         }
     }

@@ -36,7 +36,7 @@
 *  utils provide public declarations and functions.
 *  @{
 * */
-#include <QByteArray>
+#include <QtCore/QByteArray>
 namespace Bressein
 {
 /**
@@ -77,6 +77,10 @@ extern QByteArray ssiVerifyData (const QByteArray &number,
                                  const QByteArray &code,
                                  const QByteArray &algorithm,
                                  QByteArray passwordType = "2");
+extern QByteArray downloadPortraitData (const QByteArray &portraitName,
+                                        const QByteArray &portraitPath,
+                                        const QByteArray &sipuri,
+                                        const QByteArray &ssic);
 
 extern QByteArray sipcAuthorizeData (const QByteArray &mobileNumber,
                                      const QByteArray &fetionNumber,

@@ -47,8 +47,6 @@ struct User::UserInfo
     {
         if (verification)
             delete verification;
-        while (not conversations.isEmpty())
-            delete conversations.takeFirst();
     }
 
     // from input
@@ -128,17 +126,12 @@ struct User::UserInfo
         QByteArray hintsVersion;
         QByteArray proxyIpPort;
         QByteArray serverNamePath; //get-uri
+        QByteArray portraitServerName;
+        QByteArray portraitServerPath;
     } systemconfig;
 
     QList<QByteArray> phrases;
 
-    struct Conversation
-    {
-        Contact contact;
-        QTcpSocket *socket;
-    };
-    typedef QList<Conversation *> Conversations;
-    Conversations conversations;
 protected:
     User *_p;
 };

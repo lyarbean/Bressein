@@ -38,9 +38,8 @@
 #include <QtNetwork/QTcpSocket>
 #include <QtNetwork/QNetworkProxy>
 #include "types.h"
-
+#include "portraitfetcher.h"
 class QTimer;
-
 namespace Bressein
 {
 
@@ -58,7 +57,7 @@ public:
     virtual ~User();
     virtual bool operator== (const User &other);
     void setAccount (QByteArray number, QByteArray password);
-    const Contacts &getContacts();
+    const Contacts &getContacts() const;
 public slots:
 
     void login();
@@ -89,8 +88,11 @@ private slots:
     void ssiLogin();
     void ssiPic();
     void ssiVerify();
-    void sipcRegister();
     void systemConfig();
+
+    bool downloadPortrait(const QByteArray &sipuri);
+    // uploadPortrait(/*file*/);
+    void sipcRegister();
     void sipcAuthorize();
 
     // sipc events
@@ -168,6 +170,7 @@ private:
     QTcpSocket *sipcSocket;
     // All sip-c transactions are handle through this socket
     QNetworkProxy proxy;
+    PortraitFetcher fetcher;
     // TODO make use of proxy
 };
 }
