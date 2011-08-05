@@ -310,7 +310,7 @@ void User::systemConfig()
 bool User::downloadPortrait (const QByteArray &sipuri)
 {
     //http://hdss1fta.fetion.com.cn/HDS_S00/geturi.aspx
-    fetcher.toGet (sipuri);
+    fetcher.requestPortrait (sipuri);
 }
 
 

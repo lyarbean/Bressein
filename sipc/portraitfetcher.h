@@ -28,7 +28,7 @@
 class QTcpSocket;
 namespace Bressein
 {
-class PortraitFetcher : public QObject
+class PortraitFetcher : public QThread
 {
     Q_OBJECT
 public:
@@ -38,17 +38,16 @@ public:
                   const QByteArray &path,
                   const QByteArray &ssic);
 public slots:
-    void toGet (const QByteArray &sipuri);
-    void get (const QByteArray &sipuri);
+    void requestPortrait (const QByteArray &sipuri);
+protected:
+    void run ();
 private:
-    QThread workerThread;
     QMutex mutex;
-    QWaitCondition enterCondition;
     QByteArray server;
     QByteArray path;
     QByteArray ssic;
-//     QWaitCondition exitCondition;
-    QTcpSocket *socket;
+    QList<QByteArray> queue;
+
 };
 }
 #endif // PORTRAITFETCHER_H

@@ -90,7 +90,7 @@ void Bressein::onDataChanged ()
             item->setContact (*list.value (keys.at (i)));
             item->setZValue (10);
             item->setVisible (true);
-            item->setPos (0, item->boundingRect().height() * i *1.2);
+            item->setPos (10, item->boundingRect().height() * i);
             itemList.append (item);
         }
     }
