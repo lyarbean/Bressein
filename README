@@ -12,4 +12,4 @@ Code style:
     --style=ansi --indent=spaces=4 --indent-preprocessor --indent-switches
     --indent-cases --brackets=break --pad-paren-out --pad-header --unpad-paren
     --break-closing-brackets --align-pointer=name --min-conditional-indent=4
-    --max-instatement-indent=50 --lineend=linux
+    --max-instatement-indent=50 --lineend=linux --indent-labels

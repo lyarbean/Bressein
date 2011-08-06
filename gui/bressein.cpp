@@ -94,6 +94,7 @@ void Bressein::onDataChanged ()
             itemList.append (item);
         }
     }
+    gwidget->resetMatrix();
 }
 
 //TODO onContactRemoved

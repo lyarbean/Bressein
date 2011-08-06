@@ -62,16 +62,15 @@ void PortraitFetcher::run ()
     mutex.lock();
     if (queue.isEmpty()) return;
     QByteArray sipuri = queue.takeFirst();
+    bool empty = false;
     mutex.unlock();
 
-    while (not sipuri.isEmpty())
+    while (not empty)
     {
         qDebug() << "to invoke" << sipuri;
         if (sipuri.isEmpty()) return;
         if (server.isEmpty() or path.isEmpty())
         {
-            //
-            qDebug() << "systemconfig.serverNamePath is empty";
             return;
         }
         QString host =
@@ -80,7 +79,8 @@ void PortraitFetcher::run ()
         socket.connectToHost (host, 80);
         if (not socket.waitForConnected ())
         {
-            qDebug() << "waitForConnected" << socket.errorString();
+            qDebug() << "PortraitFetcher waitForConnected"
+                     << socket.error() << socket.errorString();
             return;
         }
         // TODO error handle
@@ -100,51 +100,86 @@ void PortraitFetcher::run ()
             }
         }
         responseData = socket.readAll();
-        int pos = responseData.indexOf ("Content-Length: ");
-        if (pos < 0)
+        if (responseData.contains ("HTTP/1.1 404 Not Found"))
         {
-            //TODO
-            return;
+            goto end;
         }
-        int pos_ = responseData.indexOf ("\r\n", pos);
-        bool ok;
-        int length = responseData.mid (pos + 15, pos_ - pos - 15).toUInt (&ok);
-        if (not ok)
+        // try download again if not ok
+        if (responseData.contains ("HTTP/1.1 302 Found"))
         {
-            qDebug() << "not ok" << responseData;
-            return;
-        }
-        int received = responseData.size();
-        while (received < length + pos_ + 4)
-        {
+            int b = responseData.indexOf ("Location: http://");
+            int e = responseData.indexOf ("\r\n");
+            QByteArray fullpath = responseData.mid (b + 17, e - b - 17);
+            int m = fullpath.indexOf ("/");
+            QByteArray host = fullpath.left (m);
+            QByteArray path = fullpath.mid (m); // including "/"
+            toSendMsg = downloadPortraitAgainData (path, host);
             while (socket.bytesAvailable() < (int) sizeof (quint16))
             {
                 if (not socket.waitForReadyRead ())
                 {
                     // TODO handle socket.error() or inform user what happened
-                    qDebug() << "ssiLogin  waitForReadyRead"
+                    qDebug() << "PortraitFetcher  waitForReadyRead"
                              << socket.error() << socket.errorString();
                     return;
                 }
             }
-            responseData.append (socket.readAll());
-            received = responseData.size();
+            responseData = socket.readAll();
         }
+        if (responseData.contains ("HTTP/1.1 200 OK"))
+        {
+            int pos = responseData.indexOf ("Content-Length: ");
+            if (pos < 0)
+            {
+                //TODO
+                return;
+            }
+            int pos_ = responseData.indexOf ("\r\n", pos);
+            bool ok;
+            int length = responseData.mid (pos + 15, pos_ - pos - 15).toUInt (&ok);
+            if (not ok)
+            {
+                qDebug() << "not ok" << responseData;
+                return;
+            }
+            int received = responseData.size();
+            while (received < length + pos_ + 4)
+            {
+                while (socket.bytesAvailable() < (int) sizeof (quint16))
+                {
+                    if (not socket.waitForReadyRead ())
+                    {
+                        // TODO handle socket.error() or inform user what happened
+                        qDebug() << "ssiLogin  waitForReadyRead"
+                                 << socket.error() << socket.errorString();
+                        return;
+                    }
+                }
+                responseData.append (socket.readAll());
+                received = responseData.size();
+            }
 
-        QByteArray bytes = responseData.mid (pos_ + 4);
-        qDebug() << "bytes size" << bytes.size();
-        int a = sipuri.indexOf (":");
-        int b = sipuri.indexOf ("@");
-        QByteArray filename = sipuri.mid (a + 1, b - a - 1);
-        filename.append (".jpeg");
-        QFile file (filename);
-        file.open (QIODevice::WriteOnly);
-        QDataStream out (&file);
-        out.writeRawData (bytes.data(), bytes.size());
-        file.close();
-        socket.disconnectFromHost();
-        if (not socket.state() == QAbstractSocket::UnconnectedState)
-            socket.waitForDisconnected (1000);
+            QByteArray bytes = responseData.mid (pos_ + 4);
+            qDebug() << "bytes size" << bytes.size();
+            int a = sipuri.indexOf (":");
+            int b = sipuri.indexOf ("@");
+            QByteArray filename = sipuri.mid (a + 1, b - a - 1);
+            filename.append (".jpeg");
+            QFile file (filename);
+            file.open (QIODevice::WriteOnly);
+            QDataStream out (&file);
+            out.writeRawData (bytes.data(), bytes.size());
+            file.close();
+            socket.disconnectFromHost();
+            if (socket.state() not_eq QAbstractSocket::UnconnectedState)
+                socket.waitForDisconnected (1000);
+        }
+        else
+        {
+            // Unknown
+            return;
+        }
+    end:
         mutex.lock();
         if (not queue.isEmpty())
         {
@@ -152,7 +187,7 @@ void PortraitFetcher::run ()
         }
         else
         {
-            sipuri = "";
+            empty = true;
         }
         mutex.unlock();
     }

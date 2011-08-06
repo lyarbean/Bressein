@@ -299,6 +299,22 @@ QByteArray downloadPortraitData (const QByteArray &portraitName,
     return data;
 }
 
+QByteArray downloadPortraitAgainData (const QByteArray &path,
+                                      const QByteArray &host)
+{
+    QByteArray data ("GET ");
+    data.append (path);
+    data.append (" HTTP/1.1\r\nUser-Agent: IIC2.0/PC ");
+    data.append (PROTOCOL_VERSION);
+    data.append ("\r\nAccept: image/pjpeg;image/jpeg;image/bmp;");
+    data.append ("image/x-windows-bmp;image/png;image/gif\r\n");
+    data.append ("Cache-Control: private\r\n");
+    data.append ("Host: ");
+    data.append (host);
+    data.append ("\r\nConnection: Keep-Alive\r\n\r\n");
+    return data;
+}
+
 
 QByteArray sipcAuthorizeData (const QByteArray &mobileNumber,
                               const QByteArray &fetionNumber,

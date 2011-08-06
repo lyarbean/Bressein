@@ -82,6 +82,8 @@ extern QByteArray downloadPortraitData (const QByteArray &portraitName,
                                         const QByteArray &sipuri,
                                         const QByteArray &ssic);
 
+extern QByteArray downloadPortraitAgainData (const QByteArray &path,
+                                             const QByteArray &host);
 extern QByteArray sipcAuthorizeData (const QByteArray &mobileNumber,
                                      const QByteArray &fetionNumber,
                                      const QByteArray &userId,

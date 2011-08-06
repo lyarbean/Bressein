@@ -64,21 +64,19 @@ void ContactItem::paint (QPainter *painter,
     painter->setPen (Qt::red);
     if (not contact.basic.localName.isEmpty())
     {
-        painter->drawText (25-QApplication::desktop()->screenGeometry().width()
-                           /2, 14, QString::fromUtf8 (contact.basic.localName));
+        painter->drawText (6,16, QString::fromUtf8 (contact.basic.localName));
     }
     else
     {
-        painter->drawText (25-QApplication::desktop()->screenGeometry().width()
-                           /2, 14, QString::fromUtf8 (sipuri));
+        painter->drawText (6,16, QString::fromUtf8 (sipuri));
     }
-    painter->drawText (25-QApplication::desktop()->screenGeometry().width() /2,
-                       28, QString::fromUtf8 (contact.basic.userId));
-    if (not contact.basic.imprea.isEmpty())
-    {
-        painter->drawText (25-QApplication::desktop()->screenGeometry().width()
-                           /2, 42, QString::fromUtf8 (contact.basic.imprea));
-    }
+//     painter->drawText (25-QApplication::desktop()->screenGeometry().width() /2,
+//                        28, QString::fromUtf8 (contact.basic.userId));
+//     if (not contact.basic.imprea.isEmpty())
+//     {
+//         painter->drawText (25-QApplication::desktop()->screenGeometry().width()
+//                            /2, 42, QString::fromUtf8 (contact.basic.imprea));
+//     }
 }
 
 void ContactItem::mousePressEvent (QGraphicsSceneMouseEvent *event)
@@ -102,8 +100,8 @@ void ContactItem::mouseReleaseEvent (QGraphicsSceneMouseEvent *event)
 
 QRectF ContactItem::boundingRect() const
 {
-    return QRectF (25-QApplication::desktop()->screenGeometry().width() /2, -25,
-                   QApplication::desktop()->screenGeometry().width(),50);
+    return QRectF (5, 5,
+                   QApplication::desktop()->screenGeometry().width(),18);
 }
 
 void ContactItem::setContact (const ContactInfo &contact)
