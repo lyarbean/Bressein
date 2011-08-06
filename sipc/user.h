@@ -83,14 +83,13 @@ private:
 private slots:
 // functions that performance networking
     void keepAlive();
-    void receive();
     //called in period when connection established SIP_EVENT_KEEPALIVE
     void ssiLogin();
     void ssiPic();
     void ssiVerify();
     void systemConfig();
 
-    bool downloadPortrait (const QByteArray &sipuri);
+    void downloadPortrait (const QByteArray &sipuri);
     // uploadPortrait(/*file*/);
     void sipcRegister();
     void sipcAuthorize();
@@ -143,7 +142,7 @@ private slots:
     // subsribePg SIP_EVENT_PGPRESENCE
     // sendPgMessage SIP_EVENT_PGSENDCATSMS
 
-    void setClientState (StateType &state);   //SIP_EVENT_SETPRESENCE
+    void setClientState (Bressein::StateType state);   //SIP_EVENT_SETPRESENCE
 
 // functions for parsing data
     void parseSsiResponse (QByteArray &data);
@@ -152,7 +151,19 @@ private slots:
     void parseSipcAuthorize (QByteArray &data);
 //         void parseSsiVerifyResponse (QByteArray &data);
     void activateTimer();
-    //TODO inactivateTimer
+
+    void onReceiveData();
+    void onReceivedMessage (const QByteArray &data);
+
+    //
+    void onBNPresenceV4 (const QByteArray &data);
+    void onBNSyncUserInfoV4 (const QByteArray &data);
+    void onBNConversation (const QByteArray &data);
+    void onBNPGGroup (const QByteArray &data);
+    void onBNcontact (const QByteArray &data);
+    void onBNregistration (const QByteArray &data);
+
+    void onConversationsCheck();
 
 private:
 
@@ -164,10 +175,12 @@ private:
     QTimer *keepAliveTimer;
     QTimer *receiverTimer;
     Contacts contacts;
+    QList<QByteArray> conversations;
     QList<Group *> groups;
     // groups
     //pggroups
     QTcpSocket *sipcSocket;
+    QList<QTcpSocket *> sockets;
     // All sip-c transactions are handle through this socket
     QNetworkProxy proxy;
     PortraitFetcher fetcher;

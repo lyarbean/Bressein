@@ -61,8 +61,13 @@ void ContactItem::paint (QPainter *painter,
 //     QMatrix m = painter->worldMatrix();
 //     painter->setWorldMatrix (QMatrix());
     painter->drawRect (boundingRect());
-    painter->setPen (Qt::red);
-    if (not contact.basic.localName.isEmpty())
+    if (this->contact.basic.state == StateType::ONLINE)
+        painter->setPen (Qt::red);
+    if (not contact.detail.nickName.isEmpty())
+    {
+        painter->drawText (6,16, QString::fromUtf8 (contact.detail.nickName));
+    }
+    else if (not contact.basic.localName.isEmpty())
     {
         painter->drawText (6,16, QString::fromUtf8 (contact.basic.localName));
     }
@@ -100,8 +105,7 @@ void ContactItem::mouseReleaseEvent (QGraphicsSceneMouseEvent *event)
 
 QRectF ContactItem::boundingRect() const
 {
-    return QRectF (5, 5,
-                   QApplication::desktop()->screenGeometry().width(),18);
+    return QRectF (5, 5, QApplication::desktop()->screenGeometry().width(),30);
 }
 
 void ContactItem::setContact (const ContactInfo &contact)

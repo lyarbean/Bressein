@@ -40,6 +40,7 @@ Bressein::Bressein (QWidget *parent)
     setRenderingSystem();
     setupScene();
     user = Singleton<User>::instance();
+    // demo
     user->setAccount (qgetenv ("FETIONNUMBER"), qgetenv ("FETIONPASSWORD"));
     connect (user, SIGNAL (contactsChanged()),
              this, SLOT (onDataChanged()));
