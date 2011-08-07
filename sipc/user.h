@@ -66,11 +66,13 @@ public slots:
     //TODO may not be called from main thread,
     // use QMetaObject::invokeMethod to dispatch
     // move followings to private slots
-    void startChat (const QByteArray &sipUri);
+    void startChat (const QByteArray &sipuri);
+    const ContactInfo &getContactInfo (const QByteArray &sipuri);
 signals:
 
     void needConfirm();
     void contactsChanged();
+    void contactChanged (const QByteArray &);
 //private use
     void ssiResponseParsed();
     void serverConfigParsed();
@@ -78,8 +80,12 @@ signals:
     void sipcAuthorizeParsed();
 // The following are executed in worker thread
 private:
+    // TODO split as read and write
     void sipcWriteRead (QByteArray &in, QByteArray &out, QTcpSocket *socket);
-
+    void sipcWrite (const QByteArray &in, QTcpSocket *socket);
+    void sipcRead (QByteArray &out, QTcpSocket *socket,
+                   QByteArray delimit = QByteArray ("L: "));
+    void parseReceivedData (const QByteArray &in);
 private slots:
 // functions that performance networking
     void keepAlive();

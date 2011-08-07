@@ -41,7 +41,7 @@
 #include "utils.h"
 
 // N.B. all data through socket are utf-8
-// N.B. we call buddyList a group
+// N.B. we call buddyList contacts
 namespace Bressein
 {
 User::User (QObject *parent) : QObject (parent)
@@ -91,8 +91,9 @@ bool User::operator== (const User &other)
     return this->info->fetionNumber == other.info->fetionNumber;
 }
 
-//public slots
-
+/**--------------**/
+/** public slots **/
+/**--------------**/
 void User::login()
 {
     qDebug() << "To Login";
@@ -122,6 +123,11 @@ void User::startChat (const QByteArray &sipUri)
                                Q_ARG (QByteArray, sipUri));
 }
 
+const Bressein::ContactInfo &User::getContactInfo (const QByteArray &sipuri)
+{
+    return * contacts.value (sipuri);
+}
+
 void User::setAccount (QByteArray number, QByteArray password)
 {
     // TODO try to load saved configuration for this user
@@ -146,15 +152,21 @@ const Bressein::Contacts &User::getContacts() const
     return contacts;
 }
 
-// private
-//
+/**---------**/
+/** private **/
+/**---------**/
 void User::sipcWriteRead (QByteArray &in, QByteArray &out, QTcpSocket *socket)
 {
-    printf ("To write\n");
-    printf ("%s\n", in.data());
+    sipcWrite (in, socket);
+    sipcRead (out, socket);
+}
+
+void User::sipcWrite (const QByteArray &in, QTcpSocket *socket)
+{
+    qDebug() << "@ sipcWrite" << in;
     if (socket->state() not_eq QAbstractSocket::ConnectedState)
     {
-        printf ("Error: socket is not connected\n");
+        qDebug() <<  "Error: socket is not connected";
         // TODO error handle
         keepAliveTimer->stop();
         receiverTimer->stop();
@@ -166,63 +178,56 @@ void User::sipcWriteRead (QByteArray &in, QByteArray &out, QTcpSocket *socket)
     }
     socket->waitForBytesWritten ();
     socket->flush();
-    printf ("written\n");
+}
+
+// delimt should either "L: " or "content-Content-Length: ".
+void User::sipcRead (QByteArray &out, QTcpSocket *socket, QByteArray delimit)
+{
     while (socket->bytesAvailable() < (int) sizeof (quint16))
     {
-        if (not socket->waitForReadyRead ())
+        if (not socket->waitForReadyRead (10000))
         {
-            qDebug() << "When waitForReadyRead"
-                     << socket->error() << socket->errorString();
+            if (socket->error() not_eq QAbstractSocket::SocketTimeoutError)
+            {
+                qDebug() << "sipcRead 1";
+                qDebug() << "When waitForReadyRead"
+                         << socket->error() << socket->errorString();
+            }
             return;
         }
     }
-    //use readline to get first line and then determine whether to get
-    // more lines that contains the length of the data chunk there.
-    qDebug() << "Begin to read";
-    QByteArray responseData;
-    responseData = socket->readLine ();
-    if (responseData.contains ("SIP-C/4.0 401") or
-        responseData.contains ("SIP-C/4.0 200 OK"))
+    QByteArray responseData = socket->readLine ();
+    while (responseData.indexOf ("\r\n\r\n") < 0)
     {
-        while (not responseData.contains ("\r\n\r\n"))
+        while (socket->bytesAvailable() < (int) sizeof (quint16))
         {
-            qDebug() << "eat spaces";
-            responseData.append (sipcSocket->readLine (0));
+            if (not socket->waitForReadyRead ())
+            {
+                qDebug() << "sipcRead 2";
+                qDebug() << "When waitForReadyRead"
+                         << socket->error() << socket->errorString();
+                return;
+            }
         }
-        out = responseData;
-        return;
+        responseData.append (socket->readLine ());
     }
-    else if (responseData.contains ("SIP-C/4.0"))
-    {
-        while (not responseData.contains ("L: "))
-            responseData.append (socket->readLine ());
-    }
-    else
-    {
-        return;
-    }
-    responseData.append (socket->readLine ());
-    int pos = responseData.indexOf ("L: ");
+    int pos = responseData.indexOf (delimit);
     if (pos < 0)
     {
         //TODO
-
         out = responseData;
         qDebug() << "no L!";
         return;
     }
     int pos_ = responseData.indexOf ("\r\n", pos);
     bool ok;
-    length = responseData.mid (pos + 3, pos_ - pos - 3).toUInt (&ok);
+    int length = responseData.mid
+                 (pos + delimit.size(), pos_ - pos - delimit.size()).toUInt (&ok);
     if (not ok)
     {
-        qDebug() << "not ok" << responseData;
+        qDebug() << "Not ok" << responseData;
+        out = responseData;
         return;
-    }
-    while (not responseData.contains ("\r\n\r\n"))
-    {
-        qDebug() << "eat spaces";
-        responseData.append (sipcSocket->read (length));
     }
     pos = responseData.indexOf ("\r\n\r\n");
     int received = responseData.size();
@@ -233,7 +238,7 @@ void User::sipcWriteRead (QByteArray &in, QByteArray &out, QTcpSocket *socket)
             if (not socket->waitForReadyRead ())
             {
                 // TODO handle socket.error() or inform user what happened
-                qDebug() << "ssiLogin  waitForReadyRead"
+                qDebug() << "sipcRead 3  waitForReadyRead"
                          << socket->error() << socket->errorString();
                 return;
             }
@@ -242,28 +247,26 @@ void User::sipcWriteRead (QByteArray &in, QByteArray &out, QTcpSocket *socket)
         received = responseData.size();
     }
     out = responseData;
-    printf ("To read\n");
-    printf ("%s\n", out.data());
 }
 
-//private slots
+/**---------------**/
+/** private slots **/
+/**---------------**/
 void User::keepAlive()
 {
     QByteArray toSendMsg = keepAliveData (info->fetionNumber, info->callId);
     QByteArray responseData;
-    qDebug() << "To keepAlive" << info->callId;
-
     sipcWriteRead (toSendMsg, responseData, sipcSocket);
-    qDebug() << QString::fromUtf8 (responseData);
-    emit contactsChanged();
-    //TODO Handle any responseData
-    // stop timer if failed to send or get no return.
-    // qDebug () << responseData;
+    if (responseData.isEmpty())
+    {
+        qDebug() << "keepAlive: empty return";
+        return;
+    }
+    parseReceivedData (responseData);
 }
 
 void User::ssiLogin()
 {
-    qDebug() << "ssiLogin 1";
     if (info->loginNumber.isEmpty()) return;
     // Do we need to clean up first
     //TODO if proxy
@@ -283,19 +286,68 @@ void User::ssiLogin()
         }
         return;
     }
-    qDebug() << "ssiLogin" <<data;
     socket.write (data);
-    QByteArray responseData;
+    QByteArray delimit = "Content-Length: ";
     while (socket.bytesAvailable() < (int) sizeof (quint16))
     {
-        if (not socket.waitForReadyRead (-1))
+        if (not socket.waitForReadyRead ())
         {
-            // TODO handle socket.error() or inform user what happened
-            qDebug() << "ssiLogin  waitForReadyRead"
+            qDebug() << "When waitForReadyRead"
                      << socket.error() << socket.errorString();
+            return;
         }
     }
-    responseData = socket.readAll();
+    QByteArray responseData = socket.readLine ();
+    while (responseData.indexOf ("\r\n\r\n") < 0)
+    {
+        while (socket.bytesAvailable() < (int) sizeof (quint16))
+        {
+            if (not socket.waitForReadyRead ())
+            {
+                qDebug() << "When waitForReadyRead"
+                         << socket.error() << socket.errorString();
+                return;
+            }
+        }
+        responseData.append (socket.readLine ());
+    }
+    int pos = responseData.indexOf (delimit);
+    if (pos < 0)
+    {
+        //TODO
+        qDebug() << "ssiLogin";
+        qDebug() << responseData;
+        return;
+    }
+    int pos_ = responseData.indexOf ("\r\n", pos);
+    bool ok;
+    int length = responseData.mid
+                 (pos + delimit.size(), pos_ - pos - delimit.size()).toUInt (&ok);
+    if (not ok)
+    {
+        qDebug() << "Not ok" << responseData;
+        return;
+    }
+    pos = responseData.indexOf ("\r\n\r\n");
+    int received = responseData.size();
+    while (received < length + pos + 4)
+    {
+        while (socket.bytesAvailable() < (int) sizeof (quint16))
+        {
+            if (not socket.waitForReadyRead ())
+            {
+                // TODO handle socket.error() or inform user what happened
+                qDebug() << "ssiLogin  waitForReadyRead"
+                         << socket.error() << socket.errorString();
+                return;
+            }
+        }
+        responseData.append (socket.read (length + pos + 4 - received));
+        received = responseData.size();
+    }
+    qDebug() << "=========================";
+    qDebug() << "ssiLogin" << responseData;
+    qDebug() << "=========================";
     parseSsiResponse (responseData);
 }
 
@@ -312,19 +364,67 @@ void User::systemConfig()
         return;
     }
     socket.write (body);
-    QByteArray responseData;
     while (socket.bytesAvailable() < (int) sizeof (quint16))
     {
-        if (not socket.waitForReadyRead (-1))
+        if (not socket.waitForReadyRead ())
         {
-            // TODO handle socket.error() or inform user what happened
-            qDebug() << "ssiLogin  waitForReadyRead"
+            qDebug() << "When waitForReadyRead"
                      << socket.error() << socket.errorString();
+            return;
         }
     }
-    //FIXME get more data until <results/> is fully downloaded
-    while (socket.waitForReadyRead())
-        responseData += socket.readAll();
+    QByteArray responseData = socket.readLine ();
+    if (responseData.contains ("HTTP/1.1 200 OK"))
+    {
+        //TODO handle errors
+    }
+    while (responseData.indexOf ("\r\n\r\n") < 0)
+    {
+        while (socket.bytesAvailable() < (int) sizeof (quint16))
+        {
+            if (not socket.waitForReadyRead ())
+            {
+                qDebug() << "When waitForReadyRead"
+                         << socket.error() << socket.errorString();
+                return;
+            }
+        }
+        responseData.append (socket.readLine ());
+    }
+    int pos = responseData.indexOf ("Content-Length: ");
+    if (pos < 0)
+    {
+        //TODO
+        qDebug() << "No Content-Length!";
+        qDebug() << responseData;
+        return;
+    }
+    int pos_ = responseData.indexOf ("\r\n", pos);
+    bool ok;
+    int length = responseData.mid (pos + 16, pos_ - pos - 16).toUInt (&ok);
+    if (not ok)
+    {
+        qDebug() << "Not ok" << responseData;
+        return;
+    }
+    pos = responseData.indexOf ("\r\n\r\n");
+    int received = responseData.size();
+    while (received < length + pos + 4)
+    {
+        while (socket.bytesAvailable() < (int) sizeof (quint16))
+        {
+            if (not socket.waitForReadyRead ())
+            {
+                // TODO handle socket.error() or inform user what happened
+                qDebug() << "ssiLogin  waitForReadyRead"
+                         << socket.error() << socket.errorString();
+                return;
+            }
+        }
+        responseData.append (socket.read (length + pos + 4 - received));
+        received = responseData.size();
+    }
+//     qDebug() << QString::fromUtf8(responseData);
     parseServerConfig (responseData);
 }
 
@@ -507,7 +607,6 @@ void User::parseSsiResponse (QByteArray &data)
         return;
     }
     domDoc.normalize();
-    qDebug() << QString::fromUtf8 (domDoc.toByteArray (4));
     QDomElement domRoot = domDoc.documentElement();
 
     if (domRoot.tagName() == "results")
@@ -1073,8 +1172,6 @@ void User::contactSubscribe()
     QByteArray toSendMsg = presenceV4Data (info->fetionNumber, info->callId);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData, sipcSocket);
-    qDebug() << "contactSubscribe";
-    qDebug() << responseData;
     onReceiveData();
 }
 
@@ -1099,21 +1196,19 @@ void User::inviteFriend (const QByteArray &sipUri)
     int seperator = address.indexOf (':');
     QByteArray ip = address.left (seperator);
     quint16 port = address.mid (seperator + 1).toUInt();
-    toSendMsg.clear();
-    responseData.clear();
     // TODO create new thread for conversation
     // or keep track of the socket
+    qDebug() << "registerData";
     toSendMsg = registerData (info->fetionNumber, info->callId, credential);
     QTcpSocket *socket = new QTcpSocket (this);
     socket->connectToHost (ip, port);
-    if (not socket->waitForConnected (-1))
+    if (not socket->waitForConnected ())
     {
         qDebug() << "waitForEncrypted" << socket->errorString();
         return;
     }
     sipcWriteRead (toSendMsg, responseData, socket);
-    responseData.clear();
-    toSendMsg.clear();
+    qDebug() << inviteBuddyData;
     toSendMsg = inviteBuddyData (info->fetionNumber, info->callId, sipUri);
     sipcWriteRead (toSendMsg, responseData, socket);
     sockets.append (socket);
@@ -1207,98 +1302,29 @@ void User::activateTimer()
 {
     connect (keepAliveTimer, SIGNAL (timeout()), this, SLOT (keepAlive()));
     keepAliveTimer->start (30000);//
-    connect (receiverTimer, SIGNAL (timeout()), this, SLOT (onReceiveData()));
-    receiverTimer->start (3000);
-    setClientState (StateType::ONLINE);
     contactSubscribe();
+    QTimer::singleShot (3000, this, SLOT (onReceiveData()));
+    connect (receiverTimer, SIGNAL (timeout()),
+             this, SLOT (onConversationsCheck()));
+    receiverTimer->start (3000);
 }
 
 
 void User::onReceiveData()
 {
-    if (sipcSocket->state() not_eq QAbstractSocket::ConnectedState)
+    QByteArray responseData;
+    qDebug() << "onReceiveData()";
+    sipcRead (responseData, sipcSocket);
+    if (responseData.isEmpty())
     {
-        printf ("socket closed.");
+        QTimer::singleShot (3000, this, SLOT (onReceiveData()));
         return;
     }
-    while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
-    {
-        if (not sipcSocket->waitForReadyRead ())
-        {
-            //             qDebug() << "When waitForReadyRead"
-            //             << sipcSocket->error() << sipcSocket->errorString();
-            //             receiverTimer->stop();
-            return;
-        }
-    }
-    QByteArray responseData = sipcSocket->readLine ();
-    // TODO for case keepAlive reply
-    if (responseData.contains ("SIP-C/4.0"))
-    {
+    parseReceivedData (responseData);
+}
 
-        while (responseData.indexOf ("\r\n\r\n") <0)
-            responseData.append (sipcSocket->readLine ());
-        qDebug() << responseData;
-        return;
-    }
-    if (responseData.contains (" SIP-C/4.0"))
-    {
-        while (not responseData.contains ("L: "))
-        {
-            while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
-            {
-                if (not sipcSocket->waitForReadyRead ())
-                {
-                    // TODO handle socket.error() or inform user what happened
-                    qDebug() << "ssiLogin  waitForReadyRead"
-                             << sipcSocket->error() << sipcSocket->errorString();
-                    return;
-                }
-            }
-            responseData.append (sipcSocket->readLine ());
-        }
-    }
-    int pos = responseData.indexOf ("L: ");
-    if (pos < 0)
-    {
-        //TODO
-        qDebug() << "onReceiveData";
-        qDebug() << responseData;
-        return;
-    }
-    int pos_ = responseData.indexOf ("\r\n", pos);
-    bool ok;
-    int length = responseData.mid (pos + 3, pos_ - pos - 3).toUInt (&ok);
-    if (not ok)
-    {
-        qDebug() << "VVVVV";
-        qDebug() << "not ok" << length;
-        qDebug() << responseData;
-        return;
-    }
-    while (not responseData.contains ("\r\n\r\n"))
-    {
-        qDebug() << "eat spaces";
-        responseData.append (sipcSocket->read (length));
-    }
-    pos = responseData.indexOf ("\r\n\r\n");
-    int received = responseData.size();
-    while (received < length + pos + 4)
-    {
-        while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
-        {
-            if (not sipcSocket->waitForReadyRead ())
-            {
-                // TODO handle socket.error() or inform user what happened
-                qDebug() << "ssiLogin  waitForReadyRead"
-                         << sipcSocket->error() << sipcSocket->errorString();
-                return;
-            }
-        }
-        responseData.append (sipcSocket->read (length + pos + 4 - received));
-        received = responseData.size();
-    }
-    qDebug() << QString::fromUtf8 (responseData);
+void User::parseReceivedData (const QByteArray &responseData)
+{
     //TODO wrap as parseData;
     // case 1
     /**
@@ -1338,6 +1364,7 @@ void User::onReceiveData()
      */
     int space = responseData.indexOf (" ");
     QByteArray code = responseData.left (space);
+    qDebug() << "code" << code;
     if (code == "M")
     {
         // handle Message
@@ -1393,9 +1420,8 @@ void User::onReceiveData()
     {
 
     }
+    QTimer::singleShot (3000, this, SLOT (onReceiveData()));
     // blocking?
-    //TODO move to another thread
-    onConversationsCheck();
 }
 
 void User::onReceivedMessage (const QByteArray &data)
@@ -1418,7 +1444,6 @@ void User::onReceivedMessage (const QByteArray &data)
     QByteArray content = data.mid (b + 4);
     //TODO save {fromSiprui, datetime, content} into dataBase
     // if fromSipuri contains PG, but work for no PG
-    qDebug() << QString::fromUtf8 (content);
     QByteArray reply = "SIP-C/4.0 200 OK\r\nI: ";
     reply.append (callId);
     reply.append ("\r\nQ: ");
@@ -1434,8 +1459,9 @@ void User::onReceivedMessage (const QByteArray &data)
 
 void User::onBNPresenceV4 (const QByteArray &data)
 {
-    QMutex mutex;
-    mutex.lock();
+    qDebug() << "onBNPresenceV4 >>>>";
+    qDebug() << QString::fromUtf8 (data);
+    qDebug() << "onBNPresenceV4 <<<<";
     int b = data.indexOf ("\r\n\r\n");
     //FIXME ensure this is a piece of message, not a chunk
     QByteArray xml = data.mid (b + 4);
@@ -1467,28 +1493,29 @@ void User::onBNPresenceV4 (const QByteArray &data)
         {
             QDomElement child;
             domRoot = domRoot.firstChildElement ("c");
+            QByteArray sipuri;
+            ContactInfo *contactInfo;
             while (not domRoot.isNull())
             {
                 QByteArray userId = domRoot.attribute ("id").toUtf8();
                 child = domRoot.firstChildElement ("p");
-                QByteArray sipuri;
                 if (child.isNull() or not child.hasAttribute ("su"))
                 {
-                    return;
+                    goto next;
                 }
                 sipuri = child.attribute ("su").toUtf8();
-                ContactInfo *contactInfo;
                 if (contacts.contains (sipuri))
                 {
                     contactInfo = contacts.value (sipuri);
                 }
                 else
                 {
-                    return;
+                    qDebug() << "no contact info" << sipuri;
+                    goto next;
                 }
                 if (not contactInfo)
                 {
-                    return;
+                    goto next;
                 }
                 contactInfo->basic.userId = userId;
                 contactInfo->detail.mobileno = child.attribute ("m").toUtf8();
@@ -1509,15 +1536,19 @@ void User::onBNPresenceV4 (const QByteArray &data)
                     return;
                 }
                 contactInfo->basic.devicetype = child.attribute ("dt").toUtf8();
-                contactInfo->basic.state = (StateType) child.attribute ("b").toInt();
+                contactInfo->basic.state =
+                    (StateType) child.attribute ("b").toInt();
                 contacts.insert (sipuri, contactInfo);
-                qDebug() << "Contacts Changed";
+
+                qDebug() << "Contact Changed";
+                static int contactCount = 0;
+                qDebug() << "contactCount" << ++contactCount;
+                emit contactChanged (sipuri);
+            next:
                 domRoot = domRoot.nextSiblingElement ("c");
             }
-            emit contactsChanged();
         }
     }
-    mutex.unlock();
 }
 
 void User::onBNSyncUserInfoV4 (const QByteArray &data)
@@ -1546,16 +1577,14 @@ void User::onBNPGGroup (const QByteArray &data)
 
 }
 
-
+// TODO move to another thread
 void User::onConversationsCheck()
 {
     if (sockets.isEmpty()) return;
     QTcpSocket *socket;
     //FIXME using qmutex
-    QMutex mutex;
     for (int i = 0, s = sockets.size(); i < s; ++i)
     {
-        mutex.lock();
         qDebug() << "onConversationsCheck";
         socket = sockets.at (i);
         if (socket->state() not_eq QAbstractSocket::ConnectedState)
@@ -1567,12 +1596,14 @@ void User::onConversationsCheck()
         {
             if (not socket->waitForReadyRead (3000))
             {
+                qDebug() << "onConversationsCheck";
                 qDebug() << "When waitForReadyRead"
                          << sipcSocket->error() << sipcSocket->errorString();
                 break;
             }
         }
         QByteArray responseData = socket->readLine();
+        qDebug() << responseData;
         while (not responseData.contains ("L: "))
         {
             while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
@@ -1580,7 +1611,8 @@ void User::onConversationsCheck()
                 if (not sipcSocket->waitForReadyRead ())
                 {
                     // TODO handle socket.error() or inform user what happened
-                    qDebug() << "ssiLogin  waitForReadyRead"
+                    qDebug() << "onConversationsCheck";
+                    qDebug() << "When waitForReadyRead"
                              << sipcSocket->error() << sipcSocket->errorString();
                     return;
                 }
@@ -1614,7 +1646,8 @@ void User::onConversationsCheck()
                 if (not socket->waitForReadyRead ())
                 {
                     // TODO handle socket.error() or inform user what happened
-                    qDebug() << "ssiLogin  waitForReadyRead"
+                    qDebug() << "onConversationsCheck";
+                    qDebug() << "When waitForReadyRead"
                              << socket->error() << socket->errorString();
                     return;
                 }
@@ -1624,7 +1657,6 @@ void User::onConversationsCheck()
         }
         qDebug() << "$$$" << QString::fromUtf8 (responseData);
     }
-    mutex.unlock();
 }
 
 } // end Bressein

@@ -42,8 +42,10 @@ Bressein::Bressein (QWidget *parent)
     user = Singleton<User>::instance();
     // demo
     user->setAccount (qgetenv ("FETIONNUMBER"), qgetenv ("FETIONPASSWORD"));
-    connect (user, SIGNAL (contactsChanged()),
-             this, SLOT (onDataChanged()));
+//     connect (user, SIGNAL (contactsChanged()),
+//             this, SLOT (onDataChanged()));
+    connect (user, SIGNAL (contactChanged (const QByteArray&)),
+             this, SLOT (onDatumChanged (const QByteArray&)));
 }
 
 Bressein::~Bressein()
@@ -77,8 +79,7 @@ void Bressein::onDataChanged ()
             if (itemList.at (i)->getSipuri() == keys.at (i))
             {
                 // update this
-                itemList.at (i)->setSipuri (keys.at (i));
-                itemList.at (i)->setContact (*list.value (keys.at (i)));
+                itemList.at (i)->updateContact();
                 updated = true;
                 break;
             }
@@ -88,14 +89,43 @@ void Bressein::onDataChanged ()
             ContactItem *item;
             item = new ContactItem (gwidget, gscene);
             item->setSipuri (keys.at (i));
-            item->setContact (*list.value (keys.at (i)));
             item->setZValue (10);
             item->setVisible (true);
             item->setPos (10, item->boundingRect().height() * i);
             itemList.append (item);
         }
     }
-    gwidget->resetMatrix();
+    updateSceneRect (this->viewport()->rect());
+}
+
+void Bressein::onDatumChanged (const QByteArray &siprui)
+{
+    bool updated = false;
+    int itemlists = itemList.size();
+
+    updated = false;
+    for (int i = 0; i < itemlists; i++)
+    {
+        if (itemList.at (i)->getSipuri() == siprui)
+        {
+            // update this
+            itemList.at (i)->updateContact();
+            updated = true;
+            break;
+        }
+    }
+    if (not updated)
+    {
+        ContactItem *item;
+        item = new ContactItem (gwidget, gscene);
+        item->setSipuri (siprui);
+        item->setZValue (10);
+        item->setVisible (true);
+        item->setPos (10, item->boundingRect().height() * itemlists);
+        itemList.append (item);
+    }
+
+    updateSceneRect (this->viewport()->rect());
 }
 
 //TODO onContactRemoved

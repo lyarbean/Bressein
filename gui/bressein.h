@@ -53,6 +53,7 @@ public:
     void login();
 private slots:
     void onDataChanged();
+    void onDatumChanged (const QByteArray &);
     void setRenderingSystem();
     void setupScene();
     void setupSceneItems();

@@ -33,11 +33,12 @@
 
 #include "contactitem.h"
 #include <QtGui>
+#include <QApplication>
 #include <QStyleOptionGraphicsItem>
 #include <QGraphicsSceneMouseEvent>
 #include "sipc/user.h"
 #include "singleton.h"
-#include <QApplication>
+
 namespace Bressein
 {
 ContactItem::ContactItem (QGraphicsItem *parent, QGraphicsScene *scene)
@@ -61,7 +62,8 @@ void ContactItem::paint (QPainter *painter,
 //     QMatrix m = painter->worldMatrix();
 //     painter->setWorldMatrix (QMatrix());
     painter->drawRect (boundingRect());
-    if (this->contact.basic.state == StateType::ONLINE)
+
+    if (contact.basic.state == StateType::ONLINE)
         painter->setPen (Qt::red);
     if (not contact.detail.nickName.isEmpty())
     {
@@ -108,24 +110,22 @@ QRectF ContactItem::boundingRect() const
     return QRectF (5, 5, QApplication::desktop()->screenGeometry().width(),30);
 }
 
-void ContactItem::setContact (const ContactInfo &contact)
-{
-    this->contact = contact;
-}
-
-const ContactInfo &ContactItem::getContact() const
-{
-    return contact;
-}
 
 void ContactItem::setSipuri (const QByteArray &sipuri)
 {
     this->sipuri = sipuri;
+    updateContact();
 }
 
 const QByteArray &ContactItem::getSipuri() const
 {
     return sipuri;
 }
+
+void ContactItem::updateContact()
+{
+    contact = Singleton<User>::instance()->getContactInfo (this->sipuri);
+}
+
 
 }
