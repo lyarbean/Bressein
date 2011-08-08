@@ -39,6 +39,7 @@
 #include <QtNetwork/QNetworkProxy>
 #include "types.h"
 #include "portraitfetcher.h"
+#include "conversationmanager.h"
 class QTimer;
 namespace Bressein
 {
@@ -80,13 +81,13 @@ signals:
     void sipcAuthorizeParsed();
 // The following are executed in worker thread
 private:
-    // TODO split as read and write
     void sipcWriteRead (QByteArray &in, QByteArray &out, QTcpSocket *socket);
     void sipcWrite (const QByteArray &in, QTcpSocket *socket);
     void sipcRead (QByteArray &out, QTcpSocket *socket,
                    QByteArray delimit = QByteArray ("L: "));
-    void parseReceivedData (const QByteArray &in);
+
 private slots:
+    void parseReceivedData (const QByteArray &in);
 // functions that performance networking
     void keepAlive();
     //called in period when connection established SIP_EVENT_KEEPALIVE
@@ -138,7 +139,6 @@ private slots:
     void setImpresa (const QByteArray &impresa);
     void setMessageStatus (int days);   //SIP_EVENT_SETUSERINFO
 
-    // FIXME
     // directMessage SIP_EVENT_DIRECTSMS SIP_EVENT_SENDDIRECTCATSMS
     // void replayContactRequest SIP_EVENT_HANDLECONTACTREQUEST
     // PG
@@ -148,7 +148,7 @@ private slots:
     // subsribePg SIP_EVENT_PGPRESENCE
     // sendPgMessage SIP_EVENT_PGSENDCATSMS
 
-    void setClientState (Bressein::StateType state);   //SIP_EVENT_SETPRESENCE
+    void setClientState (StateType state);   //SIP_EVENT_SETPRESENCE
 
 // functions for parsing data
     void parseSsiResponse (QByteArray &data);
@@ -163,12 +163,17 @@ private slots:
 
     //
     void onBNPresenceV4 (const QByteArray &data);
-    void onBNSyncUserInfoV4 (const QByteArray &data);
     void onBNConversation (const QByteArray &data);
+    void onBNSyncUserInfoV4 (const QByteArray &data);
     void onBNPGGroup (const QByteArray &data);
     void onBNcontact (const QByteArray &data);
     void onBNregistration (const QByteArray &data);
-
+    void onInvite (const QByteArray &data);
+    void onIncoming (const QByteArray &data);
+    void onSIPC (const QByteArray &data);
+    // some functions that helps above on's
+    void parsePGGroupMembers (const QByteArray &data);
+    //
     void onConversationsCheck();
 
 private:
@@ -181,16 +186,19 @@ private:
     QTimer *keepAliveTimer;
     QTimer *receiverTimer;
     Contacts contacts;
-    QList<QByteArray> conversations;
     QList<Group *> groups;
     // groups
     //pggroups
-    QTcpSocket *sipcSocket;
-    QList<QTcpSocket *> sockets;
     // All sip-c transactions are handle through this socket
-    QNetworkProxy proxy;
-    PortraitFetcher fetcher;
+    QTcpSocket *sipcSocket;
+    //TODO replaced with conversation manager
+    ConversationManager *conversationManager;
+
     // TODO make use of proxy
+    QNetworkProxy proxy;
+    // TODO enhance to be a networking resource fetcher
+    PortraitFetcher fetcher;
+
 };
 }
 #endif // USER_H

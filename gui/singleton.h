@@ -31,7 +31,7 @@
  */
 
 // see http://www.qtcentre.org/wiki/index.php?title=Singleton_pattern
-// This is thread-safe singleton template
+// This is a thread-safe singleton template
 #ifndef SINGLETON_H
 #define SINGLETON_H
 

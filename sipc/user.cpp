@@ -57,6 +57,9 @@ User::User (QObject *parent) : QObject (parent)
     connect (this, SIGNAL (serverConfigParsed()), SLOT (sipcRegister()));
     connect (this, SIGNAL (sipcRegisterParsed()), SLOT (sipcAuthorize()));
     connect (this, SIGNAL (sipcAuthorizeParsed()), SLOT (activateTimer()));
+    conversationManager = new ConversationManager (this);
+    connect (conversationManager, SIGNAL (receiveData (const QByteArray &)),
+             this, SLOT (parseReceivedData (const QByteArray &)));
     this->moveToThread (&workerThread);
     workerThread.start();
 }
@@ -78,6 +81,8 @@ User::~User()
     qDebug() << "delete groups";
     while (not groups.isEmpty())
         delete groups.takeFirst();
+    sipcSocket->close();
+    sipcSocket->deleteLater();
     if (workerThread.isRunning())
     {
         workerThread.quit();
@@ -110,14 +115,13 @@ void User::loginVerify (const QByteArray &code)
 void User::close()
 {
     // note this is called from main thread
-    workerThread.deleteLater();
+    workerThread.quit();
+    workerThread.terminate();
 }
 
 void User::startChat (const QByteArray &sipUri)
 {
-    //TODO
     qDebug() << "start Chat called";
-    // TODO check if sipUri valid
     QMetaObject::invokeMethod (this, "inviteFriend",
                                Qt::QueuedConnection,
                                Q_ARG (QByteArray, sipUri));
@@ -214,7 +218,6 @@ void User::sipcRead (QByteArray &out, QTcpSocket *socket, QByteArray delimit)
     int pos = responseData.indexOf (delimit);
     if (pos < 0)
     {
-        //TODO
         out = responseData;
         qDebug() << "no L!";
         return;
@@ -316,7 +319,7 @@ void User::ssiLogin()
     {
         //TODO
         qDebug() << "ssiLogin";
-        qDebug() << responseData;
+        qDebug() << "No " << delimit;
         return;
     }
     int pos_ = responseData.indexOf ("\r\n", pos);
@@ -1134,7 +1137,7 @@ void User::sendMessage (const QByteArray &toSipuri, const QByteArray &message)
     // if a contact whose sipuri is toSipuri is already on conversation
     // that is its socket is non-null
     if (contacts.value (toSipuri)->basic.state == StateType::ONLINE and
-        conversations.indexOf (toSipuri) < 0)
+        not conversationManager->isOnConversation (toSendMsg))
     {
         inviteFriend (toSipuri);
     }
@@ -1184,6 +1187,8 @@ void User::inviteFriend (const QByteArray &sipUri)
     sipcWriteRead (toSendMsg, responseData, sipcSocket);
     if (responseData.isEmpty() or not responseData.contains ("A: CS address="))
     {
+        qDebug() << "startChat";
+        qDebug() << responseData;
         return;
     }
     int b, e;
@@ -1196,37 +1201,28 @@ void User::inviteFriend (const QByteArray &sipUri)
     int seperator = address.indexOf (':');
     QByteArray ip = address.left (seperator);
     quint16 port = address.mid (seperator + 1).toUInt();
-    // TODO create new thread for conversation
-    // or keep track of the socket
     qDebug() << "registerData";
     toSendMsg = registerData (info->fetionNumber, info->callId, credential);
-    QTcpSocket *socket = new QTcpSocket (this);
-    socket->connectToHost (ip, port);
-    if (not socket->waitForConnected ())
-    {
-        qDebug() << "waitForEncrypted" << socket->errorString();
-        return;
-    }
-    sipcWriteRead (toSendMsg, responseData, socket);
-    qDebug() << inviteBuddyData;
+    // append conversation to conversation manager
+    /** **/
+    conversationManager->addConversation (sipUri);
+    conversationManager->setHost (sipUri, ip, port);
+    conversationManager->sendData (sipUri, toSendMsg);
     toSendMsg = inviteBuddyData (info->fetionNumber, info->callId, sipUri);
-    sipcWriteRead (toSendMsg, responseData, socket);
-    sockets.append (socket);
+    conversationManager->sendData (sipUri, toSendMsg);
+
     // TODO check if 200
     //FIXME Check contact correctly
-    if (responseData.contains ("SIP-C/4.0 200 OK"))
-    {
-        if (conversations.indexOf (sipUri) < 0)
-            conversations.append (sipUri);
-    }
 //     QByteArray message ("Hi!");
 //     toSendMsg = catMsgData
 //             (info->fetionNumber, sipUri, info->callId, message);
 //     responseData.clear();
 //     sipcWriteRead (toSendMsg, responseData, sipsocket);
 //     qDebug() << responseData;
-// demo
-    sendMessage (sipUri, "Hello, This is from Bressein!");
+// demo only
+    toSendMsg = catMsgData (info->fetionNumber, sipUri, info->callId,
+                            "Hello, This is from Bressein!");
+    sipcWrite (toSendMsg, sipcSocket);
 
 }
 
@@ -1402,11 +1398,11 @@ void User::parseReceivedData (const QByteArray &responseData)
     }
     else if (code == "I")
     {
-
+        onInvite (responseData);
     }
     else if (code == "IN")
     {
-
+        onIncoming (responseData);
     }
     else if (code == "O")
     {
@@ -1414,7 +1410,7 @@ void User::parseReceivedData (const QByteArray &responseData)
     }
     else if (code == "SIP-C/4.0")
     {
-
+        qDebug() << responseData;
     }
     else
     {
@@ -1463,7 +1459,6 @@ void User::onBNPresenceV4 (const QByteArray &data)
     qDebug() << QString::fromUtf8 (data);
     qDebug() << "onBNPresenceV4 <<<<";
     int b = data.indexOf ("\r\n\r\n");
-    //FIXME ensure this is a piece of message, not a chunk
     QByteArray xml = data.mid (b + 4);
     QDomDocument domDoc;
     QString errorMsg;
@@ -1544,6 +1539,8 @@ void User::onBNPresenceV4 (const QByteArray &data)
                 static int contactCount = 0;
                 qDebug() << "contactCount" << ++contactCount;
                 emit contactChanged (sipuri);
+                // TODO inform conversationManager to update state,
+                // that is, to remove if OFFLINE
             next:
                 domRoot = domRoot.nextSiblingElement ("c");
             }
@@ -1551,112 +1548,264 @@ void User::onBNPresenceV4 (const QByteArray &data)
     }
 }
 
-void User::onBNSyncUserInfoV4 (const QByteArray &data)
-{
-
-}
 
 void User::onBNConversation (const QByteArray &data)
 {
-
+    //<events><event type="UserFailed"><member uri="sip:xxxxx@fetion.com.cn;p=aaaa" status="502"/></event></events>
+    // when UserEntered, UserFailed, UserLeft, we destroy the conversation corresponding.
+    qDebug() << data;
+    // if UserLeft, get node member, if ok, get property uri, then remove
+    // inform conversationManager to remove this sipuri (uri).
 }
 
+void User::onBNSyncUserInfoV4 (const QByteArray &data)
+{
+    qDebug() << data;
+    // TODO
+    // get node "buddy", if ok, process the data
+    // get properties action, (if action is add) user-id, uri, relation-status
+    //
+}
 
 void User::onBNcontact (const QByteArray &data)
 {
-
+    qDebug() << data;
+    // TODO
+    // get node "application", if ok, process the data
+    // get properties uri, user-id, desc, addbuddy-phrase-id
+    // inform to create new chat room
 }
 
 void User::onBNregistration (const QByteArray &data)
 {
-
+    // TODO
+    // if event type is deregistered, we nnforced to quit, reset all state
+    qDebug() << data;
 }
 
 void User::onBNPGGroup (const QByteArray &data)
 {
+    qDebug() << data;
+    // TODO
+    // if event is PGGetGroupInfo
+    // for each node group, get properties uri, status-code, name, category,
+    // current-member-count, limit-member-count, group-rank, max-rank, bulletin,
+    // introduce, create-time, get-group-portrait-hds, then update PGgroup info.
 
+    // else if PresenceChanged
+    // FIXME
+    // get node ?, get some properties uri, iicnickname, identity, user-id
+}
+
+void User::onInvite (const QByteArray &data)
+{
+    /**
+     I xxxxYYYY SIP-C/4.0                     *
+     F: sip:zzzzzzz@fetion.com.cn;p=4162
+     I: -22
+     K: text/plain
+     K: text/html-fragment
+     K: multiparty
+     K: nudge
+     XI: 2ad4f8d1653943d0ac41e0ade23a88ff
+     L: 109
+     Q: 200002 I
+     AL: buddy
+     A: CS address="221.176.31.104:8080;221.176.31.104:443",
+     credential="449926111.1164956554"
+
+     s=session
+     m=message
+     a=user:sip:zzzzzzz@fetion.com.cn;p=4162
+     a=user:sip:xxxxYYYY@fetion.com.cn;p=3010
+     **/
+    int b = data.indexOf ("F: ");
+    if (b < 0) return;
+    int e = data.indexOf ("\r\n", b);
+    QByteArray fromSipuri = data.mid (b + 3, e - b - 3);
+    b = data.indexOf ("I: ");
+    e = data.indexOf ("\r\n", b);
+    QByteArray callId = data.mid (b + 3, e - b - 3);
+    b = data.indexOf ("Q: ");
+    e = data.indexOf ("\r\n", b);
+    QByteArray sequence = data.mid (b + 3, e - b - 3);
+    b = data.indexOf ("A: CS address=\"");
+    e = data.indexOf (";", b);
+    QByteArray address = data.mid (b + 15, e - b - 15);
+    b = data.indexOf ("credential=\"");
+    e = data.indexOf ("\"", b + 12);
+    QByteArray credential = data.mid (b + 12, e - b - 12);
+    int seperator = address.indexOf (':');
+    QByteArray ip = address.left (seperator);
+    quint16 port = address.mid (seperator + 1).toUInt();
+    conversationManager->addConversation (fromSipuri);
+    // do reply via sipcSocket
+    QByteArray reply = "SIP-C/4.0 200 OK\r\nF: ";
+    reply.append (fromSipuri);
+    reply.append ("\r\nI: ");
+    reply.append (callId);
+    reply.append ("\r\nQ: ");
+    reply.append (sequence);
+    reply.append ("\r\n\r\n");
+    sipcWrite (reply, sipcSocket);
+    QByteArray toSendMsg =
+        registerData (info->fetionNumber, info->callId, credential);
+    conversationManager->setHost (fromSipuri, ip, port);
+    conversationManager->sendData (fromSipuri, toSendMsg);
+}
+
+void User::onIncoming (const QByteArray &data)
+{
+    qDebug() << data;
+    // TODO
+    // if has node share-content, get properties action,
+    // if action is accept, ...
+    // else if cancel
+
+    // if has node is-composing.. unknown
+
+    // if has node either nudge or input, reply:
+    /*
+    Q ByteArray reply = "SIP-C/4.0 *200 OK\r\nF: ";
+    reply.append (fromSipuri);
+    reply.append ("\r\nI: ");
+    reply.append (callId);
+    reply.append ("\r\nQ: ");
+    reply.append (sequence);
+    reply.append ("\r\n\r\n");
+    sipcWrite (reply, sipcSocket);
+    */
+    // if nudge, inform conversationManager to activate or create new
+    // conversation and then call Bressein open a chat room
+    // if input, then inform user that remote is inputting?
+}
+
+void User::onSIPC (const QByteArray &data)
+{
+    // in openfetion, message is distinguished into by challId.
+    // try
+    // 1. if callId is pgGroupCallId
+    // pg_group_parse_list
+    // for each node group, get properties uri, identity, insert PGgroup.
+    // 2. if callId is ulist->message->callid --
+    // TODO add Qlist to store message
+    // store tosend message and remove it if acked, and then save to dataBase
+    // if the callId matches unacked msg in list, then remove it from list
+    // 3. pggroup is non-empty, foreach pg in pggroup,
+    // if pg'inviteCallId matches this callId.(ensure 200 OK).
+    // and pg NOT hasAcked, do ack and set hasAcked true. :
+    // Do ack:
+    // set info->callId to this callId
+    // write inviteAckData to server
+
+    // else if pg'getMemberCallId matches this callId, then parse member list
+    // and subscribe
+}
+
+void User::parsePGGroupMembers (const QByteArray &data)
+{
+    int b = data.indexOf ("\r\n\r\n");
+    QByteArray xml = data.mid (b + 4);
+    QDomDocument domDoc;
+    QString errorMsg;
+    int errorLine, errorColumn;
+    bool ok = domDoc.setContent
+              (xml, false, &errorMsg, &errorLine, &errorColumn);
+    if (not ok)
+    {
+        qDebug() << "Failed parsePGGroupMembers!";
+        qDebug() << errorMsg << errorLine << errorColumn;
+        qDebug() << xml;
+        return;
+    }
+    domDoc.normalize();
+    QDomElement domRoot = domDoc.documentElement();
+    //TODO dunno the structure!
+    // from openfetion, there are some nodes with properties like:
+    // uri, iicnickname, identity,user-id
 }
 
 // TODO move to another thread
 void User::onConversationsCheck()
 {
-    if (sockets.isEmpty()) return;
-    QTcpSocket *socket;
-    //FIXME using qmutex
-    for (int i = 0, s = sockets.size(); i < s; ++i)
-    {
-        qDebug() << "onConversationsCheck";
-        socket = sockets.at (i);
-        if (socket->state() not_eq QAbstractSocket::ConnectedState)
+    /*
+        QTcpSocket *socket;
+        for (int i = 0, s = sockets.size(); i < s; ++i)
         {
-            printf ("socket closed.");
-            break;
-        }
-        while (socket->bytesAvailable() < (int) sizeof (quint16))
-        {
-            if (not socket->waitForReadyRead (3000))
+            qDebug() << "onConversationsCheck";
+            socket = sockets.at (i);
+            if (socket->state() not_eq QAbstractSocket::ConnectedState)
             {
-                qDebug() << "onConversationsCheck";
-                qDebug() << "When waitForReadyRead"
-                         << sipcSocket->error() << sipcSocket->errorString();
+                printf ("socket closed.");
                 break;
             }
-        }
-        QByteArray responseData = socket->readLine();
-        qDebug() << responseData;
-        while (not responseData.contains ("L: "))
-        {
-            while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
+            while (socket->bytesAvailable() < (int) sizeof (quint16))
             {
-                if (not sipcSocket->waitForReadyRead ())
+                if (not socket->waitForReadyRead (3000))
                 {
-                    // TODO handle socket.error() or inform user what happened
                     qDebug() << "onConversationsCheck";
                     qDebug() << "When waitForReadyRead"
                              << sipcSocket->error() << sipcSocket->errorString();
-                    return;
+                    break;
                 }
+            }
+            QByteArray responseData = socket->readLine();
+            qDebug() << responseData;
+            while (not responseData.contains ("L: "))
+            {
+                while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
+                {
+                    if (not sipcSocket->waitForReadyRead ())
+                    {
+                        // TODO handle socket.error() or inform user what happened
+                        qDebug() << "onConversationsCheck";
+                        qDebug() << "When waitForReadyRead"
+                                 << sipcSocket->error() << sipcSocket->errorString();
+                        return;
+                    }
+                }
+                responseData.append (sipcSocket->readLine ());
             }
             responseData.append (sipcSocket->readLine ());
-        }
-        responseData.append (sipcSocket->readLine ());
-        int pos = responseData.indexOf ("L: ");
+            int pos = responseData.indexOf ("L: ");
 
-        if (pos < 0)
-        {
-            //TODO
-            break;
-        }
-        int pos_ = responseData.indexOf ("\r\n", pos);
-        bool ok;
-        int length = responseData.mid (pos + 3, pos_ - pos - 3).toUInt (&ok);
-        if (not ok)
-        {
-            qDebug() << "DDDD";
-            qDebug() << "not ok" << length;
-            qDebug() << responseData;
-            break;
-        }
-        int received = responseData.size();
-        pos = responseData.indexOf ("\r\n\r\n");
-        while (received < length + pos + 4)
-        {
-            while (socket->bytesAvailable() < (int) sizeof (quint16))
+            if (pos < 0)
             {
-                if (not socket->waitForReadyRead ())
-                {
-                    // TODO handle socket.error() or inform user what happened
-                    qDebug() << "onConversationsCheck";
-                    qDebug() << "When waitForReadyRead"
-                             << socket->error() << socket->errorString();
-                    return;
-                }
+                qDebug() << "onConversationsCheck";
+                qDebug() << responseData;
+                break;
             }
-            responseData.append (socket->read (length + pos + 4 - received));
-            received = responseData.size();
-        }
-        qDebug() << "$$$" << QString::fromUtf8 (responseData);
-    }
+            int pos_ = responseData.indexOf ("\r\n", pos);
+            bool ok;
+            int length = responseData.mid (pos + 3, pos_ - pos - 3).toUInt (&ok);
+            if (not ok)
+            {
+                qDebug() << "DDDD";
+                qDebug() << "not ok" << length;
+                qDebug() << responseData;
+                break;
+            }
+            int received = responseData.size();
+            pos = responseData.indexOf ("\r\n\r\n");
+            while (received < length + pos + 4)
+            {
+                while (socket->bytesAvailable() < (int) sizeof (quint16))
+                {
+                    if (not socket->waitForReadyRead ())
+                    {
+                        // TODO handle socket.error() or inform user what happened
+                        qDebug() << "onConversationsCheck";
+                        qDebug() << "When waitForReadyRead"
+                                 << socket->error() << socket->errorString();
+                        return;
+                    }
+                }
+                responseData.append (socket->read (length + pos + 4 - received));
+                received = responseData.size();
+            }
+            qDebug() << "onConversationsCheck";
+            qDebug() << QString::fromUtf8 (responseData);
+        }*/
 }
 
 } // end Bressein

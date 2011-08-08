@@ -34,7 +34,7 @@
 #include "gui/bressein.h"
 
 // #include "sipc/user.h"
-#include "gui/contactsscene.h"
+// #include "gui/contactsscene.h"
 int main (int argc, char **argv)
 {
     QApplication app (argc, argv);

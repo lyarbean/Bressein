@@ -31,6 +31,9 @@
  */
 #include "bressein.h"
 #include "singleton.h"
+#include "sipc/user.h"
+#include "contactsscene.h"
+#include "contactitem.h"
 
 namespace Bressein
 {
@@ -39,23 +42,25 @@ Bressein::Bressein (QWidget *parent)
 {
     setRenderingSystem();
     setupScene();
-    user = Singleton<User>::instance();
     // demo
-    user->setAccount (qgetenv ("FETIONNUMBER"), qgetenv ("FETIONPASSWORD"));
-//     connect (user, SIGNAL (contactsChanged()),
+    Singleton<User>::instance()->setAccount
+    (qgetenv ("FETIONNUMBER"), qgetenv ("FETIONPASSWORD"));
+
+//     connect (Singleton<User>::instance(), SIGNAL (contactsChanged()),
 //             this, SLOT (onDataChanged()));
-    connect (user, SIGNAL (contactChanged (const QByteArray&)),
-             this, SLOT (onDatumChanged (const QByteArray&)));
+    connect (Singleton<User>::instance(),
+             SIGNAL (contactChanged (const QByteArray &)),
+             this, SLOT (onDatumChanged (const QByteArray &)));
 }
 
 Bressein::~Bressein()
 {
-    user->close();
+    Singleton<User>::instance()->close();
 }
 
 void Bressein::login()
 {
-    user->login();
+    Singleton<User>::instance()->login();
 }
 
 
@@ -63,7 +68,7 @@ void Bressein::login()
 void Bressein::onDataChanged ()
 {
     //TODO add lock
-    const Contacts &list = user->getContacts();
+    const Contacts &list = Singleton<User>::instance()->getContacts();
 
     // N**2
     bool updated = false;

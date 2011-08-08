@@ -35,12 +35,10 @@
 
 #include <QtGui/QGraphicsView>
 #include <QtGui/QGraphicsWidget>
-#include "sipc/user.h"
-#include "contactsscene.h"
-#include "contactitem.h"
+
 namespace Bressein
 {
-
+class ContactItem;
 /**
  * @brief The main view of Bressein
  **/
@@ -58,7 +56,6 @@ private slots:
     void setupScene();
     void setupSceneItems();
 private:
-    User *user;  // singleton for the moment, that is solo mode
     QGraphicsScene *gscene;
     QGraphicsWidget *gwidget;
     QList<ContactItem *> itemList;

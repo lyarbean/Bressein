@@ -110,16 +110,14 @@ QByteArray RSAPublicEncrypt (const QByteArray &userId,
     memset (out , 0 , flen);
     int ret = RSA_public_encrypt (toEncrypt.size(),
                                   (unsigned char *) toEncrypt.data(),
-                                  out,
-                                  r,
-                                  RSA_PKCS1_PADDING);
+                                  out, r, RSA_PKCS1_PADDING);
+    RSA_free (r);
     if (ret < 0)
     {
         printf ("encrypt failed");
+        free (out);
         return QByteArray ("");
     }
-    RSA_free (r);
-    //clean up
     // split ret into hex bytearray
     Q_ASSERT (ret == 128);
     char *result = (char *) malloc (ret * 2 + 1);
@@ -270,12 +268,12 @@ QByteArray ssiVerifyData (const QByteArray &number,
 QByteArray percentEncodingLowercase (const QByteArray &string)
 {
     QByteArray result = string;
-    result.replace ("/","%2f");
-    result.replace ("@","%40");
-    result.replace ("=","%3d");
-    result.replace (":","%3a");
-    result.replace (";","%3b");
-    result.replace ("+","%2b");
+    result.replace ("/", "%2f");
+    result.replace ("@", "%40");
+    result.replace ("=", "%3d");
+    result.replace (":", "%3a");
+    result.replace (";", "%3b");
+    result.replace ("+", "%2b");
     return result;
 }
 QByteArray downloadPortraitData (const QByteArray &portraitName,
@@ -1022,4 +1020,19 @@ QByteArray setPresenceV4Data (const QByteArray &fetionNumber,
     data.append (body);
     return data;
 }
+
+QByteArray inviteAckData (const QByteArray &fetionNumber,
+                          int &callId,
+                          const QByteArray &sipuri)
+{
+    QByteArray data ("A fetion.com.cn SIP-C/4.0\r\n");
+    data.append ("F: ").append (fetionNumber).append ("\r\n");
+    data.append ("I: ").append (QByteArray::number (callId++)).append ("\r\n");
+    data.append ("Q: 2 A\r\n");
+    data.append ("T ");
+    data.append (sipuri);
+    data.append ("\r\n\r\n");
+    return data;
+}
+
 }

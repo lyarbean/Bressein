@@ -239,6 +239,9 @@ extern QByteArray setUserInfoV4Data (const QByteArray &fetionNumber,
 extern QByteArray setPresenceV4Data (const QByteArray &fetionNumber,
                                      int &callId,
                                      const QByteArray &state);
+extern QByteArray inviteAckData (const QByteArray &fetionNumber,
+                                 const QByteArray &sipuri,
+                                 const QByteArray &callId);
 // extern QByteArray conversationData
 }
 /*! @} */
