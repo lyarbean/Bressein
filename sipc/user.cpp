@@ -1,34 +1,32 @@
 /*
- *  This file is part of Bressein.
- *  Copyright (C) 2011  颜烈彬 <slbyan@gmail.com>
- *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
- *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
- *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- */
+This file is part of Bressein.
+Copyright (C) 2011  颜烈彬 <slbyan@gmail.com>
 
-/*
- *  OpenSSL linking exception
- *  --------------------------
- *  If you modify this Program, or any covered work, by linking or
- *  combining it with the OpenSSL project's "OpenSSL" library (or a
- *  modified version of that library), containing parts covered by
- *  the terms of OpenSSL/SSLeay license, the licensors of this
- *  Program grant you additional permission to convey the resulting
- *  work. Corresponding Source for a non-source form of such a
- *  combination shall include the source code for the parts of the
- *  OpenSSL library used as well as that of the covered work.
- */
+Bressein is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
+
+Bressein is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+OpenSSL linking exception
+--------------------------
+If you modify this Program, or any covered work, by linking or
+combining it with the OpenSSL project's "OpenSSL" library (or a
+modified version of that library), containing parts covered by
+the terms of OpenSSL/SSLeay license, the licensors of this
+Program grant you additional permission to convey the resulting
+work. Corresponding Source for a non-source form of such a
+combination shall include the source code for the parts of the
+OpenSSL library used as well as that of the covered work.
+*/
 
 #include <QSslSocket>
 #include <QDomDocument>
@@ -119,12 +117,14 @@ void User::close()
     workerThread.terminate();
 }
 
-void User::startChat (const QByteArray &sipUri)
+void User::startChat (const QByteArray &sipuri)
 {
     qDebug() << "start Chat called";
-    QMetaObject::invokeMethod (this, "inviteFriend",
+    // just for test
+    QMetaObject::invokeMethod (this, "sendMessage",
                                Qt::QueuedConnection,
-                               Q_ARG (QByteArray, sipUri));
+                               Q_ARG (QByteArray, sipuri),
+                               Q_ARG (QByteArray, sipuri));
 }
 
 const Bressein::ContactInfo &User::getContactInfo (const QByteArray &sipuri)
@@ -136,6 +136,12 @@ void User::setAccount (QByteArray number, QByteArray password)
 {
     // TODO try to load saved configuration for this user
     if (number.isEmpty() or password.isEmpty()) return;
+    QRegExp expression ("[1-9][0-9]*");
+    if (not expression.exactMatch (number))
+    {
+        qDebug() << "invalid number";
+        return;
+    }
     info->loginNumber = number;
     if (number.size() == 11)
     {
@@ -446,7 +452,7 @@ void User::downloadPortrait (const QByteArray &sipuri)
  * I: 1
  * Q: 1 R
  * CN: 1CF1A05B2DD0281755997ADC70F82B16
- * CL: type=”pc” ,version=”3.6.1900″
+ * CL: type="pc" ,version="3.6.1900"
  **/
 void User::sipcRegister()
 {
@@ -482,7 +488,7 @@ void User::sipcRegister()
  * F: 916*098834
  * I: 1
  * Q: 2 R
- * A: Digest response=”5041619..6036118″,algorithm=”SHA1-sess-v4″
+ * A: Digest response="5041619..6036118",algorithm="SHA1-sess-v4"
  * AK: ak-value
  * L: 426
  * \r\n\r\n
@@ -1179,9 +1185,9 @@ void User::contactSubscribe()
 }
 
 // move another thread -- conversation
-void User::inviteFriend (const QByteArray &sipUri)
+void User::inviteFriend (const QByteArray &sipuri)
 {
-//     downloadPortrait (sipUri);
+//     downloadPortrait (sipuri);
     QByteArray toSendMsg = startChatData (info->fetionNumber, info->callId);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData, sipcSocket);
@@ -1205,22 +1211,22 @@ void User::inviteFriend (const QByteArray &sipUri)
     toSendMsg = registerData (info->fetionNumber, info->callId, credential);
     // append conversation to conversation manager
     /** **/
-    conversationManager->addConversation (sipUri);
-    conversationManager->setHost (sipUri, ip, port);
-    conversationManager->sendData (sipUri, toSendMsg);
-    toSendMsg = inviteBuddyData (info->fetionNumber, info->callId, sipUri);
-    conversationManager->sendData (sipUri, toSendMsg);
+    conversationManager->addConversation (sipuri);
+    conversationManager->setHost (sipuri, ip, port);
+    conversationManager->sendData (sipuri, toSendMsg);
+    toSendMsg = inviteBuddyData (info->fetionNumber, info->callId, sipuri);
+    conversationManager->sendData (sipuri, toSendMsg);
 
     // TODO check if 200
     //FIXME Check contact correctly
 //     QByteArray message ("Hi!");
 //     toSendMsg = catMsgData
-//             (info->fetionNumber, sipUri, info->callId, message);
+//             (info->fetionNumber, sipuri, info->callId, message);
 //     responseData.clear();
 //     sipcWriteRead (toSendMsg, responseData, sipsocket);
 //     qDebug() << responseData;
 // demo only
-    toSendMsg = catMsgData (info->fetionNumber, sipUri, info->callId,
+    toSendMsg = catMsgData (info->fetionNumber, sipuri, info->callId,
                             "Hello, This is from Bressein!");
     sipcWrite (toSendMsg, sipcSocket);
 
@@ -1300,9 +1306,6 @@ void User::activateTimer()
     keepAliveTimer->start (30000);//
     contactSubscribe();
     QTimer::singleShot (3000, this, SLOT (onReceiveData()));
-    connect (receiverTimer, SIGNAL (timeout()),
-             this, SLOT (onConversationsCheck()));
-    receiverTimer->start (3000);
 }
 
 
@@ -1725,88 +1728,7 @@ void User::parsePGGroupMembers (const QByteArray &data)
     // uri, iicnickname, identity,user-id
 }
 
-// TODO move to another thread
-void User::onConversationsCheck()
-{
-    /*
-        QTcpSocket *socket;
-        for (int i = 0, s = sockets.size(); i < s; ++i)
-        {
-            qDebug() << "onConversationsCheck";
-            socket = sockets.at (i);
-            if (socket->state() not_eq QAbstractSocket::ConnectedState)
-            {
-                printf ("socket closed.");
-                break;
-            }
-            while (socket->bytesAvailable() < (int) sizeof (quint16))
-            {
-                if (not socket->waitForReadyRead (3000))
-                {
-                    qDebug() << "onConversationsCheck";
-                    qDebug() << "When waitForReadyRead"
-                             << sipcSocket->error() << sipcSocket->errorString();
-                    break;
-                }
-            }
-            QByteArray responseData = socket->readLine();
-            qDebug() << responseData;
-            while (not responseData.contains ("L: "))
-            {
-                while (sipcSocket->bytesAvailable() < (int) sizeof (quint16))
-                {
-                    if (not sipcSocket->waitForReadyRead ())
-                    {
-                        // TODO handle socket.error() or inform user what happened
-                        qDebug() << "onConversationsCheck";
-                        qDebug() << "When waitForReadyRead"
-                                 << sipcSocket->error() << sipcSocket->errorString();
-                        return;
-                    }
-                }
-                responseData.append (sipcSocket->readLine ());
-            }
-            responseData.append (sipcSocket->readLine ());
-            int pos = responseData.indexOf ("L: ");
 
-            if (pos < 0)
-            {
-                qDebug() << "onConversationsCheck";
-                qDebug() << responseData;
-                break;
-            }
-            int pos_ = responseData.indexOf ("\r\n", pos);
-            bool ok;
-            int length = responseData.mid (pos + 3, pos_ - pos - 3).toUInt (&ok);
-            if (not ok)
-            {
-                qDebug() << "DDDD";
-                qDebug() << "not ok" << length;
-                qDebug() << responseData;
-                break;
-            }
-            int received = responseData.size();
-            pos = responseData.indexOf ("\r\n\r\n");
-            while (received < length + pos + 4)
-            {
-                while (socket->bytesAvailable() < (int) sizeof (quint16))
-                {
-                    if (not socket->waitForReadyRead ())
-                    {
-                        // TODO handle socket.error() or inform user what happened
-                        qDebug() << "onConversationsCheck";
-                        qDebug() << "When waitForReadyRead"
-                                 << socket->error() << socket->errorString();
-                        return;
-                    }
-                }
-                responseData.append (socket->read (length + pos + 4 - received));
-                received = responseData.size();
-            }
-            qDebug() << "onConversationsCheck";
-            qDebug() << QString::fromUtf8 (responseData);
-        }*/
-}
 
 } // end Bressein
 

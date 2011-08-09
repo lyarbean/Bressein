@@ -28,40 +28,19 @@ combination shall include the source code for the parts of the
 OpenSSL library used as well as that of the covered work.
 */
 
-// see http://www.qtcentre.org/wiki/index.php?title=Singleton_pattern
-// This is a thread-safe singleton template
-#ifndef SINGLETON_H
-#define SINGLETON_H
+#ifndef STOREMAN_H
+#define STOREMAN_H
 
 #include <QObject>
-#include <QMutex>
 
-template <class T>
-class Singleton
+namespace Bressein
 {
+class StoreMan : public QObject
+{
+
 public:
-    static T *instance()
-    {
-        static QMutex mutex;
-        if (not _instance)
-        {
-            mutex.lock();
-            if (not _instance)
-            {
-                _instance = new T;
-            }
-            mutex.unlock();
-        }
-        return _instance;
-    }
-private:
-    // requires c++0x or gnu++0x support
-    Singleton() = delete;
-    ~Singleton() = delete;
-    Singleton (const Singleton &) = delete; // hide copy constructor
-    Singleton &operator= (const Singleton &) = delete; // hide assign op
-    static T *_instance;
+    StoreMan();
+    virtual ~StoreMan();
 };
-template <class T>
-T *Singleton<T>::_instance = 0;
-#endif
+}
+#endif // STOREMAN_H
