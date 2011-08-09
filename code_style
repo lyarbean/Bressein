@@ -1,0 +1,10 @@
+1. USE iso646.h style operator keywords:
+2. try to make line length no more that 80 characters
+3. if a declaration or definition of a function is too long, try to put
+    arguments in next line first to fit the rule above, or else if the arguments
+    list is too long, then align them in vertical.
+4. Use astyle to format codes, with a modified style ANSI:
+    --style=ansi --indent=spaces=4 --indent-preprocessor --indent-switches
+    --indent-cases --brackets=break --pad-paren-out --pad-header --unpad-paren
+    --break-closing-brackets --align-pointer=name --min-conditional-indent=4
+    --max-instatement-indent=50 --lineend=linux --indent-labels
