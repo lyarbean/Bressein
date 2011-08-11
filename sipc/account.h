@@ -85,6 +85,7 @@ private:
                    QByteArray delimit = QByteArray ("L: "));
 
 private slots:
+    void removeSipcsocket();
     void parseReceivedData (const QByteArray &in);
 // functions that performance networking
     void keepAlive();
@@ -168,7 +169,8 @@ private slots:
     void onBNregistration (const QByteArray &data);
     void onInvite (const QByteArray &data);
     void onIncoming (const QByteArray &data);
-    void onSIPC (const QByteArray &data);
+    void onSipc (const QByteArray &data);
+    void onOption (const QByteArray &data);
     // some functions that helps above on's
     void parsePGGroupMembers (const QByteArray &data);
 
@@ -180,6 +182,7 @@ private:
     typedef Info *InfoAccess;
     InfoAccess info;
     QThread workerThread;
+    QMutex mutex;
     QTimer *keepAliveTimer;
     QTimer *receiverTimer;
     Contacts contacts;

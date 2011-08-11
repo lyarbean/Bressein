@@ -56,6 +56,9 @@ BresseinView::BresseinView (QWidget *parent)
 
 BresseinView::~BresseinView()
 {
+    disconnect (Singleton<Account>::instance(),
+                SIGNAL (contactChanged (const QByteArray &)),
+                this, SLOT (onDatumChanged (const QByteArray &)));
     Singleton<Account>::instance()->close();
 }
 

@@ -52,15 +52,16 @@ public:
     void setHost (const QByteArray &sipuri,
                   const QByteArray &ip,
                   const quint16 port);
-    void removeConversation (const QByteArray &sipuri);
+
     void sendData (const QByteArray &sipuri, const QByteArray &data);
     bool isOnConversation (const QByteArray &sipuri) const;
 signals:
     void receiveData (const QByteArray &);
 public slots:
     void onDataReceived (const QByteArray &);
+    void removeConversation (const QByteArray &sipuri);
+    void closeAll();
 private:
-
     QMap<QByteArray, Conversation *> conversations;
 };
 
@@ -73,6 +74,7 @@ public:
     const QByteArray &name () const;
 
     void connectToHost (const QByteArray &ip, const quint16 port);
+    void close();
 public slots:
     void sendData (const QByteArray &data);
     // in the workerThread
@@ -81,6 +83,8 @@ public slots:
     void readData (QByteArray &out);
 signals:
     void dataReceived (const QByteArray &);
+    void toClose (const QByteArray &);
+
 private slots:
     void listen();
 private:

@@ -57,35 +57,14 @@ Account::Account (QObject *parent) : QObject (parent)
     connect (this, SIGNAL (sipcAuthorizeParsed()), SLOT (activateTimer()));
     conversationManager = new ConversationManager (this);
     connect (conversationManager, SIGNAL (receiveData (const QByteArray &)),
-             this, SLOT (parseReceivedData (const QByteArray &)));
+             this, SLOT (parseReceivedData (const QByteArray &)),
+             Qt::QueuedConnection);
     this->moveToThread (&workerThread);
     workerThread.start();
 }
 
 Account::~Account()
 {
-    if (info)
-    {
-        qDebug() << "delete info";
-        delete info;
-    }
-    qDebug() << "delete contacts";
-    if (not contacts.isEmpty())
-    {
-        QList<ContactInfo *> list = contacts.values();
-        while (not list.isEmpty())
-            delete list.takeFirst();
-    }
-    qDebug() << "delete groups";
-    while (not groups.isEmpty())
-        delete groups.takeFirst();
-    sipcSocket->close();
-    sipcSocket->deleteLater();
-    if (workerThread.isRunning())
-    {
-        workerThread.quit();
-        workerThread.wait();
-    }
 
 }
 
@@ -101,20 +80,67 @@ void Account::login()
 {
     qDebug() << "To Login";
     QMetaObject::invokeMethod (this, "ssiLogin");
-    // ssiLogin();
 }
 
 void Account::loginVerify (const QByteArray &code)
 {
-    info->verification->code = code;
+    info->verification.code = code;
     QMetaObject::invokeMethod (this, "ssiVerify", Qt::QueuedConnection);
 }
 
 void Account::close()
 {
+    disconnect (keepAliveTimer, SIGNAL (timeout()), this, SLOT (keepAlive()));
+    keepAliveTimer->stop();
+    keepAliveTimer->deleteLater();
+    receiverTimer->stop();
+    receiverTimer->deleteLater();
     // note this is called from main thread
-    workerThread.quit();
-    workerThread.terminate();
+    disconnect (conversationManager, SIGNAL (receiveData (const QByteArray &)),
+                this, SLOT (parseReceivedData (const QByteArray &)));
+    qDebug() << "conversationManager->closeAll()";
+    conversationManager->deleteLater();
+
+    QMetaObject::invokeMethod (this, "removeSipcsocket", Qt::QueuedConnection);
+
+    qDebug() << "delete contacts";
+    if (not contacts.isEmpty())
+    {
+        QList<ContactInfo *> list = contacts.values();
+        while (not list.isEmpty())
+            delete list.takeFirst();
+        contacts.clear();
+    }
+    qDebug() << "delete groups";
+    while (not groups.isEmpty())
+        delete groups.takeFirst();
+
+    qDebug() << "delete info";
+    if (info)
+    {
+        delete info;
+    }
+
+    qDebug() << "stop thread";
+    if (workerThread.isRunning())
+    {
+        workerThread.quit();
+        workerThread.wait();
+    }
+    qDebug() << "stopped ";
+
+    qDebug() << "delete self";
+//     this->deleteLater();
+}
+
+void Account::removeSipcsocket()
+{
+    qDebug() << "delete sockets";
+    sipcSocket->disconnectFromHost();
+    while (sipcSocket->state() not_eq QAbstractSocket::UnconnectedState)
+        sipcSocket->waitForDisconnected();
+    qDebug() << "delete sockets 2";
+    sipcSocket->deleteLater();
 }
 
 void Account::startChat (const QByteArray &sipuri)
@@ -190,12 +216,13 @@ void Account::sipcWrite (const QByteArray &in, QTcpSocket *socket)
     socket->flush();
 }
 
-// delimt should either "L: " or "content-Content-Length: ".
-void Account::sipcRead (QByteArray &out, QTcpSocket *socket, QByteArray delimit)
+// delimit should be either "L: " or "content-Content-Length: ".
+void Account::sipcRead
+(QByteArray &out, QTcpSocket *socket, QByteArray delimit)
 {
     while (socket->bytesAvailable() < (int) sizeof (quint16))
     {
-        if (not socket->waitForReadyRead (10000))
+        if (not socket->waitForReadyRead (3000))
         {
             if (socket->error() not_eq QAbstractSocket::SocketTimeoutError)
             {
@@ -225,13 +252,14 @@ void Account::sipcRead (QByteArray &out, QTcpSocket *socket, QByteArray delimit)
     if (pos < 0)
     {
         out = responseData;
-        qDebug() << "no L!";
+        qDebug() << "no L: !";
         return;
     }
     int pos_ = responseData.indexOf ("\r\n", pos);
     bool ok;
-    int length = responseData.mid
-                 (pos + delimit.size(), pos_ - pos - delimit.size()).toUInt (&ok);
+    int length = responseData
+                 .mid (pos + delimit.size(), pos_ - pos - delimit.size())
+                 .toUInt (&ok);
     if (not ok)
     {
         qDebug() << "Not ok" << responseData;
@@ -287,15 +315,21 @@ void Account::ssiLogin()
     if (not socket.waitForEncrypted (-1))
     {
         // TODO handle socket.error() or inform user what happened
-        qDebug() << "waitForEncrypted" << socket.error() <<
-                 socket.errorString();
+        qDebug() << "waitForEncrypted"
+                 << socket.error() << socket.errorString();
         if (socket.error() == QAbstractSocket::SslHandshakeFailedError)
         {
             ssiLogin();
         }
         return;
     }
-    socket.write (data);
+    int length = 0;
+    while (length < data.length())
+    {
+        length += socket.write (data.right (data.size() - length));
+    }
+    socket.waitForBytesWritten ();
+    socket.flush();
     QByteArray delimit = "Content-Length: ";
     while (socket.bytesAvailable() < (int) sizeof (quint16))
     {
@@ -330,8 +364,9 @@ void Account::ssiLogin()
     }
     int pos_ = responseData.indexOf ("\r\n", pos);
     bool ok;
-    int length = responseData.mid
-                 (pos + delimit.size(), pos_ - pos - delimit.size()).toUInt (&ok);
+    length = responseData
+             .mid (pos + delimit.size(), pos_ - pos - delimit.size())
+             .toUInt (&ok);
     if (not ok)
     {
         qDebug() << "Not ok" << responseData;
@@ -631,21 +666,17 @@ void Account::parseSsiResponse (QByteArray &data)
             //420 wrong input validation numbers
             //421 requires validation
 
-            if (not info->verification)
-            {
-                info->verification = new Info::Verfication;
-            }
             QDomElement domE =  domRoot.firstChildElement ("verification");
             if (domE.hasAttribute ("algorithm") and
                 domE.hasAttribute ("type=") and
                 domE.hasAttribute ("text") and
                 domE.hasAttribute ("tips"))
             {
-                info->verification->algorithm =
+                info->verification.algorithm =
                     domE.attribute ("algorithm").toUtf8();
-                info->verification->text = domE.attribute ("text").toUtf8();
-                info->verification->type = domE.attribute ("type").toUtf8();
-                info->verification->tips = domE.attribute ("tips").toUtf8();
+                info->verification.text = domE.attribute ("text").toUtf8();
+                info->verification.type = domE.attribute ("type").toUtf8();
+                info->verification.tips = domE.attribute ("tips").toUtf8();
                 ssiPic();
             }
             return;
@@ -1020,7 +1051,7 @@ void Account::parseSipcAuthorize (QByteArray &data)
 
 void Account::ssiPic()
 {
-    QByteArray data = SsiPicData (info->verification->algorithm, info->ssic);
+    QByteArray data = SsiPicData (info->verification.algorithm, info->ssic);
     QTcpSocket socket;
     QHostInfo hostinfo = QHostInfo::fromName ("nav.fetion.com.cn");
     socket.connectToHost (hostinfo.addresses().first().toString(), 80);
@@ -1069,8 +1100,8 @@ void Account::ssiPic()
         if (not domRoot.isNull() and domRoot.hasAttribute ("id") and
             domRoot.hasAttribute ("pic"))
         {
-            info->verification->id = domRoot.attribute ("id").toUtf8();
-            info->verification->pic = domRoot.attribute ("pic").toUtf8();
+            info->verification.id = domRoot.attribute ("id").toUtf8();
+            info->verification.pic = domRoot.attribute ("pic").toUtf8();
             // base-64 encoded
         }
         // emit signal to inform user to inout code
@@ -1086,9 +1117,9 @@ void Account::ssiVerify()
 {
     QByteArray password = (hashV4 (info->userId, info->password));
     QByteArray data = ssiVerifyData (info->loginNumber, password,
-                                     info->verification->id,
-                                     info->verification->code,
-                                     info->verification->algorithm);
+                                     info->verification.id,
+                                     info->verification.code,
+                                     info->verification.algorithm);
     QSslSocket socket (this);
     socket.connectToHostEncrypted (UID_URI, 443);
 
@@ -1143,7 +1174,7 @@ void Account::sendMessage (const QByteArray &toSipuri, const QByteArray &message
     // if a contact whose sipuri is toSipuri is already on conversation
     // that is its socket is non-null
     if (contacts.value (toSipuri)->basic.state == StateType::ONLINE and
-        not conversationManager->isOnConversation (toSendMsg))
+        not conversationManager->isOnConversation (toSipuri))
     {
         inviteFriend (toSipuri);
     }
@@ -1181,7 +1212,7 @@ void Account::contactSubscribe()
     QByteArray toSendMsg = presenceV4Data (info->fetionNumber, info->callId);
     QByteArray responseData;
     sipcWriteRead (toSendMsg, responseData, sipcSocket);
-    onReceiveData();
+    //onReceiveData();
 }
 
 // move another thread -- conversation
@@ -1305,7 +1336,8 @@ void Account::activateTimer()
     connect (keepAliveTimer, SIGNAL (timeout()), this, SLOT (keepAlive()));
     keepAliveTimer->start (30000);//
     contactSubscribe();
-    QTimer::singleShot (3000, this, SLOT (onReceiveData()));
+    connect (receiverTimer, SIGNAL (timeout()), this, SLOT (onReceiveData()));
+    receiverTimer->start (3000);//
 }
 
 
@@ -1316,7 +1348,7 @@ void Account::onReceiveData()
     sipcRead (responseData, sipcSocket);
     if (responseData.isEmpty())
     {
-        QTimer::singleShot (3000, this, SLOT (onReceiveData()));
+        // TODO schedule to onReceiveData();
         return;
     }
     parseReceivedData (responseData);
@@ -1419,7 +1451,7 @@ void Account::parseReceivedData (const QByteArray &responseData)
     {
 
     }
-    QTimer::singleShot (3000, this, SLOT (onReceiveData()));
+    onReceiveData();
     // blocking?
 }
 
@@ -1464,9 +1496,15 @@ void Account::onReceivedMessage (const QByteArray &data)
         reply.append ("\r\n\r\n");
     }
     // ?fromsiprui , callid , sequence
-    QByteArray responseData;
-    qDebug() << "to reply ";
-    sipcWriteRead (reply, responseData, sipcSocket);
+//     if (conversationManager->isOnConversation(fromSipuri))
+//     {
+//         conversationManager->sendData(fromSipuri,reply);
+//     }
+//     else
+    {
+        qDebug() << "reply message via sipsocket";
+        sipcWrite (reply, sipcSocket);
+    }
 }
 
 void Account::onBNPresenceV4 (const QByteArray &data)
@@ -1567,6 +1605,7 @@ void Account::onBNPresenceV4 (const QByteArray &data)
 
 void Account::onBNConversation (const QByteArray &data)
 {
+    qDebug() << "onBNConversation";
     //<events><event type="UserFailed"><member uri="sip:xxxxx@fetion.com.cn;p=aaaa" status="502"/></event></events>
     // when UserEntered, UserFailed, UserLeft, we destroy the conversation corresponding.
     qDebug() << data;
@@ -1576,6 +1615,7 @@ void Account::onBNConversation (const QByteArray &data)
 
 void Account::onBNSyncUserInfoV4 (const QByteArray &data)
 {
+    qDebug() << "onBNSyncUserInfoV4";
     qDebug() << data;
     // TODO
     // get node "buddy", if ok, process the data
@@ -1585,6 +1625,7 @@ void Account::onBNSyncUserInfoV4 (const QByteArray &data)
 
 void Account::onBNcontact (const QByteArray &data)
 {
+    qDebug() << "onBNcontact";
     qDebug() << data;
     // TODO
     // get node "application", if ok, process the data
@@ -1594,6 +1635,7 @@ void Account::onBNcontact (const QByteArray &data)
 
 void Account::onBNregistration (const QByteArray &data)
 {
+    qDebug() << "onBNPGGroup";
     // TODO
     // if event type is deregistered, we nnforced to quit, reset all state
     qDebug() << data;
@@ -1601,6 +1643,7 @@ void Account::onBNregistration (const QByteArray &data)
 
 void Account::onBNPGGroup (const QByteArray &data)
 {
+    qDebug() << "onBNPGGroup";
     qDebug() << data;
     // TODO
     // if event is PGGetGroupInfo
@@ -1672,6 +1715,7 @@ void Account::onInvite (const QByteArray &data)
 
 void Account::onIncoming (const QByteArray &data)
 {
+    qDebug() << "onIncoming";
     qDebug() << data;
     // TODO
     // if has node share-content, get properties action,
@@ -1696,8 +1740,10 @@ void Account::onIncoming (const QByteArray &data)
     // if input, then inform user that remote is inputting?
 }
 
-void Account::onSIPC (const QByteArray &data)
+void Account::onSipc (const QByteArray &data)
 {
+    qDebug() << "onSipc";
+    qDebug() << data;
     // in openfetion, message is distinguished into by challId.
     // try
     // 1. if callId is pgGroupCallId
@@ -1716,6 +1762,12 @@ void Account::onSIPC (const QByteArray &data)
 
     // else if pg'getMemberCallId matches this callId, then parse member list
     // and subscribe
+}
+
+void Account::onOption (const QByteArray &data)
+{
+    qDebug() << "onOption";
+    qDebug() << data;
 }
 
 void Account::parsePGGroupMembers (const QByteArray &data)

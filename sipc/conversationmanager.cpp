@@ -51,13 +51,6 @@ Conversation::Conversation (const QByteArray &sipuri, QObject *parent)
 }
 Conversation::~Conversation()
 {
-    socket->close();
-    socket->deleteLater();
-    if (workerThread.isRunning())
-    {
-        workerThread.quit();
-        workerThread.wait();
-    }
 }
 const QByteArray &Conversation::name () const
 {
@@ -69,11 +62,13 @@ void Conversation::connectToHost (const QByteArray &ip, const quint16 port)
     this->ip = ip;
     this->port = port;
     mutex.unlock();
-    QMetaObject::invokeMethod (this, "setHost");
+    QMetaObject::invokeMethod (this, "setHost", Qt::QueuedConnection);
 }
 void Conversation::sendData (const QByteArray &data)
 {
-    QMetaObject::invokeMethod (this, "writeData", Q_ARG (QByteArray, data));
+    QMetaObject::invokeMethod (this, "writeData",
+                               Qt::QueuedConnection,
+                               Q_ARG (QByteArray, data));
 }
 // in the workerThread
 void Conversation::setHost ()
@@ -90,6 +85,7 @@ void Conversation::setHost ()
 }
 void Conversation::writeData (const QByteArray &in)
 {
+    qDebug() << "Conversation::writeData" << in;
     if (socket->state() not_eq QAbstractSocket::ConnectedState)
     {
         qDebug() <<  "Error: socket is not connected";
@@ -112,7 +108,11 @@ void Conversation::readData (QByteArray &out)
     {
         if (not socket->waitForReadyRead (10000))
         {
-            if (socket->error() not_eq QAbstractSocket::SocketTimeoutError)
+            if (socket->error() == QAbstractSocket::RemoteHostClosedError)
+            {
+                emit toClose (sipuri);
+            }
+            else if (socket->error() not_eq QAbstractSocket::SocketTimeoutError)
             {
                 qDebug() << "readData 1";
                 qDebug() << "When waitForReadyRead"
@@ -170,6 +170,7 @@ void Conversation::readData (QByteArray &out)
                 // TODO handle socket.error() or inform user what happened
                 qDebug() << "readData 3  waitForReadyRead"
                          << socket->error() << socket->errorString();
+                qDebug() << responseData;
                 return;
             }
         }
@@ -192,6 +193,21 @@ void Conversation::listen()
     emit dataReceived (data);
 }
 
+void Conversation::close()
+{
+    qDebug() << "to close";
+    ticker->stop();
+    ticker->deleteLater();
+    socket->close();
+    socket->deleteLater();
+    if (workerThread.isRunning())
+    {
+        workerThread.quit();
+        workerThread.wait();
+    }
+    this->deleteLater();
+}
+
 
 ConversationManager::ConversationManager (QObject *parent) : QObject (parent)
 {
@@ -205,12 +221,20 @@ ConversationManager::~ConversationManager()
 
 void ConversationManager::addConversation (const QByteArray &sipuri)
 {
+    if (isOnConversation (sipuri))
+    {
+        removeConversation (sipuri);
+    }
     Conversation *conversation = new Conversation (sipuri);
     conversations.insert (sipuri, conversation);
     connect (conversation, SIGNAL (dataReceived (const QByteArray &)),
              this, SLOT (onDataReceived (const QByteArray &)));
+    connect (conversation, SIGNAL (toClose (const QByteArray &)),
+             this, SLOT (removeConversation (const QByteArray &)));
 }
-void ConversationManager::setHost (const QByteArray &sipuri, const QByteArray &ip, const quint16 port)
+void ConversationManager::setHost (const QByteArray &sipuri,
+                                   const QByteArray &ip,
+                                   const quint16 port)
 {
     QMap<QByteArray, Conversation *>::iterator iterator =
         conversations.find (sipuri);
@@ -222,19 +246,19 @@ void ConversationManager::setHost (const QByteArray &sipuri, const QByteArray &i
 
 void ConversationManager::removeConversation (const QByteArray &sipuri)
 {
-    QMap<QByteArray, Conversation *>::iterator iterator =
-        conversations.find (sipuri);
-    if (iterator not_eq  conversations.end() && iterator.key() == sipuri)
+    if (isOnConversation (sipuri))
     {
-        conversations.remove (sipuri);
-        Conversation *conversation = iterator.value();
+        Conversation *conversation = conversations.value (sipuri);
         if (conversation->name() not_eq sipuri)
         {
             qDebug () << " sipuri not matched";
+            //TODO
         }
         disconnect (conversation, SIGNAL (dataReceived (const QByteArray &)),
                     this, SLOT (onDataReceived (const QByteArray &)));
-        conversation->deleteLater();
+        //NOTE call close rather than deleteLater!!
+        conversation->close();
+        conversations.remove (sipuri);
         // FIXME check bugs here
     }
 }
@@ -245,6 +269,7 @@ void ConversationManager::sendData (const QByteArray &sipuri, const QByteArray &
         conversations.find (sipuri);
     if (iterator not_eq  conversations.end() && iterator.key() == sipuri)
     {
+        qDebug() << "found sipuri";
         iterator.value()->sendData (data);
     }
 }
@@ -263,6 +288,24 @@ bool ConversationManager::isOnConversation (const QByteArray &sipuri) const
 void ConversationManager::onDataReceived (const QByteArray &data)
 {
     emit receiveData (data);
+}
+
+void ConversationManager::closeAll()
+{
+    Conversation *conversation;
+    QMap<QByteArray, Conversation *>::iterator iterator =
+        conversations.begin();
+    while (iterator not_eq conversations.end())
+    {
+        conversation = iterator.value();
+        disconnect (conversation, SIGNAL (dataReceived (const QByteArray &)),
+                    this, SLOT (onDataReceived (const QByteArray &)));
+        //NOTE call close rather than deleteLater!!
+        conversation->close();
+        iterator++;
+        // FIXME check bugs here
+    }
+    conversations.clear();
 }
 
 }

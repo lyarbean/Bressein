@@ -42,12 +42,6 @@ struct Account::Info
         _p = parent;
     }
 
-    virtual ~Info()
-    {
-        if (verification)
-            delete verification;
-    }
-
     // from input
     QByteArray loginNumber;  // fetion number or mobile phone number
     QByteArray mobileNumber;
@@ -116,7 +110,7 @@ struct Account::Info
         QByteArray code;
         QByteArray id;
         QByteArray pic;
-    } *verification; // initialized when needed
+    } verification; // initialized when needed
 
     struct SystemConfig
     {
