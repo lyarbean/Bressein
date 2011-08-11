@@ -53,6 +53,8 @@ private slots:
     void setRenderingSystem();
     void setupScene();
     void setupSceneItems();
+protected:
+    void resizeEvent (QResizeEvent *event);
 private:
     QGraphicsScene *gscene;
     QGraphicsWidget *gwidget;

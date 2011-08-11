@@ -34,7 +34,7 @@ OpenSSL library used as well as that of the covered work.
 #include <QApplication>
 #include <QStyleOptionGraphicsItem>
 #include <QGraphicsSceneMouseEvent>
-#include "sipc/user.h"
+#include "sipc/account.h"
 #include "singleton.h"
 
 namespace Bressein
@@ -59,21 +59,21 @@ void ContactItem::paint (QPainter *painter,
     }
 //     QMatrix m = painter->worldMatrix();
 //     painter->setWorldMatrix (QMatrix());
-    painter->drawRect (boundingRect());
+    painter->drawRect (boundingRect().adjusted (3,3,-3,-3));
 
     if (contact.basic.state == StateType::ONLINE)
         painter->setPen (Qt::red);
     if (not contact.detail.nickName.isEmpty())
     {
-        painter->drawText (6,16, QString::fromUtf8 (contact.detail.nickName));
+        painter->drawText (10,15, QString::fromUtf8 (contact.detail.nickName));
     }
     else if (not contact.basic.localName.isEmpty())
     {
-        painter->drawText (6,16, QString::fromUtf8 (contact.basic.localName));
+        painter->drawText (10,15, QString::fromUtf8 (contact.basic.localName));
     }
     else
     {
-        painter->drawText (6,16, QString::fromUtf8 (sipuri));
+        painter->drawText (10,15, QString::fromUtf8 (sipuri));
     }
 //     painter->drawText (25-QApplication::desktop()->screenGeometry().width() /2,
 //                        28, QString::fromUtf8 (contact.basic.userId));
@@ -98,14 +98,14 @@ void ContactItem::mouseReleaseEvent (QGraphicsSceneMouseEvent *event)
             //TODO
             // call singleton to open chat room
             qDebug() << "to call" << sipuri;
-            Singleton<User>::instance()->startChat (sipuri);
+            Singleton<Account>::instance()->startChat (sipuri);
         }
     }
 }
 
 QRectF ContactItem::boundingRect() const
 {
-    return QRectF (5, 5, QApplication::desktop()->screenGeometry().width(),30);
+    return QRectF (5,0,320,60);
 }
 
 
@@ -122,8 +122,7 @@ const QByteArray &ContactItem::getSipuri() const
 
 void ContactItem::updateContact()
 {
-    contact = Singleton<User>::instance()->getContactInfo (this->sipuri);
+    contact = Singleton<Account>::instance()->getContactInfo (this->sipuri);
 }
-
 
 }

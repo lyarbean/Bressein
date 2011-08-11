@@ -28,7 +28,6 @@ combination shall include the source code for the parts of the
 OpenSSL library used as well as that of the covered work.
 */
 
-
 #ifndef CONTACTITEM_H
 #define CONTACTITEM_H
 
@@ -39,7 +38,7 @@ namespace Bressein
 class ContactItem : public QGraphicsItem
 {
 public:
-    enum STATE {PRESSED, RELEASED, ONLINE, OFFLINE,INVALIE=0xFFFF};
+    enum STATE {PRESSED = 0x1, RELEASED, ONLINE, OFFLINE,INVALIE = 0xFFFF};
     ContactItem (QGraphicsItem *parent = 0, QGraphicsScene *scene = 0);
     virtual ~ContactItem();
 

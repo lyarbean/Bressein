@@ -36,11 +36,7 @@ namespace Bressein
 {
 ContactsScene::ContactsScene (QObject *parent) : QGraphicsScene (parent)
 {
-    qDebug() <<"on ctor";
-//     QGraphicsItem *item = addText("Hello Bressein");
-//     QGraphicsItem *item2 = addText("Author: lyarbean");
-//     item->setPos(item2->pos()+QPointF(0,32));
-    qDebug() << "right after addText";
+
 }
 
 ContactsScene::~ContactsScene()

@@ -30,7 +30,7 @@ OpenSSL library used as well as that of the covered work.
 
 #include "bressein.h"
 #include "singleton.h"
-#include "sipc/user.h"
+#include "sipc/account.h"
 #include "contactsscene.h"
 #include "contactitem.h"
 
@@ -39,35 +39,37 @@ namespace Bressein
 BresseinView::BresseinView (QWidget *parent)
     : QGraphicsView (parent) , gwidget (new QGraphicsWidget)
 {
+
     setRenderingSystem();
     setupScene();
+    gwidget->resize (200, 200);
     // demo
-    Singleton<User>::instance()->setAccount
+    Singleton<Account>::instance()->setAccount
     (qgetenv ("FETIONNUMBER"), qgetenv ("FETIONPASSWORD"));
 
-//     connect (Singleton<User>::instance(), SIGNAL (contactsChanged()),
+//     connect (Singleton<Account>::instance(), SIGNAL (contactsChanged()),
 //             this, SLOT (onDataChanged()));
-    connect (Singleton<User>::instance(),
+    connect (Singleton<Account>::instance(),
              SIGNAL (contactChanged (const QByteArray &)),
              this, SLOT (onDatumChanged (const QByteArray &)));
 }
 
 BresseinView::~BresseinView()
 {
-    Singleton<User>::instance()->close();
+    Singleton<Account>::instance()->close();
 }
 
 void BresseinView::login()
 {
-    Singleton<User>::instance()->login();
+    Singleton<Account>::instance()->login();
 }
 
 
 //TODO move to gscene
 void BresseinView::onDataChanged ()
 {
-    //TODO add lock
-    const Contacts &list = Singleton<User>::instance()->getContacts();
+
+    const Contacts &list = Singleton<Account>::instance()->getContacts();
 
     // N**2
     bool updated = false;
@@ -93,9 +95,9 @@ void BresseinView::onDataChanged ()
             ContactItem *item;
             item = new ContactItem (gwidget, gscene);
             item->setSipuri (keys.at (i));
-            item->setZValue (10);
+            item->setZValue (1);
             item->setVisible (true);
-            item->setPos (10, item->boundingRect().height() * i);
+            item->setPos (10, item->boundingRect().height() * i + 1);
             itemList.append (item);
         }
     }
@@ -125,11 +127,9 @@ void BresseinView::onDatumChanged (const QByteArray &siprui)
         item->setSipuri (siprui);
         item->setZValue (10);
         item->setVisible (true);
-        item->setPos (10, item->boundingRect().height() * itemlists);
+        item->setPos (10, item->boundingRect().height() * itemlists + 1);
         itemList.append (item);
     }
-
-    updateSceneRect (this->viewport()->rect());
 }
 
 //TODO onContactRemoved
@@ -158,16 +158,26 @@ void BresseinView::setRenderingSystem()
 void BresseinView::setupScene()
 {
     gscene = new ContactsScene (this);
-    gscene->setSceneRect (0, 0, 100, 600);
+    gscene->setSceneRect (0, 0, 300, 768);
     setScene (gscene);
     gscene->setItemIndexMethod (QGraphicsScene::NoIndex);
     gscene->addItem (gwidget);
+    gwidget->setPos (10, 10);
 }
 
 void BresseinView::setupSceneItems()
 {
     // setup buttons
     //
+}
+
+void BresseinView::resizeEvent (QResizeEvent *event)
+{
+    QGraphicsView::resizeEvent (event);
+    if (scene())
+    {
+        scene()->invalidate (scene()->sceneRect());
+    }
 }
 
 }
