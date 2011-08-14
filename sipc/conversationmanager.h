@@ -74,25 +74,32 @@ public:
     const QByteArray &name () const;
 
     void connectToHost (const QByteArray &ip, const quint16 port);
-    void close();
+
 public slots:
-    void sendData (const QByteArray &data);
+    void onSocketError();
+    void close();
     // in the workerThread
     void setHost();
-    void writeData (const QByteArray &in);
-    void readData (QByteArray &out);
+    void writeData ();
+    void readData ();
+    void sendData (const QByteArray &data);
 signals:
     void dataReceived (const QByteArray &);
     void toClose (const QByteArray &);
 
 private slots:
-    void listen();
+//     void listen();
+    void removeSocket();
+    void queueMessages (const QByteArray &data);
+    void dequeueMessages();
 private:
     QByteArray sipuri;
     QByteArray ip;
     quint16 port;
     QMutex mutex;
     QThread workerThread;
+    QList<QByteArray> messages;//incomes
+    QByteArray buffer;
     QTcpSocket *socket;
     QTimer *ticker;
 };

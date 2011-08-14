@@ -33,6 +33,7 @@ OpenSSL library used as well as that of the covered work.
 #include <QHostInfo>
 #include <QTcpSocket>
 #include <QFile>
+#include <QDir>
 #include "utils.h"
 namespace Bressein
 {
@@ -71,8 +72,9 @@ void PortraitFetcher::requestPortrait (const QByteArray &sipuri)
 void PortraitFetcher::run ()
 {
     mutex.lock();
-    if (queue.isEmpty()) return;
-    QByteArray sipuri = queue.takeFirst();
+    QByteArray sipuri;
+    if (not queue.isEmpty())
+        sipuri = queue.takeFirst();
     bool empty = false;
     mutex.unlock();
 
@@ -174,7 +176,14 @@ void PortraitFetcher::run ()
             qDebug() << "bytes size" << bytes.size();
             int a = sipuri.indexOf (":");
             int b = sipuri.indexOf ("@");
-            QByteArray filename = sipuri.mid (a + 1, b - a - 1);
+            static QByteArray iconsSubDir =
+                QDir::homePath().toLocal8Bit().append ("/.bressein/icons/");
+            if (not  QDir::home().exists (iconsSubDir))
+            {
+                QDir::home().mkpath (".bressein/icons/");
+            }
+            QByteArray filename = iconsSubDir;
+            filename.append (sipuri.mid (a + 1, b - a - 1));
             filename.append (".jpeg");
             QFile file (filename);
             file.open (QIODevice::WriteOnly);

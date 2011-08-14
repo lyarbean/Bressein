@@ -45,17 +45,22 @@ Conversation::Conversation (const QByteArray &sipuri, QObject *parent)
     socket->setSocketOption (QAbstractSocket::KeepAliveOption, 1);
     socket->setSocketOption (QAbstractSocket::LowDelayOption, 1);
     ticker = new QTimer (this);
+    connect (socket, SIGNAL (readyRead()), this, SLOT (readData()));
+    connect (socket, SIGNAL (disconnected()), this, SLOT (onSocketError()));
     //TODO handle socket's signals
     this->moveToThread (&workerThread);
     workerThread.start();
 }
+
 Conversation::~Conversation()
 {
 }
+
 const QByteArray &Conversation::name () const
 {
     return sipuri;
 }
+
 void Conversation::connectToHost (const QByteArray &ip, const quint16 port)
 {
     mutex.lock();
@@ -64,150 +69,196 @@ void Conversation::connectToHost (const QByteArray &ip, const quint16 port)
     mutex.unlock();
     QMetaObject::invokeMethod (this, "setHost", Qt::QueuedConnection);
 }
+
 void Conversation::sendData (const QByteArray &data)
 {
-    QMetaObject::invokeMethod (this, "writeData",
+    QMetaObject::invokeMethod (this, "queueMessages",
                                Qt::QueuedConnection,
-                               Q_ARG (QByteArray, data));
+                               Q_ARG (QByteArray,data));
 }
+
+void Conversation::queueMessages (const QByteArray &data)
+{
+    //JUST push data to packages for schedule.
+    qDebug() << "Conversation::sendData ";
+    mutex.lock();
+    messages.append (data);
+    mutex.unlock();
+}
+
 // in the workerThread
 void Conversation::setHost ()
 {
     socket->connectToHost (ip, port);
     if (not socket->waitForConnected ())
     {
-        qDebug() << "waitForConnected" << socket->errorString();
+        qDebug() << "Conversation::waitForConnected" << socket->errorString();
         return;
     }
-    // now start ticker
-    connect (ticker, SIGNAL (timeout()), this, SLOT (listen()));
-    ticker->start (3000);
-}
-void Conversation::writeData (const QByteArray &in)
-{
-    qDebug() << "Conversation::writeData" << in;
-    if (socket->state() not_eq QAbstractSocket::ConnectedState)
-    {
-        qDebug() <<  "Error: socket is not connected";
-        // TODO handle this,
-        // ask manager to remove this instance
-        return;
-    }
-    int length = 0;
-    while (length < in.length())
-    {
-        length += socket->write (in.right (in.size() - length));
-    }
-    socket->waitForBytesWritten ();
-    socket->flush();
+    // now start ticker to check and write if has data
+    connect (ticker, SIGNAL (timeout()), this, SLOT (writeData()),
+             Qt::DirectConnection);
+    ticker->start (1000);
 }
 
-void Conversation::readData (QByteArray &out)
+void Conversation::writeData ()
+{
+    qDebug() << "Conversation::writeData";
+    mutex.lock();
+    bool empty = false;
+    QByteArray data;
+    if (not messages.isEmpty())
+    {
+        data = messages.takeFirst();
+    }
+    else
+    {
+        empty = true;
+    }
+    int length = 0;
+    mutex.unlock();
+    while (not empty)
+    {
+        if (data.isEmpty()) return;
+        qDebug() << "=================================";
+        qDebug() << "Conversation::writeData" << data;
+        qDebug() << "=================================";
+        if (socket->state() not_eq QAbstractSocket::ConnectedState)
+        {
+            qDebug() <<  "Conversation::Error: socket is not connected";
+            // TODO handle this,
+            // ask manager to remove this instance
+            return;
+        }
+        length = 0;
+        while (length < data.length())
+        {
+            length += socket->write (data.right (data.size() - length));
+        }
+        socket->waitForBytesWritten ();
+        socket->flush();
+        qDebug() << "WRITTEN!!";
+    end:
+        mutex.lock();
+        if (not messages.isEmpty())
+        {
+            data = messages.takeFirst();
+        }
+        else
+        {
+            empty = true;
+        }
+        mutex.unlock();
+    }
+}
+
+// same as account
+// TODO make a base class for both
+void Conversation::readData ()
 {
     while (socket->bytesAvailable() < (int) sizeof (quint16))
     {
-        if (not socket->waitForReadyRead (10000))
+        if (not socket->waitForReadyRead (1000))
         {
-            if (socket->error() == QAbstractSocket::RemoteHostClosedError)
+            if (socket->error() not_eq QAbstractSocket::SocketTimeoutError)
             {
-                emit toClose (sipuri);
-            }
-            else if (socket->error() not_eq QAbstractSocket::SocketTimeoutError)
-            {
-                qDebug() << "readData 1";
+                qDebug() << "sipcRead 1";
                 qDebug() << "When waitForReadyRead"
                          << socket->error() << socket->errorString();
             }
             return;
         }
     }
-    QByteArray responseData = socket->readLine ();
-    while (responseData.indexOf ("\r\n\r\n") < 0)
-    {
-        while (socket->bytesAvailable() < (int) sizeof (quint16))
-        {
-            if (not socket->waitForReadyRead ())
-            {
-                qDebug() << "readData 2";
-                qDebug() << "When waitForReadyRead"
-                         << socket->error() << socket->errorString();
-                return;
-            }
-        }
-        responseData.append (socket->readLine ());
-    }
-    QByteArray delimit = "L: ";
-    int pos = responseData.indexOf (delimit);
-    if (pos < 0)
-    {
-        delimit = "content-length: ";
-        pos = responseData.indexOf (delimit);
-
-        if (pos < 0) //still not found
-        {
-            out = responseData;
-            return;
-        }
-    }
-    int pos_ = responseData.indexOf ("\r\n", pos);
+    static QByteArray delimit_1 = "L: ";
+    static QByteArray delimit_2 = "content-Content-Length: ";
+    QByteArray responseData = socket->readAll ();
+    buffer.append (responseData);
+    QByteArray chunck;
+    int seperator = buffer.indexOf ("\r\n\r\n");
     bool ok;
-    int length = responseData.mid
-                 (pos + delimit.size(), pos_ - pos - delimit.size()).toUInt (&ok);
-    if (not ok)
+    int length = 0;
+    int pos = 0;
+    int pos_ = 0;
+    QByteArray delimit;
+    while (seperator > 0)
     {
-        qDebug() << "Not ok" << responseData;
-        out = responseData;
-        return;
-    }
-    pos = responseData.indexOf ("\r\n\r\n");
-    int received = responseData.size();
-    while (received < length + pos + 4)
-    {
-        while (socket->bytesAvailable() < (int) sizeof (quint16))
+        delimit = delimit_1;
+        pos = buffer.indexOf (delimit_1);
+        if (pos < 0 or pos > seperator)
         {
-            if (not socket->waitForReadyRead ())
+
+            qDebug() << "no" << delimit_1;
+            pos = buffer.indexOf (delimit_2);
+            delimit = delimit_2;
+            if (pos < 0 or pos > seperator)
             {
-                // TODO handle socket.error() or inform user what happened
-                qDebug() << "readData 3  waitForReadyRead"
-                         << socket->error() << socket->errorString();
-                qDebug() << responseData;
+                qDebug() << "no" << delimit_2;
+                // if no length tag,
+                chunck = buffer.left (seperator + 4);
+                buffer.remove (0, seperator + 4);
+                emit dataReceived (chunck);
                 return;
             }
         }
-        responseData.append (socket->read (length + pos + 4 - received));
-        received = responseData.size();
+        pos_ = buffer.indexOf ("\r\n", pos);
+        length = buffer
+                 .mid (pos + delimit.size(), pos_ - pos - delimit.size())
+                 .toUInt (&ok);
+        if (not ok)
+        {
+            qDebug() << "Not ok" << buffer;
+
+            return;
+        }
+        if (buffer.size() >= length + seperator + 4)
+        {
+            chunck = buffer.left (length + seperator + 4);
+            buffer.remove (0, length + seperator + 4);
+            emit dataReceived (chunck);
+            seperator = buffer.indexOf ("\r\n\r\n");
+        }
+        else
+        {
+            return;
+        }
     }
-    out = responseData;
 }
 
-void Conversation::listen()
+void Conversation::onSocketError()
 {
-    QByteArray data;
-    readData (data);
-    if (data.isEmpty())
-    {
-        return;
-    }
-    qDebug() << "Conversation::listen";
-    qDebug() << data;
-    emit dataReceived (data);
+    //TODO
+    emit toClose (sipuri);
 }
 
 void Conversation::close()
 {
-    qDebug() << "to close";
+    qDebug() << "Conversation::close";
     ticker->stop();
     ticker->deleteLater();
-    socket->close();
-    socket->deleteLater();
+    QMetaObject::invokeMethod (this, "removeSocket", Qt::QueuedConnection);
     if (workerThread.isRunning())
     {
         workerThread.quit();
         workerThread.wait();
     }
+    //FIXME is this correct?
     this->deleteLater();
 }
 
+void Conversation::removeSocket()
+{
+    qDebug() << "delete sockets";
+    socket->disconnectFromHost();
+    while (socket->state() not_eq QAbstractSocket::UnconnectedState)
+        socket->waitForDisconnected();
+    qDebug() << "delete sockets 2";
+    socket->deleteLater();
+}
+
+void Conversation::dequeueMessages()
+{
+
+}
 
 ConversationManager::ConversationManager (QObject *parent) : QObject (parent)
 {
@@ -256,6 +307,8 @@ void ConversationManager::removeConversation (const QByteArray &sipuri)
         }
         disconnect (conversation, SIGNAL (dataReceived (const QByteArray &)),
                     this, SLOT (onDataReceived (const QByteArray &)));
+        disconnect (conversation, SIGNAL (toClose (const QByteArray &)),
+                    this, SLOT (removeConversation (const QByteArray &)));
         //NOTE call close rather than deleteLater!!
         conversation->close();
         conversations.remove (sipuri);
@@ -263,13 +316,13 @@ void ConversationManager::removeConversation (const QByteArray &sipuri)
     }
 }
 
-void ConversationManager::sendData (const QByteArray &sipuri, const QByteArray &data)
+void ConversationManager::sendData (const QByteArray &sipuri,
+                                    const QByteArray &data)
 {
     QMap<QByteArray, Conversation *>::iterator iterator =
         conversations.find (sipuri);
     if (iterator not_eq  conversations.end() && iterator.key() == sipuri)
     {
-        qDebug() << "found sipuri";
         iterator.value()->sendData (data);
     }
 }

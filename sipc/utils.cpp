@@ -312,7 +312,6 @@ QByteArray downloadPortraitAgainData (const QByteArray &path,
     return data;
 }
 
-
 QByteArray sipcAuthorizeData (const QByteArray &mobileNumber,
                               const QByteArray &fetionNumber,
                               const QByteArray &userId,
@@ -321,7 +320,8 @@ QByteArray sipcAuthorizeData (const QByteArray &mobileNumber,
                               const QByteArray &personalVersion,
                               const QByteArray &customConfigVersion,
                               const QByteArray &contactVersion,
-                              const QByteArray &state)
+                              const QByteArray &state,
+                              const QByteArray &ackData)
 {
     QByteArray body = "<args><device machine-code=\"001676C0E351\"/>";
     body.append ("<caps value=\"1ff\"/><events value=\"7f\"/>"
@@ -348,10 +348,33 @@ QByteArray sipcAuthorizeData (const QByteArray &mobileNumber,
     data.append ("A: Digest response=\"").append (response);
     data.append ("\",algorithm=\"SHA1-sess-v4\"\r\n");
     data.append ("AK: ak-value\r\n");
+    if (not ackData.isEmpty())
+    {
+        data.append (ackData);
+    }
     data.append ("L: ");
     data.append (QByteArray::number (body.size()));
     data.append ("\r\n\r\n");
     data.append (body);
+    return data;
+}
+
+QByteArray sipcAckData (const QByteArray &number,
+                        const QByteArray &passwordhashed4,
+                        const QByteArray &type,
+                        const QByteArray &id,
+                        const QByteArray &code,
+                        const QByteArray &algorithm)
+{
+    QByteArray data = "A: Verify response=\"";
+    data.append (code);
+    data.append ("\",algorithm=\"");
+    data.append (algorithm);
+    data.append ("\",type=\"");
+    data.append (type);
+    data.append ("\",chid=\"");
+    data.append (id);
+    data.append ("\"\r\n");
     return data;
 }
 

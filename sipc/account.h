@@ -50,13 +50,14 @@ namespace Bressein
 class Account : public QObject
 {
     Q_OBJECT
-
+    enum STEP {NONE, SSI, SYSCONF, SIPCR, SIPCA, SIPCP};
 public:
     explicit Account (QObject *parent = 0);
     virtual ~Account();
     virtual bool operator== (const Account &other);
     void setAccount (QByteArray number, QByteArray password);
     const Contacts &getContacts() const;
+    void parseReceivedData (const QByteArray &in);
 public slots:
 
     void login();
@@ -79,14 +80,14 @@ signals:
     void sipcAuthorizeParsed();
 // The following are executed in worker thread
 private:
-    void sipcWriteRead (QByteArray &in, QByteArray &out, QTcpSocket *socket);
-    void sipcWrite (const QByteArray &in, QTcpSocket *socket);
-    void sipcRead (QByteArray &out, QTcpSocket *socket,
-                   QByteArray delimit = QByteArray ("L: "));
+    void socketWrite (const QByteArray &in, QTcpSocket *socket);
+    void socketRead (QTcpSocket *socket);
 
 private slots:
+    void queueMessages (const QByteArray &receiveData);
+    void dequeueMessages();
     void removeSipcsocket();
-    void parseReceivedData (const QByteArray &in);
+
 // functions that performance networking
     void keepAlive();
     //called in period when connection established SIP_EVENT_KEEPALIVE
@@ -176,15 +177,17 @@ private slots:
 
 
 private:
-
-    // the pimpl
+    STEP step;
+    // the PIMPL
     class  Info;
     typedef Info *InfoAccess;
     InfoAccess info;
+    // the thread that provides event loop
     QThread workerThread;
     QMutex mutex;
     QTimer *keepAliveTimer;
     QTimer *receiverTimer;
+    QTimer *messageTimer;
     Contacts contacts;
     QList<Group *> groups;
     // groups
@@ -193,7 +196,8 @@ private:
     QTcpSocket *sipcSocket;
     //TODO replaced with conversation manager
     ConversationManager *conversationManager;
-
+    QList<QByteArray> messages;
+    QByteArray messageBuffer;
     // TODO make use of proxy
     QNetworkProxy proxy;
     // TODO enhance to be a networking resource fetcher

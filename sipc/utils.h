@@ -91,9 +91,16 @@ extern QByteArray sipcAuthorizeData (const QByteArray &mobileNumber,
                                      const QByteArray &personalVersion,
                                      const QByteArray &customConfigVersion,
                                      const QByteArray &contactVersion,
-                                     const QByteArray &state);
-
-extern QByteArray keepAliveData (const QByteArray &fetionNumber, int &callId);
+                                     const QByteArray &state,
+                                     const QByteArray &ackData);
+extern QByteArray sipcAckData (const QByteArray &number,
+                               const QByteArray &passwordhashed4,
+                               const QByteArray &type,
+                               const QByteArray &id,
+                               const QByteArray &code,
+                               const QByteArray &algorithm);
+extern QByteArray keepAliveData
+(const QByteArray &fetionNumber, int &callId);
 
 // Contact/Buddy relative
 extern QByteArray catMsgData (const QByteArray &fromFetionNumber,
