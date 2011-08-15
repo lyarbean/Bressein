@@ -35,6 +35,7 @@ OpenSSL library used as well as that of the covered work.
 #include <QtCore/QThread>
 #include <QtNetwork/QTcpSocket>
 #include <QtNetwork/QNetworkProxy>
+#include <QDateTime>
 #include "types.h"
 #include "portraitfetcher.h"
 #include "conversationmanager.h"
@@ -57,18 +58,19 @@ public:
     virtual bool operator== (const Account &other);
     void setAccount (QByteArray number, QByteArray password);
     const Contacts &getContacts() const;
-    void parseReceivedData (const QByteArray &in);
-public slots:
 
+private:
+    void parseReceivedData (const QByteArray &in);
+
+public slots:
     void login();
+    // This will be connect to a dialog and call there
     void loginVerify (const QByteArray &code);   //only called when verification required
     void close();
-    //TODO may not be called from main thread,
-    // use QMetaObject::invokeMethod to dispatch
-    // move followings to private slots
-    void startChat (const QByteArray &sipuri);
-    const ContactInfo &getContactInfo (const QByteArray &sipuri);
 
+    // the sender can just call this, regardless of the state of receiver
+    void sendMessage (const QByteArray &toSipuri, const QByteArray &message);
+    const ContactInfo &getContactInfo (const QByteArray &sipuri);
 signals:
 
     void needConfirm();
@@ -82,9 +84,12 @@ signals:
 
 
 private slots:
+    void activateTimer();
     void onServerTransportError (const int);
     void queueMessages (const QByteArray &receiveData);
     void dequeueMessages();
+    void dispatchOutbox();
+    void dispatchOfflineBox();
 
 // functions that performance networking
     void keepAlive();
@@ -116,7 +121,7 @@ private slots:
                    QByteArray phraseId = "0");  //SIP_EVENT_ADDBUDDY
     void deleteBuddy (const QByteArray &userId);   //SIP_EVENT_DELETEBUDDY
     void contactSubscribe();// SIP_EVENT_PRESENCE
-    void sendMessage (const QByteArray &toSipuri, const QByteArray &message);
+
     // SIP_EVENT_CATMESSAGE
     // void sendMessageMyself();// SIP_EVENT_SENDCATMESSAGE
     // void sendMessagePhone SIP_EVENT_SENDCATMESSAGE
@@ -133,7 +138,7 @@ private slots:
     // void joinGroup SIP_EVENT_SETCONTACTINFO
     // void leaveGroup SIP_EVENT_SETCONTACTINFO
     // void setMoodphrase SIP_EVENT_SETUSERINFO
-    void updateInfo(); //SIP_EVENT_SETUSERINFO
+    void updateInfo(); //SIP_EQByteArrayVENT_SETUSERINFO
     void setImpresa (const QByteArray &impresa);
     void setMessageStatus (int days);   //SIP_EVENT_SETUSERINFO
 
@@ -154,10 +159,9 @@ private slots:
     void parseSipcRegister (QByteArray &data);
     void parseSipcAuthorize (QByteArray &data);
 //         void parseSsiVerifyResponse (QByteArray &data);
-    void activateTimer();
+
 
     void onReceivedMessage (const QByteArray &data);
-
     //
     void onBNPresenceV4 (const QByteArray &data);
     void onBNConversation (const QByteArray &data);
@@ -168,6 +172,7 @@ private slots:
     void onInvite (const QByteArray &data);
     void onIncoming (const QByteArray &data);
     void onSipc (const QByteArray &data);
+    void onStartChat (const QByteArray &data);
     void onOption (const QByteArray &data);
     // some functions that helps above on's
     void parsePGGroupMembers (const QByteArray &data);
@@ -193,7 +198,22 @@ private:
     //TODO replaced with conversation manager
     ConversationManager *conversationManager;
     QList<QByteArray> receivedMessages;
+    // a letter
+    // receiver date content
+    struct Letter
+    {
+        QByteArray receiver; // a sipuri
+        QDateTime datetime;
+        QByteArray content;
+    };
+    QList<Letter *> outbox;
+    QList<Letter *> offlineBox;
+    // if one is to send, we move it to drafts first,
+    // and then if it is sent successfully, then we delete it.
+    QList<Letter *> drafts;
+
     QByteArray messageBuffer;
+    QByteArray toInvite;
     // TODO make use of proxy
     QNetworkProxy proxy;
     // TODO enhance to be a networking resource fetcher

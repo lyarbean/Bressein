@@ -97,8 +97,8 @@ void ContactItem::mouseReleaseEvent (QGraphicsSceneMouseEvent *event)
         {
             //TODO
             // call singleton to open chat room
-            qDebug() << "to call" << sipuri;
-            Singleton<Account>::instance()->startChat (sipuri);
+            // demo
+            Singleton<Account>::instance()->sendMessage (sipuri, sipuri);
         }
     }
 }

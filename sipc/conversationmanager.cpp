@@ -40,8 +40,8 @@ namespace Bressein
 Conversation::Conversation (const QByteArray &sipuri, QObject *parent)
     : Transporter (parent),sipuri (sipuri)
 {
-    connect (this, SIGNAL (socketError (QAbstractSocket::SocketError)),
-             SLOT (onSocketError (QAbstractSocket::SocketError)));
+    connect (this, SIGNAL (socketError (const int)),
+             SLOT (onSocketError (const int)));
 }
 
 Conversation::~Conversation()
@@ -53,7 +53,7 @@ const QByteArray &Conversation::name () const
     return sipuri;
 }
 
-void Conversation::onSocketError (QAbstractSocket::SocketError se)
+void Conversation::onSocketError (const int se)
 {
     //TODO handle almost cases
     switch (se)
@@ -148,6 +148,10 @@ void ConversationManager::sendToAll (const QByteArray &data)
 
 bool ConversationManager::isOnConversation (const QByteArray &sipuri) const
 {
+    if (conversations.isEmpty())
+    {
+        return false;
+    }
     QMap<QByteArray, Conversation *>::const_iterator iterator =
         conversations.find (sipuri);
     if (iterator not_eq  conversations.end() && iterator.key() == sipuri)

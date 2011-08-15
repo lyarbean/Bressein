@@ -70,7 +70,7 @@ public:
 signals:
     void toClose (const QByteArray &);
 private slots:
-    void onSocketError (QAbstractSocket::SocketError);
+    void onSocketError (const int se);
 private:
     // used to notify ConversationManager to close self.
     QByteArray sipuri;

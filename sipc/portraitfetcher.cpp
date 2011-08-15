@@ -34,7 +34,7 @@ OpenSSL library used as well as that of the covered work.
 #include <QTcpSocket>
 #include <QFile>
 #include <QDir>
-#include "utils.h"
+#include "aux.h"
 namespace Bressein
 {
 PortraitFetcher::PortraitFetcher (QObject *parent) : QThread (parent)

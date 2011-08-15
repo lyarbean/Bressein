@@ -115,6 +115,8 @@ void Transporter::onSocketError()
 
 void Transporter::removeSocket()
 {
+    disconnect (socket, SIGNAL (readyRead()), this, SLOT (readData()));
+    disconnect (socket, SIGNAL (disconnected()), this, SLOT (onSocketError()));
     qDebug() << "delete sockets";
     socket->disconnectFromHost();
     while (socket->state() not_eq QAbstractSocket::UnconnectedState)
@@ -139,7 +141,8 @@ void Transporter::writeData (const QByteArray &data)
 {
     if (data.isEmpty()) return;
     qDebug() << "=================================";
-    qDebug() << "Transporter::writeData" << data;
+    qDebug() << this->metaObject()->className();
+    qDebug() << "::writeData" << data;
     qDebug() << "=================================";
     if (socket->state() not_eq QAbstractSocket::ConnectedState)
     {
