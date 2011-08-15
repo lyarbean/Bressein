@@ -402,7 +402,8 @@ const QByteArray chatKeepAliveData (const QByteArray& fetionNumber, int& callId)
     QByteArray data ("R fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fetionNumber).append ("\r\n");
     data.append ("I: ").append (QByteArray::number (callId++)).append ("\r\n");
-    data.append ("Q: 2 ").append ("R\r\n\r\n");
+    data.append ("Q: 2 ").append ("R\r\n");
+    data.append ("N: KeepConnectionBusy\r\n\r\n");
     return data;
 }
 
