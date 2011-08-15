@@ -46,7 +46,7 @@ namespace Bressein
  * @brief The User is an instance of a sip-c client.
  *
  **/
-
+class Transporter;
 class Account : public QObject
 {
     Q_OBJECT
@@ -68,6 +68,7 @@ public slots:
     // move followings to private slots
     void startChat (const QByteArray &sipuri);
     const ContactInfo &getContactInfo (const QByteArray &sipuri);
+
 signals:
 
     void needConfirm();
@@ -78,15 +79,12 @@ signals:
     void serverConfigParsed();
     void sipcRegisterParsed();
     void sipcAuthorizeParsed();
-// The following are executed in worker thread
-private:
-    void socketWrite (const QByteArray &in, QTcpSocket *socket);
-    void socketRead (QTcpSocket *socket);
+
 
 private slots:
+    void onServerTransportError (const int);
     void queueMessages (const QByteArray &receiveData);
     void dequeueMessages();
-    void removeSipcsocket();
 
 // functions that performance networking
     void keepAlive();
@@ -158,7 +156,6 @@ private slots:
 //         void parseSsiVerifyResponse (QByteArray &data);
     void activateTimer();
 
-    void onReceiveData();
     void onReceivedMessage (const QByteArray &data);
 
     //
@@ -186,7 +183,6 @@ private:
     QThread workerThread;
     QMutex mutex;
     QTimer *keepAliveTimer;
-    QTimer *receiverTimer;
     QTimer *messageTimer;
     Contacts contacts;
     QList<Group *> groups;
@@ -196,12 +192,13 @@ private:
     QTcpSocket *sipcSocket;
     //TODO replaced with conversation manager
     ConversationManager *conversationManager;
-    QList<QByteArray> messages;
+    QList<QByteArray> receivedMessages;
     QByteArray messageBuffer;
     // TODO make use of proxy
     QNetworkProxy proxy;
     // TODO enhance to be a networking resource fetcher
     PortraitFetcher fetcher;
+    Transporter *serverTransporter;
 
 };
 }

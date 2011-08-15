@@ -28,52 +28,62 @@ combination shall include the source code for the parts of the
 OpenSSL library used as well as that of the covered work.
 */
 
+#ifndef TRANSPORTER_H
+#define TRANSPORTER_H
 
-#ifndef CONVERSATIONMANAGER_H
-#define CONVERSATIONMANAGER_H
-#include "transporter.h"
+#include <QtCore/QObject>
+#include <QMap>
+#include <QThread>
+#include <QMutex>
+#include <QTcpSocket>
+class QTimer;
 
 namespace Bressein
 {
-// forward declaration
-class Conversation;
-class ConversationManager : public QObject
+// FIXME
+// NOTE must call close to destruct
+class Transporter : public QObject
 {
     Q_OBJECT
-public:
-    ConversationManager (QObject *parent = 0);
-    virtual ~ConversationManager();
-    void addConversation (const QByteArray &sipuri);
-    void setHost (const QByteArray &sipuri,
-                  const QByteArray &ip,
-                  const quint16 port);
-    void sendData (const QByteArray &sipuri, const QByteArray &data);
-    void sendToAll (const QByteArray &);
-    bool isOnConversation (const QByteArray &sipuri) const;
-signals:
-    void receiveData (const QByteArray &);
-public slots:
-    void onDataReceived (const QByteArray &);
-    void removeConversation (const QByteArray &sipuri);
-    void closeAll();
-private:
-    QMap<QByteArray, Conversation *> conversations;
-};
 
-class Conversation : public Transporter
-{
-    Q_OBJECT
 public:
-    Conversation (const QByteArray &sipuri, QObject *parent = 0);
-    ~Conversation();
-    const QByteArray &name () const;
+    Transporter (QObject *parent = 0);
+    virtual ~Transporter();
+public slots:
+    void connectToHost (const QByteArray &ip, const quint16 port);
+    void close();
+    /**
+     * @brief activate keepaliveTicker
+     *
+     * @return void
+     **/
+//     void toKeepalive ();
+    void sendData (const QByteArray &data);
 signals:
-    void toClose (const QByteArray &);
+    // when received an entire message, emit out
+    void dataReceived (const QByteArray &);
+    void socketError (const int);
 private slots:
-    void onSocketError (QAbstractSocket::SocketError);
+    void setHost();
+    void onSocketError();
+    void removeSocket();
+//     void activateKeepalive();
+//     void keepalive();
+    void writeData (const QByteArray &);
+    void readData ();
+    void queueMessages (const QByteArray &data);
+    void dequeueMessages();
 private:
-    // used to notify ConversationManager to close self.
-    QByteArray sipuri;
+    QByteArray ip;
+    quint16 port;
+    QMutex mutex;
+    QThread workerThread;
+    // all data to send will be in the list messages
+    QList<QByteArray> toSendMessages;//incomes
+    QByteArray buffer;
+    QTcpSocket *socket;
+    QTimer *writerTicker;
+//     QTimer *keepaliveTicker;
 };
 }
-#endif // CONVERSATIONMANAGER_H
+#endif // TRANSPORTER_H

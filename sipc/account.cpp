@@ -32,12 +32,10 @@ OpenSSL library used as well as that of the covered work.
 #include <QDomDocument>
 #include <QHostInfo>
 #include <QTimer>
-#include <QtConcurrentRun>
-#include <QtConcurrentMap>
 #include <QFuture>
 #include "accountinfo.h"
 #include "utils.h"
-
+#include "transporter.h"
 // N.B. all data through socket are utf-8
 // N.B. we call buddyList contacts
 namespace Bressein
@@ -45,26 +43,26 @@ namespace Bressein
 Account::Account (QObject *parent) : QObject (parent), step (NONE)
 {
     keepAliveTimer = new QTimer (this);
-    receiverTimer = new QTimer (this);
     messageTimer = new QTimer (this);
     connect (messageTimer, SIGNAL (timeout()),
              this, SLOT (dequeueMessages()));
     messageTimer->start (1000);
     info = new Info (this);
-    sipcSocket = new QTcpSocket (this);
-    sipcSocket->setReadBufferSize (0);
-    sipcSocket->setSocketOption (QAbstractSocket::KeepAliveOption, 1);
-    sipcSocket->setSocketOption (QAbstractSocket::LowDelayOption, 1);
-
-    connect (sipcSocket, SIGNAL (readyRead()), this, SLOT (onReceiveData()));
+    serverTransporter = new Transporter (0);
+    // serverTransporter should be running in its own thread
+    conversationManager = new ConversationManager (this);
+    connect (serverTransporter,SIGNAL (socketError (const int)),
+             this, SLOT (onServerTransportError (const int)));
     connect (this, SIGNAL (ssiResponseParsed()), SLOT (systemConfig()));
 
     connect (this, SIGNAL (serverConfigParsed()), SLOT (sipcRegister()));
     //TODO move all to queueMessages and process them via onReceiveData
     connect (this, SIGNAL (sipcRegisterParsed()), SLOT (sipcAuthorize()));
     connect (this, SIGNAL (sipcAuthorizeParsed()), SLOT (activateTimer()));
-    conversationManager = new ConversationManager (this);
     connect (conversationManager, SIGNAL (receiveData (const QByteArray &)),
+             this, SLOT (queueMessages (const QByteArray &)),
+             Qt::QueuedConnection);
+    connect (serverTransporter, SIGNAL (dataReceived (const QByteArray &)),
              this, SLOT (queueMessages (const QByteArray &)),
              Qt::QueuedConnection);
     this->moveToThread (&workerThread);
@@ -100,13 +98,7 @@ void Account::loginVerify (const QByteArray &code)
 
 void Account::close()
 {
-    QMetaObject::invokeMethod (this, "removeSipcsocket", Qt::QueuedConnection);
-    disconnect (keepAliveTimer, SIGNAL (timeout()),
-                this, SLOT (keepAlive()));
-    keepAliveTimer->stop();
-    keepAliveTimer->deleteLater();
-    receiverTimer->stop();
-    receiverTimer->deleteLater();
+    serverTransporter->close();
     // note this is called from main thread
     disconnect (conversationManager, SIGNAL (receiveData (const QByteArray &)),
                 this, SLOT (queueMessages (const QByteArray &)));
@@ -135,26 +127,32 @@ void Account::close()
 //     this->deleteLater();
 }
 
+void Account::onServerTransportError (const int se)
+{
+    switch (se)
+    {
+        case QAbstractSocket::ConnectionRefusedError:
+        case QAbstractSocket::RemoteHostClosedError:
+        case QAbstractSocket::HostNotFoundError:
+            // TODO
+            //  close();
+            break;
+        default:
+            break;
+    }
+}
+
 void Account::queueMessages (const QByteArray &receiveData)
 {
     mutex.lock();
-    messages.append (receiveData);
+    receivedMessages.append (receiveData);
     mutex.unlock();
-}
-
-void Account::removeSipcsocket()
-{
-    qDebug() << "delete sockets";
-    sipcSocket->disconnectFromHost();
-    while (sipcSocket->state() not_eq QAbstractSocket::UnconnectedState)
-        sipcSocket->waitForDisconnected();
-    qDebug() << "delete sockets 2";
-    sipcSocket->deleteLater();
 }
 
 void Account::startChat (const QByteArray &sipuri)
 {
     qDebug() << "start Chat called";
+    //demo
     mutex.lock();
     QByteArray sip = sipuri;
     QByteArray msg = sipuri;
@@ -204,97 +202,6 @@ const Bressein::Contacts &Account::getContacts() const
 /** private **/
 /**---------**/
 
-void Account::socketWrite (const QByteArray &in, QTcpSocket *socket)
-{
-    qDebug() << "@ sipcWrite" << in;
-    if (socket->state() not_eq QAbstractSocket::ConnectedState)
-    {
-        qDebug() <<  "Error: socket is not connected";
-        // TODO error handle
-        keepAliveTimer->stop();
-        receiverTimer->stop();
-    }
-    int length = 0;
-    while (length < in.length())
-    {
-        length += socket->write (in.right (in.size() - length));
-    }
-    socket->waitForBytesWritten ();
-    socket->flush();
-    qDebug() << "@@ sipcWrite";
-}
-
-// delimit should be either "L: " or "content-Content-Length: ".
-void Account::socketRead (QTcpSocket *socket)
-{
-    while (socket->bytesAvailable() < (int) sizeof (quint16))
-    {
-        if (not socket->waitForReadyRead (1000))
-        {
-            if (socket->error() not_eq QAbstractSocket::SocketTimeoutError)
-            {
-                qDebug() << "sipcRead 1";
-                qDebug() << "When waitForReadyRead"
-                         << socket->error() << socket->errorString();
-            }
-            return;
-        }
-    }
-    static QByteArray delimit_1 = "L: ";
-    static QByteArray delimit_2 = "content-Content-Length: ";
-    QByteArray responseData = socket->readAll ();
-    messageBuffer.append (responseData);
-    QByteArray chunck;
-    int seperator = messageBuffer.indexOf ("\r\n\r\n");
-    bool ok;
-    int length = 0;
-    int pos = 0;
-    int pos_ = 0;
-    QByteArray delimit;
-    while (seperator > 0)
-    {
-        delimit = delimit_1;
-        pos = messageBuffer.indexOf (delimit_1);
-        if (pos < 0 or pos > seperator)
-        {
-
-            qDebug() << "no" << delimit_1;
-            pos = messageBuffer.indexOf (delimit_2);
-            delimit = delimit_2;
-            if (pos < 0 or pos > seperator)
-            {
-                qDebug() << "no" << delimit_2;
-                // if no length tag,
-                chunck = messageBuffer.left (seperator+4);
-                messageBuffer.remove (0,seperator+4);
-                queueMessages (chunck);
-                return;
-            }
-        }
-        pos_ = messageBuffer.indexOf ("\r\n", pos);
-        length = messageBuffer
-                 .mid (pos + delimit.size(), pos_ - pos - delimit.size())
-                 .toUInt (&ok);
-        if (not ok)
-        {
-            qDebug() << "Not ok" << messageBuffer;
-
-            return;
-        }
-        if (messageBuffer.size() >= length + seperator +4)
-        {
-            chunck = messageBuffer.left (length + seperator +4);
-            messageBuffer.remove (0,length + seperator +4);
-            queueMessages (chunck);
-            seperator = messageBuffer.indexOf ("\r\n\r\n");
-        }
-        else
-        {
-            return;
-        }
-
-    }
-}
 
 /**---------------**/
 /** private slots **/
@@ -302,15 +209,17 @@ void Account::socketRead (QTcpSocket *socket)
 void Account::keepAlive()
 {
     QByteArray toSendMsg = keepAliveData (info->fetionNumber, info->callId);
-    QByteArray responseData;
-    socketWrite (toSendMsg, sipcSocket);
+    serverTransporter->sendData (toSendMsg);
+    //send to all conversationa via conversationManager
+    // FIXME not that keepAliveData
+    QByteArray chatK = chatKeepAliveData(info->fetionNumber, info->callId);
+    conversationManager->sendToAll (chatK);
 }
 
 void Account::ssiLogin()
 {
     if (info->loginNumber.isEmpty()) return;
     step = SSI;
-    // Do we need to clean up first
     //TODO if proxy
     QByteArray password = hashV4 (info->userId, info->password);
     QByteArray data = ssiLoginData (info->loginNumber, password);
@@ -394,9 +303,6 @@ void Account::ssiLogin()
         responseData.append (socket.read (length + pos + 4 - received));
         received = responseData.size();
     }
-    qDebug() << "=========================";
-    qDebug() << "ssiLogin" << responseData;
-    qDebug() << "=========================";
     parseSsiResponse (responseData);
 }
 
@@ -474,7 +380,6 @@ void Account::systemConfig()
         responseData.append (socket.read (length + pos + 4 - received));
         received = responseData.size();
     }
-//     qDebug() << QString::fromUtf8(responseData);
     parseServerConfig (responseData);
 }
 
@@ -500,22 +405,16 @@ void Account::sipcRegister()
     step = SIPCR;
     //TODO move to utils
     int seperator = info->systemconfig.proxyIpPort.indexOf (':');
-    QString ip = QString (info->systemconfig.proxyIpPort.left (seperator));
+    QByteArray ip = info->systemconfig.proxyIpPort.left (seperator);
     quint16 port = info->systemconfig.proxyIpPort.mid (seperator + 1).toUInt();
-    sipcSocket->connectToHost (ip, port);
-    if (not sipcSocket->waitForConnected (-1))     /*no time out*/
-    {
-        qDebug() << "#sipcRegister waitForConnected"
-                 << sipcSocket->errorString();
-        return;
-    }
+    serverTransporter->connectToHost (ip, port);
     QByteArray toSendMsg ("R fetion.com.cn SIP-C/4.0\r\n");
     toSendMsg.append ("F: ").append (info->fetionNumber).append ("\r\n");
     toSendMsg.append ("I: ").append (QByteArray::number (info->callId++));
     toSendMsg.append ("\r\nQ: 2 R\r\nCN: ");
     toSendMsg.append (info->cnonce).append ("\r\nCL: type=\"pc\" ,version=\"");
     toSendMsg.append (PROTOCOL_VERSION + "\"\r\n\r\n");
-    socketWrite (toSendMsg,sipcSocket);
+    serverTransporter->sendData (toSendMsg);
 }
 
 
@@ -541,7 +440,8 @@ void Account::sipcAuthorize()
                             info->client.version,
                             info->client.customConfigVersion,
                             info->client.contactVersion, info->state, "");
-    socketWrite (toSendMsg,sipcSocket);
+    qDebug() << toSendMsg;
+    serverTransporter->sendData (toSendMsg);
 }
 
 // functions for parsing data
@@ -568,6 +468,9 @@ void Account::parseSsiResponse (QByteArray &data)
         qDebug() << "Failed to parse Ssi response!";
         qDebug() << errorMsg << errorLine << errorColumn;
         qDebug() << xml;
+        qDebug() << "=========================";
+        qDebug() << "ssiLogin" << data;
+        qDebug() << "=========================";
         return;
     }
     domDoc.normalize();
@@ -657,6 +560,7 @@ void Account::parseSipcRegister (QByteArray &data)
         qDebug() << data;
         return;
     }
+
     int b, e;
     b = data.indexOf ("\",nonce=\"");
     e = data.indexOf ("\",key=\"", b);
@@ -671,8 +575,15 @@ void Account::parseSipcRegister (QByteArray &data)
     // need to store?
     // generate response
     // check if emptyq
-    info->response = RSAPublicEncrypt (info->userId, info->password,
-                                       info->nonce, info->aeskey, info->key);
+    QByteArray response;
+    RSAPublicEncrypt (info->userId, info->password,
+                      info->nonce, info->aeskey, info->key,response);
+    if (response.isEmpty())
+    {
+        qDebug() << "response is empty";
+        return;
+    }
+    info->response = response.toUpper();
     emit sipcRegisterParsed();
 }
 
@@ -1070,8 +981,7 @@ void Account::contactInfo (const QByteArray &userId)
 {
     QByteArray toSendMsg = contactInfoData
                            (info->fetionNumber, userId, info->callId);
-    QByteArray responseData;
-    socketWrite (toSendMsg, sipcSocket);
+    serverTransporter->sendData (toSendMsg);
     //TODO handle responseData
     // carrier-region
 }
@@ -1080,8 +990,7 @@ void Account::contactInfo (const QByteArray &Number, bool mobile)
 {
     QByteArray toSendMsg = contactInfoData
                            (info->fetionNumber, Number, info->callId, mobile);
-    QByteArray responseData;
-    socketWrite (toSendMsg, sipcSocket);
+    serverTransporter->sendData (toSendMsg);
     //TODO handle responseData
     // carrier-region
 }
@@ -1099,7 +1008,7 @@ void Account::sendMessage (const QByteArray &toSipuri, const QByteArray &message
     {
         inviteFriend (toSipuri);
     }
-    socketWrite (toSendMsg, sipcSocket);
+    serverTransporter->sendData (toSendMsg);
     // TODO handle responseData and do record
     // create dataBase instance
 }
@@ -1114,8 +1023,7 @@ void Account::addBuddy (
     QByteArray toSendMsg = addBuddyV4Data (info->fetionNumber, number,
                                            info->callId, buddyLists, localName,
                                            desc, phraseId);
-    QByteArray responseData;
-    socketWrite (toSendMsg, sipcSocket);
+    serverTransporter->sendData (toSendMsg);
     // TODO handle responseData
 }
 
@@ -1123,15 +1031,14 @@ void Account::deleteBuddy (const QByteArray &userId)
 {
     QByteArray toSendMsg = deleteBuddyV4Data
                            (info->fetionNumber, userId, info->callId);
-    QByteArray responseData;
-    socketWrite (toSendMsg, sipcSocket);
+    serverTransporter->sendData (toSendMsg);
     // TODO handle responseData
 }
 
 void Account::contactSubscribe()
 {
     QByteArray toSendMsg = presenceV4Data (info->fetionNumber, info->callId);
-    socketWrite (toSendMsg, sipcSocket);
+    serverTransporter->sendData (toSendMsg);
 }
 
 // move another thread -- conversation
@@ -1140,7 +1047,7 @@ void Account::inviteFriend (const QByteArray &sipuri)
 //     downloadPortrait (sipuri);
     QByteArray toSendMsg = startChatData (info->fetionNumber, info->callId);
     QByteArray responseData;
-    socketWrite (toSendMsg, sipcSocket);
+    serverTransporter->sendData (toSendMsg);
     if (responseData.isEmpty() or not responseData.contains ("A: CS address="))
     {
         qDebug() << "startChat";
@@ -1178,7 +1085,7 @@ void Account::inviteFriend (const QByteArray &sipuri)
 // demo only
     toSendMsg = catMsgData (info->fetionNumber, sipuri, info->callId,
                             "Hello, This is from Bressein!");
-    socketWrite (toSendMsg, sipcSocket);
+    serverTransporter->sendData (toSendMsg);
 
 }
 
@@ -1186,8 +1093,8 @@ void Account::createBuddylist (const QByteArray &name)
 {
     QByteArray toSendMsg = createBuddyListData
                            (info->fetionNumber, info->callId, name);
-    QByteArray responseData;
-    socketWrite (toSendMsg, sipcSocket);
+
+    serverTransporter->sendData (toSendMsg);
     // TODO handle responseData, get version, name, id
 }
 
@@ -1195,8 +1102,7 @@ void Account::deleteBuddylist (const QByteArray &id)
 {
     QByteArray toSendMsg = deleteBuddyListData
                            (info->fetionNumber, info->callId, id);
-    QByteArray responseData;
-    socketWrite (toSendMsg, sipcSocket);
+    serverTransporter->sendData (toSendMsg);
     // TODO handle responseData, get version, name, id
 }
 
@@ -1204,8 +1110,7 @@ void Account::renameBuddylist (const QByteArray &id, const QByteArray &name)
 {
     QByteArray toSendMsg = setBuddyListInfoData
                            (info->fetionNumber, info->callId, id, name);
-    QByteArray responseData;
-    socketWrite (toSendMsg, sipcSocket);
+    serverTransporter->sendData (toSendMsg);
     // TODO
 }
 
@@ -1217,8 +1122,7 @@ void Account::updateInfo()
                                               info->client.gender,
                                               info->client.customConfig,
                                               info->client.customConfigVersion);
-    QByteArray responseData;
-    socketWrite (toSendMsg, sipcSocket);
+    serverTransporter->sendData (toSendMsg);
     // TODO handle responseData
 }
 
@@ -1228,8 +1132,7 @@ void Account::setImpresa (const QByteArray &impresa)
                                               impresa, info->client.version,
                                               info->client.customConfig,
                                               info->client.customConfigVersion);
-    QByteArray responseData;
-    socketWrite (toSendMsg, sipcSocket);
+    serverTransporter->sendData (toSendMsg);
     // TODO handle responseData
 }
 
@@ -1237,8 +1140,7 @@ void Account::setMessageStatus (int days)
 {
     QByteArray toSendMsg = setUserInfoV4Data
                            (info->fetionNumber, info->callId, days);
-    QByteArray responseData;
-    socketWrite (toSendMsg, sipcSocket);
+    serverTransporter->sendData (toSendMsg);
 }
 
 void Account::setClientState (StateType state)
@@ -1246,14 +1148,15 @@ void Account::setClientState (StateType state)
     QByteArray statetype = QByteArray::number ( (int) state);
     QByteArray toSendMsg = setPresenceV4Data
                            (info->fetionNumber, info->callId, statetype);
-    QByteArray responseData;
-    socketWrite (toSendMsg, sipcSocket);
+    serverTransporter->sendData (toSendMsg);
 }
 
 void Account::activateTimer()
 {
-    connect (keepAliveTimer, SIGNAL (timeout()), this, SLOT (keepAlive()));
-    keepAliveTimer->start (60000);//
+    //FIXME should the timer in this thread?
+    connect (keepAliveTimer,SIGNAL (timeout()),SLOT (keepAlive()));
+    keepAliveTimer->start (60000);
+    // call other stuffs right here
     contactSubscribe();
 }
 
@@ -1263,9 +1166,9 @@ void Account::dequeueMessages()
     qDebug() << "dequeueMessages";
     mutex.lock();
     QByteArray data;
-    bool empty = messages.isEmpty();
+    bool empty = receivedMessages.isEmpty();
     if (not empty)
-        data = messages.takeFirst();
+        data = receivedMessages.takeFirst();
     mutex.unlock();
     while (not empty)
     {
@@ -1277,9 +1180,9 @@ void Account::dequeueMessages()
             parseReceivedData (data);
         }
         mutex.lock();
-        if (not messages.isEmpty())
+        if (not receivedMessages.isEmpty())
         {
-            data = messages.takeFirst();
+            data = receivedMessages.takeFirst();
         }
         else
         {
@@ -1288,11 +1191,6 @@ void Account::dequeueMessages()
         mutex.unlock();
         qDebug() << "==============================";
     }
-}
-
-void Account::onReceiveData()
-{
-    socketRead (sipcSocket);
 }
 
 void Account::parseReceivedData (const QByteArray &receiveData)
@@ -1390,6 +1288,9 @@ void Account::parseReceivedData (const QByteArray &receiveData)
         if (data.startsWith ("SIP-C/4.0 401 Unauthoried") and
             data.contains ("\r\nW: Digest") and step == SIPCR)
         {
+            qDebug() << "parseSipcRegister";
+            qDebug() << data;
+            qDebug() << "=========";
             parseSipcRegister (data);
         }
         else if (data.startsWith ("SIP-C/4.0 200 OK") and
@@ -1456,7 +1357,7 @@ void Account::onReceivedMessage (const QByteArray &data)
     else
     {
         qDebug() << "reply message via sipsocket";
-        socketWrite (reply, sipcSocket);
+        serverTransporter->sendData (reply);
     }
 }
 
@@ -1613,7 +1514,7 @@ void Account::onBNPGGroup (const QByteArray &data)
 void Account::onInvite (const QByteArray &data)
 {
     qDebug() << "onInvite";
-    qDebug() << messages;
+    qDebug() << receivedMessages;
     qDebug() << "==========================";
     qDebug() << data;
     qDebug() << "==========================";
@@ -1665,7 +1566,7 @@ void Account::onInvite (const QByteArray &data)
     reply.append ("\r\nQ: ");
     reply.append (sequence);
     reply.append ("\r\n\r\n");
-    socketWrite (reply, sipcSocket);
+    serverTransporter->sendData (reply);
     QByteArray toSendMsg =
         registerData (info->fetionNumber, info->callId, credential);
     conversationManager->setHost (fromSipuri, ip, port);
