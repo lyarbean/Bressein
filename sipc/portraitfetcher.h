@@ -39,6 +39,7 @@ OpenSSL library used as well as that of the covered work.
 class QTcpSocket;
 namespace Bressein
 {
+//TODO enhance this class so that it can handle more http-based work;
 class PortraitFetcher : public QThread
 {
     Q_OBJECT

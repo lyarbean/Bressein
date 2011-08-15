@@ -173,7 +173,6 @@ void PortraitFetcher::run ()
             }
 
             QByteArray bytes = responseData.mid (pos_ + 4);
-            qDebug() << "bytes size" << bytes.size();
             int a = sipuri.indexOf (":");
             int b = sipuri.indexOf ("@");
             static QByteArray iconsSubDir =

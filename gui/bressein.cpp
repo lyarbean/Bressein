@@ -39,16 +39,13 @@ namespace Bressein
 BresseinView::BresseinView (QWidget *parent)
     : QGraphicsView (parent) , gwidget (new QGraphicsWidget)
 {
-
+    setAlignment(Qt::AlignLeft | Qt::AlignTop);
     setRenderingSystem();
     setupScene();
     gwidget->resize (200, 200);
     // demo
     Singleton<Account>::instance()->setAccount
     (qgetenv ("FETIONNUMBER"), qgetenv ("FETIONPASSWORD"));
-
-//     connect (Singleton<Account>::instance(), SIGNAL (contactsChanged()),
-//             this, SLOT (onDataChanged()));
     connect (Singleton<Account>::instance(),
              SIGNAL (contactChanged (const QByteArray &)),
              this, SLOT (onDatumChanged (const QByteArray &)));

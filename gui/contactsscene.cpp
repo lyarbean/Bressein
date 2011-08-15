@@ -49,13 +49,13 @@ void ContactsScene::drawItems (QPainter *painter, int numItems,
                                const QStyleOptionGraphicsItem options[],
                                QWidget *widget)
 {
-    for (int i=0; i<numItems; ++i)
-    {
-        painter->save();
-        painter->setMatrix (items[i]->sceneMatrix(), true);
-        items[i]->paint (painter, &options[i], widget);
-        painter->restore();
-    }
+//     for (int i=0; i<numItems; ++i)
+//     {
+//         painter->save();
+//         painter->setMatrix (items[i]->sceneMatrix(), true);
+//         items[i]->paint (painter, &options[i], widget);
+//         painter->restore();
+//     }
 }
 
 

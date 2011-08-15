@@ -54,16 +54,15 @@ Account::Account (QObject *parent) : QObject (parent), step (NONE)
     messageTimer->start (1000);
     info = new Info (this);
     serverTransporter = new Transporter (0);
-    // serverTransporter should be running in its own thread
+
     conversationManager = new ConversationManager (this);
     connect (serverTransporter, SIGNAL (socketError (const int)),
              this, SLOT (onServerTransportError (const int)));
     connect (this, SIGNAL (ssiResponseParsed()), SLOT (systemConfig()));
-
     connect (this, SIGNAL (serverConfigParsed()), SLOT (sipcRegister()));
-    //TODO move all to queueMessages and process them via onReceiveData
     connect (this, SIGNAL (sipcRegisterParsed()), SLOT (sipcAuthorize()));
     connect (this, SIGNAL (sipcAuthorizeParsed()), SLOT (activateTimer()));
+    // thread crossing
     connect (conversationManager, SIGNAL (receiveData (const QByteArray &)),
              this, SLOT (queueMessages (const QByteArray &)),
              Qt::QueuedConnection);

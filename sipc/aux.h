@@ -28,8 +28,8 @@ combination shall include the source code for the parts of the
 OpenSSL library used as well as that of the covered work.
 */
 
-#ifndef BRESSIEN_UTILS_H
-#define BRESSIEN_UTILS_H
+#ifndef BRESSIEN_AUX_H
+#define BRESSIEN_AUX_H
 
 /*! \defgroup utils "Utils"
 *  utils provide public declarations and functions.
@@ -264,4 +264,4 @@ extern const QByteArray inviteAckData (const QByteArray &fetionNumber,
 // extern const QByteArray conversationData
 }
 /*! @} */
-#endif
+#endif // BRESSIEN_AUX_H
