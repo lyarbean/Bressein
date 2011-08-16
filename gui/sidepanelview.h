@@ -37,15 +37,33 @@ OpenSSL library used as well as that of the covered work.
 namespace Bressein
 {
 class ContactItem;
+//TODO move to QGraphicsWidget in order to gain more functionalities
+/*
+QGraphicsScene scene;
+QGraphicsWidget *tex*tEdit = scene.addWidget(new QTextEdit);
+QGraphicsWidget *pushButton = scene.addWidget(new QPushButton);
+
+QGraphicsLinearLayout *layout = new QGraphicsLinearLayout;
+layout->addItem(textEdit);
+layout->addItem(pushButton);
+
+QGraphicsWidget *form = new QGraphicsWidget;
+form->setLayout(layout);
+scene.addItem(form);
+*/
+// TODO make a class Bressein Manager that take responsibility of a deliver from
+// SidepanelView.
 /**
- * @brief The main view of Bressein
+ * @brief The sidebar view of Bressein and also a deliver.
+ * SidebarView connects to Account instance and other Gui components, and
+ * processes their signals and converts them into commands.
  **/
-class BresseinView : public QGraphicsView
+class SidepanelView : public QGraphicsView
 {
     Q_OBJECT
 public:
-    BresseinView (QWidget *parent = 0);
-    virtual ~BresseinView();
+    SidepanelView (QWidget *parent = 0);
+    virtual ~SidepanelView();
     void login();
 private slots:
     void onDataChanged();

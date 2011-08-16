@@ -33,13 +33,13 @@ OpenSSL library used as well as that of the covered work.
 #include "sipc/account.h"
 #include "contactsscene.h"
 #include "contactitem.h"
-
+#include "chatview.h"
 namespace Bressein
 {
-BresseinView::BresseinView (QWidget *parent)
+SidepanelView::SidepanelView (QWidget *parent)
     : QGraphicsView (parent) , gwidget (new QGraphicsWidget)
 {
-    setAlignment(Qt::AlignLeft | Qt::AlignTop);
+    setAlignment (Qt::AlignLeft | Qt::AlignTop);
     setRenderingSystem();
     setupScene();
     gwidget->resize (200, 200);
@@ -49,9 +49,11 @@ BresseinView::BresseinView (QWidget *parent)
     connect (Singleton<Account>::instance(),
              SIGNAL (contactChanged (const QByteArray &)),
              this, SLOT (onDatumChanged (const QByteArray &)));
+    ChatView *chatview =new ChatView;
+    chatview->show();
 }
 
-BresseinView::~BresseinView()
+SidepanelView::~SidepanelView()
 {
     disconnect (Singleton<Account>::instance(),
                 SIGNAL (contactChanged (const QByteArray &)),
@@ -59,14 +61,14 @@ BresseinView::~BresseinView()
     Singleton<Account>::instance()->close();
 }
 
-void BresseinView::login()
+void SidepanelView::login()
 {
     Singleton<Account>::instance()->login();
 }
 
 
 //TODO move to gscene
-void BresseinView::onDataChanged ()
+void SidepanelView::onDataChanged ()
 {
 
     const Contacts &list = Singleton<Account>::instance()->getContacts();
@@ -93,7 +95,7 @@ void BresseinView::onDataChanged ()
         if (not updated)
         {
             ContactItem *item;
-            item = new ContactItem (gwidget, gscene);
+            item = new ContactItem (gwidget);
             item->setSipuri (keys.at (i));
             item->setZValue (1);
             item->setVisible (true);
@@ -104,7 +106,7 @@ void BresseinView::onDataChanged ()
     updateSceneRect (this->viewport()->rect());
 }
 
-void BresseinView::onDatumChanged (const QByteArray &siprui)
+void SidepanelView::onDatumChanged (const QByteArray &siprui)
 {
     bool updated = false;
     int itemlists = itemList.size();
@@ -123,7 +125,7 @@ void BresseinView::onDatumChanged (const QByteArray &siprui)
     if (not updated)
     {
         ContactItem *item;
-        item = new ContactItem (gwidget, gscene);
+        item = new ContactItem (gwidget);
         item->setSipuri (siprui);
         item->setZValue (10);
         item->setVisible (true);
@@ -133,7 +135,7 @@ void BresseinView::onDatumChanged (const QByteArray &siprui)
 }
 
 //TODO onContactRemoved
-void BresseinView::setRenderingSystem()
+void SidepanelView::setRenderingSystem()
 {
     QWidget *viewport = 0;
 
@@ -148,14 +150,15 @@ void BresseinView::setRenderingSystem()
 //     #endif
     // software rendering
     viewport = new QWidget;
+    setViewport (viewport);
     setRenderHints (QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     setCacheMode (QGraphicsView::CacheBackground);
     setViewportUpdateMode (QGraphicsView::BoundingRectViewportUpdate);
     setDragMode (QGraphicsView::ScrollHandDrag);
-    setViewport (viewport);
+
 }
 
-void BresseinView::setupScene()
+void SidepanelView::setupScene()
 {
     gscene = new ContactsScene (this);
     gscene->setSceneRect (0, 0, 300, 768);
@@ -165,13 +168,13 @@ void BresseinView::setupScene()
     gwidget->setPos (10, 10);
 }
 
-void BresseinView::setupSceneItems()
+void SidepanelView::setupSceneItems()
 {
     // setup buttons
     //
 }
 
-void BresseinView::resizeEvent (QResizeEvent *event)
+void SidepanelView::resizeEvent (QResizeEvent *event)
 {
     QGraphicsView::resizeEvent (event);
     if (scene())

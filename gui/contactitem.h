@@ -35,11 +35,11 @@ OpenSSL library used as well as that of the covered work.
 #include "sipc/types.h"
 namespace Bressein
 {
-class ContactItem : public QGraphicsItem
+class ContactItem : public QGraphicsObject
 {
 public:
     enum STATE {PRESSED = 0x1, RELEASED, ONLINE, OFFLINE,INVALIE = 0xFFFF};
-    ContactItem (QGraphicsItem *parent = 0, QGraphicsScene *scene = 0);
+    ContactItem (QGraphicsItem *parent = 0);
     virtual ~ContactItem();
 
     void paint (QPainter *painter,

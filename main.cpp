@@ -37,7 +37,7 @@ OpenSSL library used as well as that of the covered work.
 int main (int argc, char **argv)
 {
     QApplication app (argc, argv);
-    Bressein::BresseinView foo;
+    Bressein::SidepanelView foo;
     foo.show();
     foo.login();
     return app.exec();

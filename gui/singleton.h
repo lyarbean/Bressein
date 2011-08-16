@@ -60,6 +60,7 @@ private:
     ~Singleton() = delete;
     Singleton (const Singleton &) = delete; // hide copy constructor
     Singleton &operator= (const Singleton &) = delete; // hide assign op
+    void *operator new (size_t) = delete; // new
     static T *_instance;
 };
 template <class T>

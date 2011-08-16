@@ -39,8 +39,8 @@ OpenSSL library used as well as that of the covered work.
 
 namespace Bressein
 {
-ContactItem::ContactItem (QGraphicsItem *parent, QGraphicsScene *scene)
-    : QGraphicsItem (parent, scene), state (OFFLINE)
+ContactItem::ContactItem (QGraphicsItem *parent)
+    : QGraphicsObject (parent), state (OFFLINE)
 {
 }
 
