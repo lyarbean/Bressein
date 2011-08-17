@@ -31,18 +31,21 @@ OpenSSL library used as well as that of the covered work.
 #ifndef TEXTWIDGET_H
 #define TEXTWIDGET_H
 
-#include <QtGui/QGraphicsLayoutItem>
-#include <QtGui/QGraphicsTextItem>
+#include <QtGui/QGraphicsWidget>
 
 namespace Bressein
 {
-class TextWidget : public QGraphicsLayoutItem, public QGraphicsTextItem
+
+// TextWidget is a QGraphicsWidget with a QGraphicsTextItem inside
+class TextWidget : public QGraphicsWidget
 {
     Q_OBJECT
 public:
 
 protected:
     virtual QSizeF sizeHint (Qt::SizeHint which, const QSizeF &constraint = QSizeF()) const;
+private:
+    QGraphicsTextItem *textEdit;
 };
 }
 #endif // TEXTWIDGET_H

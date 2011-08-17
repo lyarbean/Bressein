@@ -30,7 +30,7 @@ OpenSSL library used as well as that of the covered work.
 
 #include <QtGui/QApplication>
 #include <QLabel>
-#include "gui/bressein.h"
+#include "gui/sidepanelview.h"
 
 // #include "sipc/user.h"
 // #include "gui/contactsscene.h"
