@@ -38,7 +38,7 @@ namespace Bressein
 class ContactItem : public QGraphicsObject
 {
 public:
-    enum STATE {PRESSED = 0x1, RELEASED, ONLINE, OFFLINE,INVALIE = 0xFFFF};
+    enum { ContactItemType = UserType + 1 };
     ContactItem (QGraphicsItem *parent = 0);
     virtual ~ContactItem();
 
@@ -46,19 +46,22 @@ public:
                 const QStyleOptionGraphicsItem *option,
                 QWidget *widget = 0);
     QRectF boundingRect() const;
+    int type () const
+    {
+        return ContactItemType;
+    }
 //     virtual void hoverEnterEvent(QGraphicsSceneHoverEvent *event);
 //     virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent *event);
-    virtual void mousePressEvent (QGraphicsSceneMouseEvent *event);
-    virtual void mouseReleaseEvent (QGraphicsSceneMouseEvent *event);
 //     ContactItem();
 //     virtual ~ContactItem();
     void setSipuri (const QByteArray &sipuri);
     const QByteArray &getSipuri () const ;
-    void updateContact();
+    void updateContact (const ContactInfo &contactInfo);
+protected:
+    void mouseDoubleClickEvent (QGraphicsSceneMouseEvent *event);
 private:
     QByteArray sipuri;
     ContactInfo contact;
-    STATE state;
 };
 }
 #endif // CONTACTITEM_H

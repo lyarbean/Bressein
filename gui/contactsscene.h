@@ -42,9 +42,9 @@ class ContactsScene : public QGraphicsScene
 public:
     ContactsScene (QObject *parent);
     virtual ~ContactsScene();
-protected:
-    void drawItems (QPainter *painter, int numItems, QGraphicsItem *items[],
-                    const QStyleOptionGraphicsItem options[], QWidget *widget);
+signals:
+    void itemLeftClicked (const QByteArray &sipuri);
+
 };
 }
 

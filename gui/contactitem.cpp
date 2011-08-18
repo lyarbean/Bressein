@@ -36,11 +36,11 @@ OpenSSL library used as well as that of the covered work.
 #include <QGraphicsSceneMouseEvent>
 #include "sipc/account.h"
 #include "singleton.h"
-
+#include "bresseinmanager.h"
 namespace Bressein
 {
 ContactItem::ContactItem (QGraphicsItem *parent)
-    : QGraphicsObject (parent), state (OFFLINE)
+    : QGraphicsObject (parent)
 {
 }
 
@@ -59,21 +59,21 @@ void ContactItem::paint (QPainter *painter,
     }
 //     QMatrix m = painter->worldMatrix();
 //     painter->setWorldMatrix (QMatrix());
-    painter->drawRect (boundingRect().adjusted (3,3,-3,-3));
+    painter->drawRect (boundingRect().adjusted (-3, -3, 3, 3));
 
     if (contact.basic.state == StateType::ONLINE)
         painter->setPen (Qt::red);
     if (not contact.detail.nickName.isEmpty())
     {
-        painter->drawText (10,15, QString::fromUtf8 (contact.detail.nickName));
+        painter->drawText (10, 15, QString::fromUtf8 (contact.detail.nickName));
     }
     else if (not contact.basic.localName.isEmpty())
     {
-        painter->drawText (10,15, QString::fromUtf8 (contact.basic.localName));
+        painter->drawText (10, 15, QString::fromUtf8 (contact.basic.localName));
     }
     else
     {
-        painter->drawText (10,15, QString::fromUtf8 (sipuri));
+        painter->drawText (10, 15, QString::fromUtf8 (sipuri));
     }
 //     painter->drawText (25-QApplication::desktop()->screenGeometry().width() /2,
 //                        28, QString::fromUtf8 (contact.basic.userId));
@@ -84,35 +84,15 @@ void ContactItem::paint (QPainter *painter,
 //     }
 }
 
-void ContactItem::mousePressEvent (QGraphicsSceneMouseEvent *event)
-{
-    state = PRESSED;
-}
-
-void ContactItem::mouseReleaseEvent (QGraphicsSceneMouseEvent *event)
-{
-    if (state == PRESSED)
-    {
-        if (this->boundingRect().contains (event->pos()))
-        {
-            //TODO
-            // call singleton to open chat room
-            // demo
-            Singleton<Account>::instance()->sendMessage (sipuri, sipuri);
-        }
-    }
-}
-
 QRectF ContactItem::boundingRect() const
 {
-    return QRectF (5,0,320,60);
+    return QRectF (5, 0, 320, 60);
 }
 
 
 void ContactItem::setSipuri (const QByteArray &sipuri)
 {
     this->sipuri = sipuri;
-    updateContact();
 }
 
 const QByteArray &ContactItem::getSipuri() const
@@ -120,9 +100,14 @@ const QByteArray &ContactItem::getSipuri() const
     return sipuri;
 }
 
-void ContactItem::updateContact()
+void ContactItem::updateContact (const ContactInfo &contactInfo)
 {
-    contact = Singleton<Account>::instance()->getContactInfo (this->sipuri);
+    contact = contactInfo;
+}
+
+void ContactItem::mouseDoubleClickEvent (QGraphicsSceneMouseEvent *event)
+{
+    Singleton<BresseinManager>::instance()->onChatSpawn (sipuri);
 }
 
 }

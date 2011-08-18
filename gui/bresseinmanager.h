@@ -28,21 +28,53 @@ combination shall include the source code for the parts of the
 OpenSSL library used as well as that of the covered work.
 */
 
+#ifndef BRESSEINMANAGER_H
+#define BRESSEINMANAGER_H
 
-#include "contactsscene.h"
-#include "contactitem.h"
+#include <QtCore/QObject>
+#include <QMap>
 
 namespace Bressein
 {
-ContactsScene::ContactsScene (QObject *parent) : QGraphicsScene (parent)
+class Account;
+class ChatView;
+class SidepanelView;
+/**
+ * @brief BresseinManager takes control of Account and Views and as a postal
+ * who deliver message back and forth for them.
+ **/
+// initialize Account and connect signals to slots
+
+// initialize login dialog, connect to login slot,
+// which may call setAccount from Account and delete this dialog
+
+// when login successfully, initialize sidePanelView with data from Account.
+// connect signals to slots that may request BresseinManager to spawn a chatView
+
+
+class BresseinManager : public QObject
 {
+    Q_OBJECT
+public:
+    BresseinManager (QObject *parent = 0);
+    virtual ~BresseinManager();
+    void initialize();
+signals:
+public slots:
+    void loginAs (const QByteArray &, const QByteArray &);
+    void onContactChanged (const QByteArray &);
+    void onChatSpawn (const QByteArray &);
+private slots:
+    void onChatClose (const QByteArray &);
+    void onIncomeMessage (const QByteArray &,
+                          const QByteArray &,
+                          const QByteArray &);
+private:
+    Account *account;
+    SidepanelView *sidePanel;
+
+    QMap<QByteArray, ChatView *> chatViews;
+};
 
 }
-
-ContactsScene::~ContactsScene()
-{
-
-}
-
-}
-#include "contactsscene.moc"
+#endif // BRESSEINMANAGER_H

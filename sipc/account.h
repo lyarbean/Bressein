@@ -58,7 +58,19 @@ public:
     virtual bool operator== (const Account &other);
     void setAccount (QByteArray number, QByteArray password);
     const Contacts &getContacts() const;
-
+signals:
+    void logined();
+    void needConfirm();
+    void contactsChanged();
+    void contactChanged (const QByteArray &);
+    void incomeMessage (const QByteArray &, //sender
+                        const QByteArray &,//date
+                        const QByteArray &);//content
+    //private use
+    void ssiResponseParsed();
+    void serverConfigParsed();
+    void sipcRegisterParsed();
+    void sipcAuthorizeParsed();
 private:
     void parseReceivedData (const QByteArray &in);
 
@@ -71,16 +83,6 @@ public slots:
     // the sender can just call this, regardless of the state of receiver
     void sendMessage (const QByteArray &toSipuri, const QByteArray &message);
     const ContactInfo &getContactInfo (const QByteArray &sipuri);
-signals:
-
-    void needConfirm();
-    void contactsChanged();
-    void contactChanged (const QByteArray &);
-//private use
-    void ssiResponseParsed();
-    void serverConfigParsed();
-    void sipcRegisterParsed();
-    void sipcAuthorizeParsed();
 
 
 private slots:

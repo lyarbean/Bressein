@@ -43,70 +43,16 @@ SidepanelView::SidepanelView (QWidget *parent)
     setRenderingSystem();
     setupScene();
     gwidget->resize (200, 200);
-    // demo
-    Singleton<Account>::instance()->setAccount
-    (qgetenv ("FETIONNUMBER"), qgetenv ("FETIONPASSWORD"));
-    connect (Singleton<Account>::instance(),
-             SIGNAL (contactChanged (const QByteArray &)),
-             this, SLOT (onDatumChanged (const QByteArray &)));
-    ChatView *chatview =new ChatView;
-    chatview->show();
+
 }
 
 SidepanelView::~SidepanelView()
 {
-    disconnect (Singleton<Account>::instance(),
-                SIGNAL (contactChanged (const QByteArray &)),
-                this, SLOT (onDatumChanged (const QByteArray &)));
-    Singleton<Account>::instance()->close();
-}
-
-void SidepanelView::login()
-{
-    Singleton<Account>::instance()->login();
 }
 
 
-//TODO move to gscene
-void SidepanelView::onDataChanged ()
-{
-
-    const Contacts &list = Singleton<Account>::instance()->getContacts();
-
-    // N**2
-    bool updated = false;
-    int itemlists = itemList.size();
-
-    QList<QByteArray> keys = list.keys();
-    int keysCount = keys.size();
-    for (int i = 0; i < keysCount; i++)
-    {
-        updated = false;
-        for (int j = 0; j < itemlists; j++)
-        {
-            if (itemList.at (i)->getSipuri() == keys.at (i))
-            {
-                // update this
-                itemList.at (i)->updateContact();
-                updated = true;
-                break;
-            }
-        }
-        if (not updated)
-        {
-            ContactItem *item;
-            item = new ContactItem (gwidget);
-            item->setSipuri (keys.at (i));
-            item->setZValue (1);
-            item->setVisible (true);
-            item->setPos (10, item->boundingRect().height() * i + 1);
-            itemList.append (item);
-        }
-    }
-    updateSceneRect (this->viewport()->rect());
-}
-
-void SidepanelView::onDatumChanged (const QByteArray &siprui)
+void SidepanelView::updateContact (const QByteArray &contact,
+                                   const ContactInfo &contactInfo)
 {
     bool updated = false;
     int itemlists = itemList.size();
@@ -114,10 +60,10 @@ void SidepanelView::onDatumChanged (const QByteArray &siprui)
     updated = false;
     for (int i = 0; i < itemlists; i++)
     {
-        if (itemList.at (i)->getSipuri() == siprui)
+        if (itemList.at (i)->getSipuri() == contact)
         {
             // update this
-            itemList.at (i)->updateContact();
+            itemList.at (i)->updateContact (contactInfo);
             updated = true;
             break;
         }
@@ -126,7 +72,8 @@ void SidepanelView::onDatumChanged (const QByteArray &siprui)
     {
         ContactItem *item;
         item = new ContactItem (gwidget);
-        item->setSipuri (siprui);
+        item->setSipuri (contact);
+        item->updateContact (contactInfo);
         item->setZValue (10);
         item->setVisible (true);
         item->setPos (10, item->boundingRect().height() * itemlists + 1);
@@ -161,6 +108,7 @@ void SidepanelView::setRenderingSystem()
 void SidepanelView::setupScene()
 {
     gscene = new ContactsScene (this);
+    // indirectly pass through
     gscene->setSceneRect (0, 0, 300, 768);
     setScene (gscene);
     gscene->setItemIndexMethod (QGraphicsScene::NoIndex);
@@ -173,6 +121,7 @@ void SidepanelView::setupSceneItems()
     // setup buttons
     //
 }
+
 
 void SidepanelView::resizeEvent (QResizeEvent *event)
 {

@@ -32,9 +32,11 @@ OpenSSL library used as well as that of the covered work.
 #include <QGraphicsTextItem>
 #include <QDateTime>
 #include <QKeyEvent>
+#include <QDebug>
 namespace Bressein
 {
-ChatView::ChatView (QWidget *parent) : QGraphicsView (parent),
+ChatView::ChatView (QWidget *parent) :
+    QGraphicsView (parent),
     gscene (new QGraphicsScene (this)),
     showArea (new QGraphicsItemGroup),
     inputArea (new QGraphicsTextItem)
@@ -44,28 +46,36 @@ ChatView::ChatView (QWidget *parent) : QGraphicsView (parent),
     setCacheMode (QGraphicsView::CacheNone);
     setViewportUpdateMode (QGraphicsView::FullViewportUpdate);
     setDragMode (QGraphicsView::ScrollHandDrag);
+    setMinimumSize (400, 400);
     setScene (gscene);
     gscene->setSceneRect (0, 0, 400, 400); // reset at runtime!
     gscene->addItem (showArea);
-    showArea->setPos (0,0);
+    showArea->setPos (0, 0);
     gscene->addItem (inputArea);
-    inputArea->setFlags (QGraphicsItem::ItemIsFocusable|
+    inputArea->setFlags (QGraphicsItem::ItemIsFocusable |
                          QGraphicsItem::ItemAcceptsInputMethod);
     inputArea->setTextInteractionFlags (Qt::TextEditable);
     inputArea->setTextWidth (400);
     inputArea->setPlainText ("Bressein");
-    inputArea->setPos (0,showArea->boundingRect().height()-32);
+    inputArea->setPos (0, showArea->boundingRect().height());
     gscene->setActivePanel (inputArea);
 }
 
 ChatView::~ChatView()
 {
+    gscene->destroyItemGroup (showArea);
+    gscene->deleteLater();
+    inputArea->deleteLater();
+}
 
+void ChatView::setContact (const QByteArray &contact)
+{
+    sipuri = contact;
 }
 
 //public slots
 
-void ChatView::incomeMessage (const QDateTime &datetime,
+void ChatView::incomeMessage (const QByteArray &datetime,
                               const QByteArray &message)
 {
     //TODO make a MessageBlockItem with text datetime and message and ...
@@ -76,23 +86,30 @@ void ChatView::keyReleaseEvent (QKeyEvent *event)
 {
     switch (event->key())
     {
-        case Qt::Key_Control :
-            inputArea->setTextInteractionFlags (Qt::TextSelectableByMouse);
-            showArea->addToGroup (inputArea);
-            inputArea = new QGraphicsTextItem;
-            inputArea->setFlags (QGraphicsItem::ItemIsFocusable|
-                                 QGraphicsItem::ItemAcceptsInputMethod);
-            inputArea->setTextInteractionFlags (Qt::TextEditable);
-            inputArea->setTextWidth (sceneRect().width());
-            inputArea->setPlainText ("Bressein");
-            gscene->setSceneRect (0, 0, 400, showArea->boundingRect().height() +1);
-            gscene->addItem (inputArea);
-            // HACK  never setPos before added to scene!!
-            inputArea->setPos (0,gscene->sceneRect().height()-32);
-            centerOn (inputArea);
-            gscene->setActivePanel (inputArea);
-            gscene->setFocusItem (inputArea);
-            update();
+        case Qt::Key_Control:
+            {
+                QByteArray text = inputArea->toPlainText().toUtf8();
+                if (not text.isEmpty())
+                {
+                    inputArea->setTextInteractionFlags (Qt::TextSelectableByMouse);
+                    showArea->addToGroup (inputArea);
+                    sendMessage (sipuri, text);
+                    inputArea = new QGraphicsTextItem;
+                    inputArea->setFlags (QGraphicsItem::ItemIsFocusable |
+                                         QGraphicsItem::ItemAcceptsInputMethod);
+                    inputArea->setTextInteractionFlags (Qt::TextEditable);
+                    inputArea->setTextWidth (sceneRect().width());
+                    inputArea->setPlainText ("Bressein");
+                    gscene->setSceneRect (0, 0, 400, showArea->boundingRect().height() + 1);
+                    gscene->addItem (inputArea);
+                    // HACK  never setPos before added to scene!!
+                    inputArea->setPos (0, gscene->sceneRect().height() - 32);
+                    centerOn (inputArea);
+                    gscene->setActivePanel (inputArea);
+                    gscene->setFocusItem (inputArea);
+                    update();
+                }
+            }
             break;
         default:
             break;
@@ -102,8 +119,13 @@ void ChatView::keyReleaseEvent (QKeyEvent *event)
 void ChatView::resizeEvent (QResizeEvent *event)
 {
     QGraphicsView::resizeEvent (event);
+}
 
+void ChatView::closeEvent (QCloseEvent *event)
+{
+    event->ignore();
+    emit toClose (sipuri);
 }
 
 }
-
+#include "chatview.moc"

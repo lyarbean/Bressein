@@ -45,17 +45,20 @@ namespace Bressein
 // inputArea's position;
 class ChatView : public QGraphicsView
 {
-
+    Q_OBJECT
 public:
     ChatView (QWidget *parent = 0);
     virtual ~ChatView();
+    void setContact (const QByteArray &);
 public slots:
-    void incomeMessage (const QDateTime &, const QByteArray &);
+    void incomeMessage (const QByteArray &, const QByteArray &);
 signals:
     void sendMessage (const QByteArray &, const QByteArray &);
+    void toClose (const QByteArray &);
 protected:
     void keyReleaseEvent (QKeyEvent *event);
     void resizeEvent (QResizeEvent *event);
+    void closeEvent (QCloseEvent *event);
 private:
     QByteArray sipuri;
     QPixmap other;

@@ -58,23 +58,23 @@ scene.addItem(form);
  * SidebarView connects to Account instance and other Gui components, and
  * processes their signals and converts them into commands.
  **/
+class ContactInfo;
+class ContactsScene;
 class SidepanelView : public QGraphicsView
 {
     Q_OBJECT
 public:
     SidepanelView (QWidget *parent = 0);
     virtual ~SidepanelView();
-    void login();
+    void updateContact (const QByteArray &, const ContactInfo &);
 private slots:
-    void onDataChanged();
-    void onDatumChanged (const QByteArray &);
     void setRenderingSystem();
     void setupScene();
     void setupSceneItems();
 protected:
     void resizeEvent (QResizeEvent *event);
 private:
-    QGraphicsScene *gscene;
+    ContactsScene *gscene;
     QGraphicsWidget *gwidget;
     QList<ContactItem *> itemList;
 };

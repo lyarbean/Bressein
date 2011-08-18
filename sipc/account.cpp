@@ -214,7 +214,6 @@ void Account::keepAlive()
     serverTransporter->sendData (toSendMsg);
     //send to all conversationa via conversationManager
     // FIXME not that keepAliveData
-    qDebug() << "keep chats alive";
     QByteArray chatK = chatKeepAliveData (info->fetionNumber, info->callId);
     conversationManager->sendToAll (chatK);
 }
@@ -1026,6 +1025,7 @@ void Account::contactSubscribe()
 {
     QByteArray toSendMsg = presenceV4Data (info->fetionNumber, info->callId);
     serverTransporter->sendData (toSendMsg);
+    qDebug() << "on contactSubscribe";
 }
 
 // move another thread -- conversation
@@ -1105,6 +1105,7 @@ void Account::activateTimer()
     keepAliveTimer->start (60000);
     // call other stuffs right here
     contactSubscribe();
+    emit logined();
 }
 
 
@@ -1405,7 +1406,7 @@ void Account::onReceivedMessage (const QByteArray &data)
     QByteArray datetime = data.mid (b + 3, e - b - 3);
     b = data.indexOf ("\r\n\r\n");
     QByteArray content = data.mid (b + 4);
-    //TODO save {fromSiprui, datetime, content} into dataBase
+    incomeMessage (fromSipuri, datetime, content);
     QByteArray reply = "SIP-C/4.0 200 OK\r\n";
     if (fromSipuri.contains ("PG"))
     {
@@ -1693,7 +1694,6 @@ void Account::onStartChat (const QByteArray &data)
     //     qDebug() << data;
     // demo only
 
-    sendMessage (sipuri, "Hello, This is from Bressein!");
 }
 
 void Account::onIncoming (const QByteArray &data)

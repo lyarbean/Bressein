@@ -30,16 +30,15 @@ OpenSSL library used as well as that of the covered work.
 
 #include <QtGui/QApplication>
 #include <QLabel>
-#include "gui/sidepanelview.h"
+#include "gui/singleton.h"
+#include "gui/bresseinmanager.h"
 
 // #include "sipc/user.h"
 // #include "gui/contactsscene.h"
 int main (int argc, char **argv)
 {
     QApplication app (argc, argv);
-    Bressein::SidepanelView foo;
-    foo.show();
-    foo.login();
+    Singleton<Bressein::BresseinManager>::instance()->initialize();
     return app.exec();
 }
 
