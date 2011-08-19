@@ -32,12 +32,15 @@ OpenSSL library used as well as that of the covered work.
 #include "sipc/account.h"
 #include "chatview.h"
 #include "sidepanelview.h"
-
+#include <QSystemTrayIcon>
+#include <QMenu>
 namespace Bressein
 {
 BresseinManager::BresseinManager (QObject *parent) : QObject (parent),
     account (new Account),
-    sidePanel (new SidepanelView)
+    sidePanel (new SidepanelView),
+    tray (new QSystemTrayIcon),
+    trayIconMenu (new QMenu)
 {
     connect (account, SIGNAL (contactChanged (const QByteArray &)),
              this, SLOT (onContactChanged (const QByteArray &)));
@@ -48,6 +51,11 @@ BresseinManager::BresseinManager (QObject *parent) : QObject (parent),
              this, SLOT (onIncomeMessage (const QByteArray &,
                                           const QByteArray &,
                                           const QByteArray &)));
+    // trayIconMenu.addAction ...
+    tray->setContextMenu (trayIconMenu);
+    tray->setIcon (QIcon ("/usr/share/icons/oxygen/32x32/emotes/face-smile.png"));
+    tray->setToolTip ("Bressein");
+    tray->show();
     //TODO show login dialogand connect signals and slots
 }
 
@@ -96,6 +104,7 @@ void BresseinManager::onChatSpawn (const QByteArray &contact)
                  SIGNAL (sendMessage (const QByteArray &, const QByteArray &)),
                  account,
                  SLOT (sendMessage (const QByteArray &, const QByteArray &)));
+        chatview->resize (500, 500);
         chatview->show();
     }
     else

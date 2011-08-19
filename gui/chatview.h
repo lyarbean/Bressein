@@ -32,8 +32,10 @@ OpenSSL library used as well as that of the covered work.
 #define CHATVIEW_H
 
 #include <QGraphicsView>
+#include <QTextImageFormat>
 class QGraphicsTextItem;
 class QDateTime;
+
 namespace Bressein
 {
 //TODO move parts to QGraphicsWidget in order to gain more functionalities
@@ -43,6 +45,8 @@ namespace Bressein
 // QGraphicsTextItem, when initialize, and every time a message committed, we
 // add a MessageBlockItem(TODO) to QGraphicsItemGroup mentioned above and ajust
 // inputArea's position;
+
+class TextWidget;
 class ChatView : public QGraphicsView
 {
     Q_OBJECT
@@ -59,16 +63,15 @@ protected:
     void keyReleaseEvent (QKeyEvent *event);
     void resizeEvent (QResizeEvent *event);
     void closeEvent (QCloseEvent *event);
+private slots:
+    void adjustSize();
 private:
     QByteArray sipuri;
-    QPixmap other;
-    QPixmap self;
+    QTextImageFormat other;// other's face
+    QTextImageFormat self;
     QGraphicsScene *gscene;
-    //TODO subclass in order to provide flexibilities
-    QGraphicsItemGroup *showArea;
-    // TODO
-    //QGraphicsItemGroup *toolArea;
-    QGraphicsTextItem *inputArea;
+    TextWidget *showArea;
+    TextWidget *inputArea;
 };
 }
 

@@ -261,6 +261,9 @@ extern const QByteArray setPresenceV4Data (const QByteArray &fetionNumber,
 extern const QByteArray inviteAckData (const QByteArray &fetionNumber,
                                        const QByteArray &sipuri,
                                        const QByteArray &callId);
+//FIXME
+// extern const QByteArray acceptTransferV4(const QByteArray &fetionNumber,
+//                         const QByteArray );
 // extern const QByteArray conversationData
 }
 /*! @} */

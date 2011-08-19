@@ -29,7 +29,16 @@ OpenSSL library used as well as that of the covered work.
 */
 
 #include "chatview.h"
+#include "textwidget.h"
+#include <QGraphicsLinearLayout>
 #include <QGraphicsTextItem>
+#include <QTextDocument>
+#include <QTextDocumentFragment>
+#include <QTextCursor>
+#include <QTextBlock>
+#include <QImageReader>
+#include <QUrl>
+#include <QDir>
 #include <QDateTime>
 #include <QKeyEvent>
 #include <QDebug>
@@ -38,34 +47,50 @@ namespace Bressein
 ChatView::ChatView (QWidget *parent) :
     QGraphicsView (parent),
     gscene (new QGraphicsScene (this)),
-    showArea (new QGraphicsItemGroup),
-    inputArea (new QGraphicsTextItem)
+    showArea (new TextWidget),
+    inputArea (new TextWidget)
 {
     setAlignment (Qt::AlignLeft | Qt::AlignTop);
     setRenderHints (QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     setCacheMode (QGraphicsView::CacheNone);
     setViewportUpdateMode (QGraphicsView::FullViewportUpdate);
-    setDragMode (QGraphicsView::ScrollHandDrag);
-    setMinimumSize (400, 400);
-    setScene (gscene);
-    gscene->setSceneRect (0, 0, 400, 400); // reset at runtime!
-    gscene->addItem (showArea);
-    showArea->setPos (0, 0);
+    setDragMode (QGraphicsView::RubberBandDrag);
     gscene->addItem (inputArea);
-    inputArea->setFlags (QGraphicsItem::ItemIsFocusable |
-                         QGraphicsItem::ItemAcceptsInputMethod);
-    inputArea->setTextInteractionFlags (Qt::TextEditable);
-    inputArea->setTextWidth (400);
-    inputArea->setPlainText ("Bressein");
-    inputArea->setPos (0, showArea->boundingRect().height());
+    gscene->addItem (showArea);
+
     gscene->setActivePanel (inputArea);
+    showArea->setPos (0, 0);
+
+    inputArea->setEditable();
+    inputArea->setFocus();
+    adjustSize();
+//     inputArea->setTextWidth(400);
+//     inputArea->setPlainText("Hello");
+//     inputArea->setTextInteractionFlags (Qt::TextEditable);
+    setScene (gscene);
+//     gscene->setActivePanel (inputArea);
+    connect (inputArea->document(), SIGNAL (contentsChanged()),
+             this, SLOT (adjustSize()));
+    int a = sipuri.indexOf (":");
+    int b = sipuri.indexOf ("@");
+    QByteArray path = QDir::homePath().toLocal8Bit().append ("/.bressein/icons/").
+                      append (sipuri.mid (a + 1, b - a - 1)).append (".jpeg");
+    if (not QFile (path).open (QIODevice::ReadOnly))
+    {
+        //TODO add default one
+        path = "/usr/share/icons/oxygen/32x32/emotes/face-smile.png";
+    }
+    QImage image = QImageReader (path).read();
+    showArea->document()->addResource (QTextDocument::ImageResource, QUrl (path),
+                                       QVariant (image));
+    other.setWidth (image.width());
+    other.setHeight (image.height());
+    other.setName (QString::fromUtf8 (path));
 }
 
 ChatView::~ChatView()
 {
-    gscene->destroyItemGroup (showArea);
     gscene->deleteLater();
-    inputArea->deleteLater();
 }
 
 void ChatView::setContact (const QByteArray &contact)
@@ -79,35 +104,45 @@ void ChatView::incomeMessage (const QByteArray &datetime,
                               const QByteArray &message)
 {
     //TODO make a MessageBlockItem with text datetime and message and ...
+    QTextCursor cursor (showArea->textCursor());
+//     showArea->addText("\n");
+//     showArea->addText(datetime);
+//     showArea->addText("\n");
+//     showArea->addText(message);
 
+    cursor.beginEditBlock();
+    cursor.insertImage (other);
+    cursor.insertText (datetime);
+    cursor.insertText (QString::fromUtf8 (message));
+    cursor.insertText ("\n");
+    cursor.endEditBlock();
+    adjustSize();
 }
 
 void ChatView::keyReleaseEvent (QKeyEvent *event)
 {
     switch (event->key())
     {
-        case Qt::Key_Control:
+        case Qt::Key_Meta:
             {
-                QByteArray text = inputArea->toPlainText().toUtf8();
+                QByteArray text = inputArea->plainText();
                 if (not text.isEmpty())
                 {
-                    inputArea->setTextInteractionFlags (Qt::TextSelectableByMouse);
-                    showArea->addToGroup (inputArea);
-                    sendMessage (sipuri, text);
-                    inputArea = new QGraphicsTextItem;
-                    inputArea->setFlags (QGraphicsItem::ItemIsFocusable |
-                                         QGraphicsItem::ItemAcceptsInputMethod);
-                    inputArea->setTextInteractionFlags (Qt::TextEditable);
-                    inputArea->setTextWidth (sceneRect().width());
-                    inputArea->setPlainText ("Bressein");
-                    gscene->setSceneRect (0, 0, 400, showArea->boundingRect().height() + 1);
-                    gscene->addItem (inputArea);
-                    // HACK  never setPos before added to scene!!
-                    inputArea->setPos (0, gscene->sceneRect().height() - 32);
-                    centerOn (inputArea);
-                    gscene->setActivePanel (inputArea);
-                    gscene->setFocusItem (inputArea);
-                    update();
+                    qDebug() << "===========";
+                    qDebug() << QString::fromLocal8Bit (text);
+                    qDebug() << "===========";
+//                     showArea->addText("\n");
+//                     showArea->addText(text);
+
+                    QTextCursor cursor (showArea->textCursor());
+                    cursor.beginEditBlock();
+                    cursor.insertImage (other);
+                    cursor.insertText (QString::fromLocal8Bit (text));
+                    cursor.insertText ("\n");
+                    cursor.endEditBlock();
+                    inputArea->setPlainText ("");
+                    sendMessage (sipuri,text);
+                    adjustSize();
                 }
             }
             break;
@@ -119,12 +154,30 @@ void ChatView::keyReleaseEvent (QKeyEvent *event)
 void ChatView::resizeEvent (QResizeEvent *event)
 {
     QGraphicsView::resizeEvent (event);
+    int w = event->size().width();
+    showArea->setTextWidth (w);
+    inputArea->setTextWidth (w);
+    adjustSize();
 }
 
 void ChatView::closeEvent (QCloseEvent *event)
 {
     event->ignore();
     emit toClose (sipuri);
+}
+
+void ChatView::adjustSize()
+{
+    int showAreaHeight = showArea->document()->size().height();
+    int inputAreaHeight = inputArea->document()->size().height();
+
+    int leftTop = showAreaHeight > 200 ? showAreaHeight+5 : 205;
+    inputArea->setPos (0, leftTop);
+    gscene->setSceneRect (0,0,showArea->textWidth()-10, leftTop +
+                          (inputAreaHeight > 100 ? inputAreaHeight+20 : 120));
+    ensureVisible (inputArea);
+    updateGeometry();
+
 }
 
 }

@@ -29,13 +29,60 @@ OpenSSL library used as well as that of the covered work.
 */
 
 #include "textwidget.h"
+#include <QPainter>
+#include <QTextDocument>
+#include <QStyle>
+#include <QStyleOptionGraphicsItem>
+#include <QDebug>
 namespace Bressein
 {
+TextWidget::TextWidget (QGraphicsItem *parent)
+    : QGraphicsTextItem (parent)
+{
+    setFlags (QGraphicsItem::ItemIsFocusable |
+              QGraphicsItem::ItemAcceptsInputMethod|
+              QGraphicsItem::ItemIsSelectable | flags());
+    setTextInteractionFlags (Qt::TextBrowserInteraction);
+    document()-> setDefaultStyleSheet ("");
+}
+
+TextWidget::~TextWidget()
+{
+
+}
+
+void TextWidget::setEditable ()
+{
+    //TODO
+    setTextInteractionFlags (Qt::TextEditorInteraction);
+
+}
+
+void TextWidget::addText (const QByteArray &stack)
+{
+    setPlainText (toPlainText().append (QString::fromUtf8 (stack)));
+}
+
+
+const QByteArray TextWidget::plainText() const
+{
+    return toPlainText().toUtf8();
+}
+
+/*
 QSizeF TextWidget::sizeHint (Qt::SizeHint which, const QSizeF &constraint) const
 {
 
+}*/
+
+void TextWidget::paint (QPainter *painter,
+                        const QStyleOptionGraphicsItem *option,
+                        QWidget *widget)
+{
+    painter->drawRect (boundingRect());
+    QGraphicsTextItem::paint (painter,option,widget);
 }
+
+
 }
-
-
-
+#include "textwidget.moc"

@@ -172,7 +172,8 @@ private slots:
     void onBNcontact (const QByteArray &data);
     void onBNregistration (const QByteArray &data);
     void onInvite (const QByteArray &data);
-    void onIncoming (const QByteArray &data);
+    void onInfo (const QByteArray &data);
+    void onInfoTransferV4 (const QByteArray &data);
     void onSipc (const QByteArray &data);
     void onStartChat (const QByteArray &data);
     void onOption (const QByteArray &data);

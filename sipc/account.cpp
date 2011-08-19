@@ -1133,7 +1133,6 @@ void Account::queueMessages (const QByteArray &receiveData)
 
 void Account::dequeueMessages()
 {
-    qDebug() << "dequeueMessages";
     mutex.lock();
     QByteArray data;
     bool empty = receivedMessages.isEmpty();
@@ -1143,7 +1142,7 @@ void Account::dequeueMessages()
     while (not empty)
     {
         qDebug() << "==============================";
-        qDebug() << "while (not empty)";
+        qDebug() << "dequeueMessages while (not empty)";
         qDebug() << data;
         if (not data.isEmpty())
         {
@@ -1166,7 +1165,7 @@ void Account::dequeueMessages()
 
 void Account::dispatchOutbox()
 {
-    qDebug() << "dispatchLetters";
+//     qDebug() << "dispatchLetters";
     mutex.lock();
     Letter *data;
     bool empty = outbox.isEmpty();
@@ -1187,9 +1186,9 @@ void Account::dispatchOutbox()
     while (not empty)
     {
         qDebug() << "==============================";
-        qDebug() << "while (not empty)";
-        qDebug() << sipuri;
-        qDebug() << content;
+        qDebug() << "dispatchOutbox while (not empty)";
+        qDebug() << "sipuri" << sipuri;
+        qDebug() << "content" << content;
         if (not toSendMsg.isEmpty())
         {
 
@@ -1231,13 +1230,13 @@ void Account::dispatchOfflineBox()
         content = data->content;
         drafts.append (data);
         toSendMsg = sendCatMsgPhoneData (info->fetionNumber, sipuri,
-                                         info->callId, content,"","");
+                                         info->callId, content, "", "");
     }
     mutex.unlock();
     while (not empty)
     {
         qDebug() << "==============================";
-        qDebug() << "while (not empty)";
+        qDebug() << "dispatchOfflineBox while (not empty)";
         qDebug() << sipuri;
         qDebug() << content;
         if (not toSendMsg.isEmpty())
@@ -1253,7 +1252,7 @@ void Account::dispatchOfflineBox()
             content = data->content;
             drafts.append (data);
             toSendMsg = sendCatMsgPhoneData (info->fetionNumber, sipuri,
-                                             info->callId, content,"","");
+                                             info->callId, content, "", "");
         }
         else
         {
@@ -1344,11 +1343,24 @@ void Account::parseReceivedData (const QByteArray &receiveData)
     }
     else if (code == "I")
     {
+
         onInvite (data);
+
     }
     else if (code == "IN")
     {
-        onIncoming (data);
+        int b = data.indexOf ("N: ");
+        int e = data.indexOf ("\r\n", b);
+        QByteArray event = data.mid (b + 3, e - b - 3);
+        if (event == "TransferV4")
+        {
+            onInfoTransferV4 (data);
+        }
+
+        else
+        {
+            onInfo (data);
+        }
     }
     else if (code == "O")
     {
@@ -1696,7 +1708,7 @@ void Account::onStartChat (const QByteArray &data)
 
 }
 
-void Account::onIncoming (const QByteArray &data)
+void Account::onInfo (const QByteArray &data)
 {
     qDebug() << "onIncoming";
     qDebug() << data;
@@ -1722,6 +1734,83 @@ void Account::onIncoming (const QByteArray &data)
     // conversation and then call Bressein open a chat room
     // if input, then inform user that remote is inputting?
 }
+
+void Account::onInfoTransferV4 (const QByteArray &data)
+{
+    /**
+     * IN other SIP-C/4.0
+     * I: callId
+     * Q: sequence IN
+     * F: fromsipuri
+     * N: TransferV4
+     * L: length
+     *
+     * <args action="ask"><image method="direct" transfer-id="xxx" name="yyy"
+     * size="zzz" /></args>
+     *
+     **/
+
+    int b = data.indexOf ("F: ");
+    int e = data.indexOf ("\r\n", b);
+    QByteArray fromSipuri = data.mid (b + 3, e - b - 3);
+    b = data.indexOf ("I: ");
+    e = data.indexOf ("\r\n", b);
+    QByteArray callId = data.mid (b + 3, e - b - 3);
+    b = data.indexOf ("Q: ");
+    e = data.indexOf ("\r\n", b);
+    QByteArray sequence = data.mid (b + 3, e - b - 3);
+    b = data.indexOf ("\r\n\r\n");
+    QByteArray content = data.mid (b + 4);
+//     QByteArray xml = content.mid (b + 4);
+    QDomDocument domDoc;
+    QString errorMsg;
+    int errorLine, errorColumn;
+    bool ok = domDoc.setContent
+              (content, false, &errorMsg, &errorLine, &errorColumn);
+    if (not ok)
+    {
+        qDebug() << "Failed onInfoTransferV4!";
+        qDebug() << errorMsg << errorLine << errorColumn;
+        qDebug() << content;
+        return;
+    }
+    domDoc.normalize();
+    QDomElement domRoot = domDoc.documentElement();
+    domRoot = domRoot.firstChildElement ("args");
+    if (domRoot.hasAttribute ("action"))
+        qDebug() << domRoot.attribute ("action");
+    domRoot = domRoot.firstChildElement ("image");
+    QByteArray method = domRoot.attribute ("method").toUtf8();
+    QByteArray transfer_id = domRoot.attribute ("transfer-id").toUtf8();
+    QByteArray name = domRoot.attribute ("name").toUtf8();
+    QByteArray size = domRoot.attribute ("size").toUtf8();
+    //TODO do accept
+    QByteArray body = content.replace ("ask","accept");
+    QByteArray reply = "IN " +  info->fetionNumber+" SIP-C/4.0\r\n";
+    reply.append ("F: ");
+    reply.append (fromSipuri);
+    reply.append ("\r\nI: ");
+    reply.append (callId);
+    reply.append ("\r\nQ: ");
+    reply.append (sequence);
+    reply.append ("\r\nL: ");
+    reply.append (QByteArray::number (body.size()));
+    reply.append ("\r\n\r\n");
+    reply.append (body);
+    // ?fromsiprui , callid , sequence
+    qDebug() << "$$$$$$$$$$$$$";
+    qDebug() << reply;
+    if (conversationManager->isOnConversation (fromSipuri))
+    {
+        conversationManager->sendData (fromSipuri, reply);
+    }
+    else
+    {
+        qDebug() << "reply message via sipsocket";
+        serverTransporter->sendData (reply);
+    }
+}
+
 
 void Account::onSipc (const QByteArray &data)
 {

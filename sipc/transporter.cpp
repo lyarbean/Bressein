@@ -241,7 +241,6 @@ void Transporter::queueMessages (const QByteArray &data)
 
 void Transporter::dequeueMessages()
 {
-    qDebug() << "Transporter::dequeueMessages";
     mutex.lock();
     QByteArray data;
     bool empty = toSendMessages.isEmpty();

@@ -34,6 +34,8 @@ OpenSSL library used as well as that of the covered work.
 #include <QtCore/QObject>
 #include <QMap>
 
+class QSystemTrayIcon;
+class QMenu;
 namespace Bressein
 {
 class Account;
@@ -72,7 +74,8 @@ private slots:
 private:
     Account *account;
     SidepanelView *sidePanel;
-
+    QSystemTrayIcon *tray;
+    QMenu *trayIconMenu;
     QMap<QByteArray, ChatView *> chatViews;
 };
 
