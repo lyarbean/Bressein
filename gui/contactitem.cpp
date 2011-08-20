@@ -47,7 +47,6 @@ ContactItem::ContactItem (QGraphicsItem *parent)
               QGraphicsItem::ItemIsSelectable | flags());
     setTextInteractionFlags (Qt::TextBrowserInteraction);
     setTextWidth (boundingRect().width());
-
 }
 
 ContactItem::~ContactItem()
@@ -90,9 +89,6 @@ void ContactItem::updateContact (const ContactInfo &contactInfo)
     {
         path = "/usr/share/icons/oxygen/32x32/emotes/face-smile.png";
     }
-    QImage image = QImageReader (path).read();
-    document()->addResource (QTextDocument::ImageResource,
-                             QUrl ("logo"), QVariant (image));
     imageFormat.setName (path);
     imageFormat.setHeight (32);
     imageFormat.setWidth (32);
@@ -104,13 +100,13 @@ void ContactItem::updateContact (const ContactInfo &contactInfo)
     {
         textCursor().insertText (QString::fromUtf8 (contact.basic.localName));
     }
-    else
+    else if (not contact.detail.nickName.isEmpty())
     {
         textCursor().insertText (QString::fromUtf8 (contact.detail.nickName));
     }
     textCursor().insertText ("\t");
     textCursor().insertText (QString::fromUtf8 (contact.basic.userId));
-
+    textCursor().insertText (QString::fromUtf8 (sipuri.mid (a + 1, b - a - 1)));
     textCursor().insertText ("\n");
     //TODO show imprea when get hovered
     textCursor().insertText (QString::fromUtf8 (contact.basic.imprea));

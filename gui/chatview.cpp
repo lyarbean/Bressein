@@ -57,10 +57,8 @@ ChatView::ChatView (QWidget *parent) :
     setDragMode (QGraphicsView::RubberBandDrag);
     gscene->addItem (inputArea);
     gscene->addItem (showArea);
-
     gscene->setActivePanel (inputArea);
     showArea->setPos (0, 0);
-
     inputArea->setEditable();
     inputArea->setFocus();
     adjustSize();
@@ -71,18 +69,6 @@ ChatView::ChatView (QWidget *parent) :
 //     gscene->setActivePanel (inputArea);
     connect (inputArea->document(), SIGNAL (contentsChanged()),
              this, SLOT (adjustSize()));
-    int a = sipuri.indexOf (":");
-    int b = sipuri.indexOf ("@");
-    QByteArray path = QDir::homePath().toLocal8Bit().append ("/.bressein/icons/").
-                      append (sipuri.mid (a + 1, b - a - 1)).append (".jpeg");
-    if (not QFile (path).open (QIODevice::ReadOnly))
-    {
-        //TODO add default one
-        path = "/usr/share/icons/oxygen/32x32/emotes/face-smile.png";
-    }
-    QImage image = QImageReader (path).read();
-    showArea->document()->addResource (QTextDocument::ImageResource, QUrl (path),
-                                       QVariant (image));
 }
 
 ChatView::~ChatView()
@@ -93,6 +79,7 @@ ChatView::~ChatView()
 void ChatView::setContact (const QByteArray &contact)
 {
     sipuri = contact;
+    showArea->setImage (sipuri);
 }
 
 //public slots

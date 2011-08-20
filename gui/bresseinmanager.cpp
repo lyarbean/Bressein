@@ -151,7 +151,7 @@ void BresseinManager::onIncomeMessage (const QByteArray &contact,
     if (chatViews.find (contact) == chatViews.end())
     {
         // TODO should make one chatview for it
-        return;
+        onChatSpawn (contact);
     }
     chatViews.value (contact)->incomeMessage (datetime, content);
 }

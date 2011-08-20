@@ -79,7 +79,7 @@ void SidepanelView::updateContact (const QByteArray &contact,
     if (not updated)
     {
         ContactItem *item;
-        ContactItem *groupItem = 0;
+        QGraphicsSimpleTextItem *groupItem = 0;
         QByteArray groupId = contactInfo.basic.groupId;
         // one may have multi-groups, like, 1;0;2
         // we take the first group id
@@ -92,7 +92,7 @@ void SidepanelView::updateContact (const QByteArray &contact,
         }
         if (not groups.isEmpty())
         {
-            foreach (ContactItem *it, groups)
+            foreach (QGraphicsSimpleTextItem *it, groups)
             {
                 if (it->data (1).toByteArray() == groupId)
                 {
@@ -128,9 +128,9 @@ void SidepanelView::updateContact (const QByteArray &contact,
 void SidepanelView::addGroup (const QByteArray &id, const QByteArray &name)
 {
 
-    ContactItem *item = new ContactItem;
+    QGraphicsSimpleTextItem *item = new QGraphicsSimpleTextItem;
     item->setFont (QFont ("Times",14, QFont::Bold));
-    item->setPlainText (QString::fromUtf8 (name));
+    item->setText (QString::fromUtf8 (name));
     item->setData (1,id);
     qDebug() << "addGroup"<< QString::fromUtf8 (name);
     groups.append (item);
@@ -186,7 +186,7 @@ void SidepanelView::setupSceneItems()
 void SidepanelView::resizeScene()
 {
     int height = 0;
-    QList<ContactItem *>::iterator it = groups.begin();
+    QList<QGraphicsSimpleTextItem *>::iterator it = groups.begin();
     while (it not_eq groups.end())
     {
         (*it)->setPos (0,height);

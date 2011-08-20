@@ -35,14 +35,14 @@ OpenSSL library used as well as that of the covered work.
 #include <QStyle>
 #include <QStyleOptionGraphicsItem>
 #include <QDebug>
+#include <QDir>
 namespace Bressein
 {
 TextWidget::TextWidget (QGraphicsItem *parent)
     : QGraphicsTextItem (parent)
 {
-    setFlags (QGraphicsItem::ItemIsFocusable |
-              QGraphicsItem::ItemIsSelectable | flags());
-    setTextInteractionFlags (Qt::TextBrowserInteraction);
+//     setFlags (QGraphicsItem::ItemIsSelectable);
+    setTextInteractionFlags (Qt::TextSelectableByMouse);
 }
 
 TextWidget::~TextWidget()
@@ -53,25 +53,25 @@ TextWidget::~TextWidget()
 void TextWidget::setEditable ()
 {
     //TODO
-    setFlags (QGraphicsItem::ItemAcceptsInputMethod | flags());
-    setTextInteractionFlags (Qt::TextEditable);
+    setFlags (QGraphicsItem::ItemAcceptsInputMethod |
+              QGraphicsItem::ItemIsFocusable | flags());
+    setTextInteractionFlags (Qt::TextEditable | Qt::TextEditorInteraction);
     setPanelModality (QGraphicsItem::SceneModal);
 
 }
 
 void TextWidget::addText (const QByteArray &datetime, const QByteArray &content)
 {
-    //     showArea->addText("\n");
-    //     showArea->addText(datetime);
-    //     showArea->addText("\n");
-    //     showArea->addText(message);
-    textCursor().beginEditBlock();
-    textCursor().insertImage (image);
+
+    QTextCursor cursor = textCursor();
+    cursor.movePosition (QTextCursor::End);
+    cursor.insertImage (image);
     //TODO localize
-    textCursor().insertText (QString::fromUtf8 (datetime));
-    textCursor().insertText (QString::fromUtf8 (content));
-    textCursor().insertText ("\n");
-    textCursor().endEditBlock();
+    cursor.insertText (QString::fromUtf8 (datetime));
+    cursor.insertText ("\n");
+    cursor.insertText (QString::fromUtf8 (content));
+    cursor.insertText ("\n");
+    setTextCursor (cursor);
 }
 
 
@@ -80,9 +80,19 @@ const QByteArray TextWidget::plainText() const
     return toPlainText().toUtf8();
 }
 
-void TextWidget::setImage (const QTextImageFormat &image)
+void TextWidget::setImage (const QByteArray &sipuri)
 {
-    this->image = image;
+    int a = sipuri.indexOf (":");
+    int b = sipuri.indexOf ("@");
+    QString path = QDir::homePath().append ("/.bressein/icons/").
+                   append (sipuri.mid (a + 1, b - a - 1)).append (".jpeg");
+    if (not QFile (path).open (QIODevice::ReadOnly))
+    {
+        path = "/usr/share/icons/oxygen/32x32/emotes/face-smile.png";
+    }
+    image.setName (path);
+    image.setHeight (32);
+    image.setWidth (32);
 }
 
 /*

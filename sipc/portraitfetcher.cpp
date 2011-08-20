@@ -71,6 +71,7 @@ void PortraitFetcher::requestPortrait (const QByteArray &sipuri)
 
 void PortraitFetcher::run ()
 {
+    //FIXME
     mutex.lock();
     QByteArray sipuri;
     if (not queue.isEmpty())
@@ -136,6 +137,7 @@ void PortraitFetcher::run ()
                     // TODO handle socket.error() or inform user what happened
                     qDebug() << "PortraitFetcher  waitForReadyRead"
                              << socket.error() << socket.errorString();
+                    emit processed (sipuri);
                     return;
                 }
             }
@@ -167,6 +169,7 @@ void PortraitFetcher::run ()
                         // TODO handle socket.error() or inform user what happened
                         qDebug() << "ssiLogin  waitForReadyRead"
                                  << socket.error() << socket.errorString();
+                        emit processed (sipuri);
                         return;
                     }
                 }

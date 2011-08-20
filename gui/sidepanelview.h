@@ -69,7 +69,7 @@ private:
     ContactsScene *gscene;
     QList<ContactItem *> itemList;
     QGraphicsLinearLayout *linearLayout;
-    QList<ContactItem *> groups;
+    QList<QGraphicsSimpleTextItem *> groups;
 };
 }
 #endif // BRESSEINVIEW_H
