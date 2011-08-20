@@ -109,6 +109,8 @@ void PortraitFetcher::run ()
                 // TODO handle socket.error() or inform user what happened
                 qDebug() << "PortraitFetcher  waitForReadyRead"
                          << socket.error() << socket.errorString();
+                //FIXME
+                emit processed (sipuri);
                 return;
             }
         }
@@ -199,6 +201,7 @@ void PortraitFetcher::run ()
             return;
         }
     end:
+        emit processed (sipuri);
         mutex.lock();
         if (not queue.isEmpty())
         {

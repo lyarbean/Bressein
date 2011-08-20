@@ -40,8 +40,14 @@ OpenSSL library used as well as that of the covered work.
 namespace Bressein
 {
 ContactItem::ContactItem (QGraphicsItem *parent)
-    : QGraphicsObject (parent)
+    : QGraphicsTextItem (parent)
 {
+    qDebug() << "new ContactItem";
+    setFlags (QGraphicsItem::ItemIsFocusable |
+              QGraphicsItem::ItemIsSelectable | flags());
+    setTextInteractionFlags (Qt::TextBrowserInteraction);
+    setTextWidth (boundingRect().width());
+
 }
 
 ContactItem::~ContactItem()
@@ -53,40 +59,13 @@ void ContactItem::paint (QPainter *painter,
                          const QStyleOptionGraphicsItem *option,
                          QWidget *widget)
 {
-    if (sipuri.isEmpty())
-    {
-        return;
-    }
-//     QMatrix m = painter->worldMatrix();
-//     painter->setWorldMatrix (QMatrix());
-    painter->drawRect (boundingRect().adjusted (-3, -3, 3, 3));
-
-    if (contact.basic.state == StateType::ONLINE)
-        painter->setPen (Qt::red);
-    if (not contact.detail.nickName.isEmpty())
-    {
-        painter->drawText (10, 15, QString::fromUtf8 (contact.detail.nickName));
-    }
-    else if (not contact.basic.localName.isEmpty())
-    {
-        painter->drawText (10, 15, QString::fromUtf8 (contact.basic.localName));
-    }
-    else
-    {
-        painter->drawText (10, 15, QString::fromUtf8 (sipuri));
-    }
-//     painter->drawText (25-QApplication::desktop()->screenGeometry().width() /2,
-//                        28, QString::fromUtf8 (contact.basic.userId));
-//     if (not contact.basic.imprea.isEmpty())
-//     {
-//         painter->drawText (25-QApplication::desktop()->screenGeometry().width()
-//                            /2, 42, QString::fromUtf8 (contact.basic.imprea));
-//     }
+    painter->drawRect (boundingRect());
+    QGraphicsTextItem::paint (painter, option, widget);
 }
 
 QRectF ContactItem::boundingRect() const
 {
-    return QRectF (5, 0, 320, 60);
+    return QRectF (2, 0, 200, document()->size().height());
 }
 
 
@@ -102,7 +81,41 @@ const QByteArray &ContactItem::getSipuri() const
 
 void ContactItem::updateContact (const ContactInfo &contactInfo)
 {
+    setPlainText ("");
+    int a = sipuri.indexOf (":");
+    int b = sipuri.indexOf ("@");
+    QString path = QDir::homePath().append ("/.bressein/icons/").
+                   append (sipuri.mid (a + 1, b - a - 1)).append (".jpeg");
+    if (not QFile (path).open (QIODevice::ReadOnly))
+    {
+        path = "/usr/share/icons/oxygen/32x32/emotes/face-smile.png";
+    }
+    QImage image = QImageReader (path).read();
+    document()->addResource (QTextDocument::ImageResource,
+                             QUrl ("logo"), QVariant (image));
+    imageFormat.setName (path);
+    imageFormat.setHeight (32);
+    imageFormat.setWidth (32);
     contact = contactInfo;
+    textCursor().beginEditBlock();
+    textCursor().insertImage (imageFormat);
+    //TODO localize
+    if (not contact.basic.localName.isEmpty())
+    {
+        textCursor().insertText (QString::fromUtf8 (contact.basic.localName));
+    }
+    else
+    {
+        textCursor().insertText (QString::fromUtf8 (contact.detail.nickName));
+    }
+    textCursor().insertText ("\t");
+    textCursor().insertText (QString::fromUtf8 (contact.basic.userId));
+
+    textCursor().insertText ("\n");
+    //TODO show imprea when get hovered
+    textCursor().insertText (QString::fromUtf8 (contact.basic.imprea));
+    textCursor().insertText ("\n");
+    textCursor().endEditBlock();
 }
 
 void ContactItem::mouseDoubleClickEvent (QGraphicsSceneMouseEvent *event)
@@ -111,3 +124,5 @@ void ContactItem::mouseDoubleClickEvent (QGraphicsSceneMouseEvent *event)
 }
 
 }
+
+#include "contactitem.moc"

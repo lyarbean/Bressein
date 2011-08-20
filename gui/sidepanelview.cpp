@@ -34,16 +34,23 @@ OpenSSL library used as well as that of the covered work.
 #include "contactsscene.h"
 #include "contactitem.h"
 #include "chatview.h"
+#include <QGraphicsLinearLayout>
+
+
 namespace Bressein
 {
 SidepanelView::SidepanelView (QWidget *parent)
-    : QGraphicsView (parent) , gwidget (new QGraphicsWidget)
+    : QGraphicsView (parent)
+    , gscene (new ContactsScene (this))
+    , linearLayout (new QGraphicsLinearLayout)
 {
     setAlignment (Qt::AlignLeft | Qt::AlignTop);
     setRenderingSystem();
     setupScene();
-    gwidget->resize (200, 200);
-
+    // add default group
+    QByteArray id = "0";
+    QByteArray name = "untitled";
+    addGroup (id,name);
 }
 
 SidepanelView::~SidepanelView()
@@ -54,6 +61,7 @@ SidepanelView::~SidepanelView()
 void SidepanelView::updateContact (const QByteArray &contact,
                                    const ContactInfo &contactInfo)
 {
+    qDebug() << "SidepanelView::updateContact";
     bool updated = false;
     int itemlists = itemList.size();
 
@@ -71,55 +79,131 @@ void SidepanelView::updateContact (const QByteArray &contact,
     if (not updated)
     {
         ContactItem *item;
-        item = new ContactItem (gwidget);
+        ContactItem *groupItem = 0;
+        QByteArray groupId = contactInfo.basic.groupId;
+        // one may have multi-groups, like, 1;0;2
+        // we take the first group id
+        QList<QByteArray> ids = groupId.split (';');
+        if (not ids.isEmpty())
+            groupId = ids.first();
+        if (groupId.isEmpty())
+        {
+            groupId = "0";
+        }
+        if (not groups.isEmpty())
+        {
+            foreach (ContactItem *it, groups)
+            {
+                if (it->data (1).toByteArray() == groupId)
+                {
+                    groupItem = it;
+                    break;
+                }
+            }
+        }
+        if (groupItem)
+        {
+            item = new ContactItem (groupItem);
+            item->setPos (5, 10 + groupItem->childrenBoundingRect().height());
+            // for each other groups whose id is great than that of this,
+            // arrange them
+        }
+        else // should not been called, just in case
+        {
+            qDebug() << "XXXXXXXXXXXXX groupId" <<groupId;
+            // TODO make a new group?
+            item = new ContactItem (groups.first());
+            item->setPos (5, 10 + groups.first()->childrenBoundingRect().height());
+        }
         item->setSipuri (contact);
         item->updateContact (contactInfo);
         item->setZValue (10);
         item->setVisible (true);
-        item->setPos (10, item->boundingRect().height() * itemlists + 1);
         itemList.append (item);
+        //TODO adjust size
     }
+    resizeScene();
 }
+
+void SidepanelView::addGroup (const QByteArray &id, const QByteArray &name)
+{
+
+    ContactItem *item = new ContactItem;
+    item->setFont (QFont ("Times",14, QFont::Bold));
+    item->setPlainText (QString::fromUtf8 (name));
+    item->setData (1,id);
+    qDebug() << "addGroup"<< QString::fromUtf8 (name);
+    groups.append (item);
+    gscene->addItem (item);
+    resizeScene();
+//     linearLayout->addItem(item);
+//     item->setPos(0,gscene->itemsBoundingRect().height());
+
+}
+
 
 //TODO onContactRemoved
 void SidepanelView::setRenderingSystem()
 {
-    QWidget *viewport = 0;
-
-//     #ifndef QT_NO_OPENGL
-//         QGLWidget *glw = new QGLWidget(QGLFormat(QGL::SampleBuffers));
-//         if (Colors::noScreenSync)
-//             glw->format().setSwapInterval(0);
-//         glw->setAutoFillBackground(false);!@#
-//         viewport = glw;
-//         setCacheMode(QGraphicsView::CacheNone);
+//     QWidget *viewport = 0;
 //
-//     #endif
-    // software rendering
-    viewport = new QWidget;
-    setViewport (viewport);
+// //     #ifndef QT_NO_OPENGL
+// //         QGLWidget *glw = new QGLWidget(QGLFormat(QGL::SampleBuffers));
+// //         if (Colors::noScreenSync)
+// //             glw->format().setSwapInterval(0);
+// //         glw->setAutoFillBackground(false);!@#
+// //         viewport = glw;
+// //         setCacheMode(QGraphicsView::CacheNone);
+// //
+// //     #endif
+//     // software rendering
+//     viewport = new QWidget;
+//     setViewport (viewport);
     setRenderHints (QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     setCacheMode (QGraphicsView::CacheBackground);
-    setViewportUpdateMode (QGraphicsView::BoundingRectViewportUpdate);
+    setViewportUpdateMode (QGraphicsView::FullViewportUpdate);
     setDragMode (QGraphicsView::ScrollHandDrag);
 
 }
 
 void SidepanelView::setupScene()
 {
-    gscene = new ContactsScene (this);
     // indirectly pass through
-    gscene->setSceneRect (0, 0, 300, 768);
-    setScene (gscene);
+    gscene->setSceneRect (0, 0, 300, 600);
     gscene->setItemIndexMethod (QGraphicsScene::NoIndex);
-    gscene->addItem (gwidget);
-    gwidget->setPos (10, 10);
+//     QGraphicsWidget *form = new QGraphicsWidget;
+//     form->setLayout(linearLayout);
+//     gscene->addItem(form);
+    setScene (gscene);
 }
 
 void SidepanelView::setupSceneItems()
 {
     // setup buttons
     //
+}
+
+void SidepanelView::resizeScene()
+{
+    int height = 0;
+    QList<ContactItem *>::iterator it = groups.begin();
+    while (it not_eq groups.end())
+    {
+        (*it)->setPos (0,height);
+        height += (*it)->childrenBoundingRect().height();
+        if (not (*it)->childItems().isEmpty())
+            height += (*it)->childItems().last()->boundingRect().height();
+        ++it;
+    }
+    if (not itemList.isEmpty())
+    {
+        ensureVisible (itemList.last());
+        height += itemList.last()->boundingRect().height();
+    }
+    if (height > 600)
+        gscene->setSceneRect (0,0, 300, height);
+
+    updateGeometry();
 }
 
 

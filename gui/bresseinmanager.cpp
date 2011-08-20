@@ -42,15 +42,23 @@ BresseinManager::BresseinManager (QObject *parent) : QObject (parent),
     tray (new QSystemTrayIcon),
     trayIconMenu (new QMenu)
 {
+    connect (account, SIGNAL (groupChanged (const QByteArray &, const QByteArray &)),
+             this, SLOT (onGroupChanged (const QByteArray &, const QByteArray &)),
+             Qt::QueuedConnection);
     connect (account, SIGNAL (contactChanged (const QByteArray &)),
-             this, SLOT (onContactChanged (const QByteArray &)));
-    connect (account,SIGNAL (logined()),sidePanel,SLOT (show()));
+             this, SLOT (onContactChanged (const QByteArray &)),
+             Qt::QueuedConnection);
+    connect (account, SIGNAL (logined()), this, SLOT (readyShow()),
+             Qt::QueuedConnection);
     connect (account, SIGNAL (incomeMessage (const QByteArray &,
                                              const QByteArray &,
                                              const QByteArray &)),
              this, SLOT (onIncomeMessage (const QByteArray &,
                                           const QByteArray &,
-                                          const QByteArray &)));
+                                          const QByteArray &)),
+             Qt::QueuedConnection);
+    connect (sidePanel, SIGNAL (contactActivated (const QByteArray &)),
+             this, SLOT (onChatSpawn (const QByteArray &)));
     // trayIconMenu.addAction ...
     tray->setContextMenu (trayIconMenu);
     tray->setIcon (QIcon ("/usr/share/icons/oxygen/32x32/emotes/face-smile.png"));
@@ -78,7 +86,7 @@ void BresseinManager::loginAs (const QByteArray &number,
                                const QByteArray &password)
 {
     if (number.isEmpty() or password.isEmpty()) return;
-    account->setAccount (number,password);
+    account->setAccount (number, password);
     account->login();
 }
 
@@ -87,7 +95,13 @@ void BresseinManager::onContactChanged (const QByteArray &contact)
     // notify sidePanel to update its data
     // as sidePanel has no knowledge about Account, we pass that contact too
     const ContactInfo &contactInfo = account->getContactInfo (contact);
-    sidePanel->updateContact (contact,contactInfo);
+    sidePanel->updateContact (contact, contactInfo);
+}
+
+void BresseinManager::onGroupChanged (const QByteArray &id,
+                                      const QByteArray &name)
+{
+    sidePanel->addGroup (id, name);
 }
 
 void BresseinManager::onChatSpawn (const QByteArray &contact)
@@ -98,7 +112,7 @@ void BresseinManager::onChatSpawn (const QByteArray &contact)
         ChatView *chatview = new ChatView (0);
         chatview->setContact (contact);
         chatViews.insert (contact, chatview);
-        connect (chatview,SIGNAL (toClose (const QByteArray &)),
+        connect (chatview, SIGNAL (toClose (const QByteArray &)),
                  this, SLOT (onChatClose (const QByteArray &)));
         connect (chatview,
                  SIGNAL (sendMessage (const QByteArray &, const QByteArray &)),
@@ -139,7 +153,12 @@ void BresseinManager::onIncomeMessage (const QByteArray &contact,
         // TODO should make one chatview for it
         return;
     }
-    chatViews.value (contact)->incomeMessage (datetime,content);
+    chatViews.value (contact)->incomeMessage (datetime, content);
+}
+
+void BresseinManager::readyShow()
+{
+    sidePanel->show();
 }
 
 }

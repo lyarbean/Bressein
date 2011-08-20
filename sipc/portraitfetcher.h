@@ -49,6 +49,8 @@ public:
     void setData (const QByteArray &server,
                   const QByteArray &path,
                   const QByteArray &ssic);
+signals:
+    void processed (const QByteArray &);
 public slots:
     void requestPortrait (const QByteArray &sipuri);
 protected:

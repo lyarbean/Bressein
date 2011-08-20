@@ -83,9 +83,6 @@ ChatView::ChatView (QWidget *parent) :
     QImage image = QImageReader (path).read();
     showArea->document()->addResource (QTextDocument::ImageResource, QUrl (path),
                                        QVariant (image));
-    other.setWidth (image.width());
-    other.setHeight (image.height());
-    other.setName (QString::fromUtf8 (path));
 }
 
 ChatView::~ChatView()
@@ -104,18 +101,7 @@ void ChatView::incomeMessage (const QByteArray &datetime,
                               const QByteArray &message)
 {
     //TODO make a MessageBlockItem with text datetime and message and ...
-    QTextCursor cursor (showArea->textCursor());
-//     showArea->addText("\n");
-//     showArea->addText(datetime);
-//     showArea->addText("\n");
-//     showArea->addText(message);
-
-    cursor.beginEditBlock();
-    cursor.insertImage (other);
-    cursor.insertText (datetime);
-    cursor.insertText (QString::fromUtf8 (message));
-    cursor.insertText ("\n");
-    cursor.endEditBlock();
+    showArea->addText (datetime,message);
     adjustSize();
 }
 
@@ -128,18 +114,8 @@ void ChatView::keyReleaseEvent (QKeyEvent *event)
                 QByteArray text = inputArea->plainText();
                 if (not text.isEmpty())
                 {
-                    qDebug() << "===========";
-                    qDebug() << QString::fromLocal8Bit (text);
-                    qDebug() << "===========";
-//                     showArea->addText("\n");
-//                     showArea->addText(text);
-
-                    QTextCursor cursor (showArea->textCursor());
-                    cursor.beginEditBlock();
-                    cursor.insertImage (other);
-                    cursor.insertText (QString::fromLocal8Bit (text));
-                    cursor.insertText ("\n");
-                    cursor.endEditBlock();
+                    showArea->addText (QDateTime::currentDateTime().
+                                       toString().toUtf8(),text);
                     inputArea->setPlainText ("");
                     sendMessage (sipuri,text);
                     adjustSize();
@@ -177,7 +153,6 @@ void ChatView::adjustSize()
                           (inputAreaHeight > 100 ? inputAreaHeight+20 : 120));
     ensureVisible (inputArea);
     updateGeometry();
-
 }
 
 }

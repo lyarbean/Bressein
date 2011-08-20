@@ -31,25 +31,30 @@ OpenSSL library used as well as that of the covered work.
 #ifndef CONTACTITEM_H
 #define CONTACTITEM_H
 
-#include <QtGui/QGraphicsItem>
+#include <QtGui/QGraphicsTextItem>
+#include <QTextImageFormat>
 #include "sipc/types.h"
 namespace Bressein
 {
-class ContactItem : public QGraphicsObject
+/**
+shows portrait and local name or nick name or mobile / fetion number
+ * */
+class ContactItem : public QGraphicsTextItem
 {
+    Q_OBJECT
 public:
     enum { ContactItemType = UserType + 1 };
     ContactItem (QGraphicsItem *parent = 0);
-    virtual ~ContactItem();
+    ~ContactItem();
 
-    void paint (QPainter *painter,
-                const QStyleOptionGraphicsItem *option,
-                QWidget *widget = 0);
-    QRectF boundingRect() const;
     int type () const
     {
         return ContactItemType;
     }
+    void paint (QPainter *painter,
+                const QStyleOptionGraphicsItem *option,
+                QWidget *widget = 0);
+    QRectF boundingRect() const;
 //     virtual void hoverEnterEvent(QGraphicsSceneHoverEvent *event);
 //     virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent *event);
 //     ContactItem();
@@ -62,6 +67,7 @@ protected:
 private:
     QByteArray sipuri;
     ContactInfo contact;
+    QTextImageFormat imageFormat;
 };
 }
 #endif // CONTACTITEM_H

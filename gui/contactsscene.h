@@ -36,6 +36,7 @@ OpenSSL library used as well as that of the covered work.
 
 namespace Bressein
 {
+//TODO
 class ContactsScene : public QGraphicsScene
 {
     Q_OBJECT

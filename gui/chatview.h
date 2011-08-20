@@ -67,7 +67,6 @@ private slots:
     void adjustSize();
 private:
     QByteArray sipuri;
-    QTextImageFormat other;// other's face
     QTextImageFormat self;
     QGraphicsScene *gscene;
     TextWidget *showArea;

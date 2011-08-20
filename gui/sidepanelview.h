@@ -34,23 +34,11 @@ OpenSSL library used as well as that of the covered work.
 #include <QtGui/QGraphicsView>
 #include <QtGui/QGraphicsWidget>
 
+class QGraphicsLinearLayout;
 namespace Bressein
 {
 class ContactItem;
-//TODO move to QGraphicsWidget in order to gain more functionalities
-/*
-QGraphicsScene scene;
-QGraphicsWidget *tex*tEdit = scene.addWidget(new QTextEdit);
-QGraphicsWidget *pushButton = scene.addWidget(new QPushButton);
 
-QGraphicsLinearLayout *layout = new QGraphicsLinearLayout;
-layout->addItem(textEdit);
-layout->addItem(pushButton);
-
-QGraphicsWidget *form = new QGraphicsWidget;
-form->setLayout(layout);
-scene.addItem(form);
-*/
 // TODO make a class Bressein Manager that take responsibility of a deliver from
 // SidepanelView.
 /**
@@ -67,16 +55,21 @@ public:
     SidepanelView (QWidget *parent = 0);
     virtual ~SidepanelView();
     void updateContact (const QByteArray &, const ContactInfo &);
+    void addGroup (const QByteArray &,const QByteArray &);
+signals:
+    void contactActivated (const QByteArray &sipuri);
 private slots:
     void setRenderingSystem();
     void setupScene();
     void setupSceneItems();
+    void resizeScene();
 protected:
     void resizeEvent (QResizeEvent *event);
 private:
     ContactsScene *gscene;
-    QGraphicsWidget *gwidget;
     QList<ContactItem *> itemList;
+    QGraphicsLinearLayout *linearLayout;
+    QList<ContactItem *> groups;
 };
 }
 #endif // BRESSEINVIEW_H

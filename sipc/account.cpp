@@ -50,11 +50,10 @@ Account::Account (QObject *parent) : QObject (parent), step (NONE)
     connect (messageTimer, SIGNAL (timeout()),
              this, SLOT (dispatchOutbox()));
     connect (messageTimer, SIGNAL (timeout()),
-             this, SLOT (dispatchOutbox()));
+             this, SLOT (dispatchOfflineBox()));
     messageTimer->start (1000);
     info = new Info (this);
     serverTransporter = new Transporter (0);
-
     conversationManager = new ConversationManager (this);
     connect (serverTransporter, SIGNAL (socketError (const int)),
              this, SLOT (onServerTransportError (const int)));
@@ -68,6 +67,9 @@ Account::Account (QObject *parent) : QObject (parent), step (NONE)
              Qt::QueuedConnection);
     connect (serverTransporter, SIGNAL (dataReceived (const QByteArray &)),
              this, SLOT (queueMessages (const QByteArray &)),
+             Qt::QueuedConnection);
+    connect (&fetcher, SIGNAL (processed (const QByteArray &)),
+             this, SLOT (onPortraitDownloaded (const QByteArray &)),
              Qt::QueuedConnection);
     this->moveToThread (&workerThread);
     workerThread.start();
@@ -108,9 +110,10 @@ void Account::setAccount (QByteArray number, QByteArray password)
     info->callId = 1;
 }
 
-const Bressein::Contacts &Account::getContacts() const
+const QList<QByteArray>  &Account::getContacts() const
 {
-    return contacts;
+    QList<QByteArray> contactlist = contacts.keys();
+    return contactlist;
 }
 
 /**--------------**/
@@ -808,6 +811,7 @@ void Account::parseSipcAuthorize (QByteArray &data)
                     group->groupId = domGrand.attribute ("id").toUtf8();
                     group->groupname = domGrand.attribute ("name").toUtf8();
                     groups.append (group);
+                    emit groupChanged (group->groupId,group->groupname);
                     domGrand = domGrand.nextSiblingElement ("buddy-list");
                 }
             }
@@ -837,6 +841,7 @@ void Account::parseSipcAuthorize (QByteArray &data)
                         ContactInfo *contact = new ContactInfo;
                         contact->basic.userId =
                             domGrand.attribute ("i").toUtf8();
+                        // get fetionNumber from userId
                         contact->basic.groupId =
                             domGrand.attribute ("l").toUtf8();
                         contact->basic.localName =
@@ -848,6 +853,8 @@ void Account::parseSipcAuthorize (QByteArray &data)
                             domGrand.attribute ("r").toUtf8();
                         QByteArray sipuri = domGrand.attribute ("u").toUtf8();
                         contacts.insert (sipuri, contact);
+                        downloadPortrait (sipuri);
+//                         emit contactChanged(sipuri);
                     }
                     domGrand = domGrand.nextSiblingElement ("b");
                 }
@@ -1102,9 +1109,10 @@ void Account::activateTimer()
 {
     //FIXME should the timer in this thread?
     connect (keepAliveTimer, SIGNAL (timeout()), SLOT (keepAlive()));
-    keepAliveTimer->start (60000);
-    // call other stuffs right here
     contactSubscribe();
+    keepAliveTimer->start (60000);
+
+    // call other stuffs right here
     emit logined();
 }
 
@@ -1261,6 +1269,11 @@ void Account::dispatchOfflineBox()
         mutex.unlock();
         qDebug() << "==============================";
     }
+}
+
+void Account::onPortraitDownloaded (const QByteArray &sipuri)
+{
+    emit contactChanged (sipuri);
 }
 
 void Account::parseReceivedData (const QByteArray &receiveData)
@@ -1539,7 +1552,6 @@ void Account::onBNPresenceV4 (const QByteArray &data)
                 qDebug() << "Contact Changed";
                 static int contactCount = 0;
                 qDebug() << "contactCount" << ++contactCount;
-                emit contactChanged (sipuri);
                 // TODO inform conversationManager to update state,
                 // that is, to remove if OFFLINE
             next:
@@ -1735,8 +1747,10 @@ void Account::onInfo (const QByteArray &data)
     // if input, then inform user that remote is inputting?
 }
 
+// FIXME don't know how to fix it
 void Account::onInfoTransferV4 (const QByteArray &data)
 {
+
     /**
      * IN other SIP-C/4.0
      * I: callId

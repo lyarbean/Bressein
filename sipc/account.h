@@ -57,12 +57,14 @@ public:
     virtual ~Account();
     virtual bool operator== (const Account &other);
     void setAccount (QByteArray number, QByteArray password);
-    const Contacts &getContacts() const;
+    // returns the list of contacts, not including info
+    const QList<QByteArray> &getContacts() const;
 signals:
     void logined();
     void needConfirm();
-    void contactsChanged();
     void contactChanged (const QByteArray &);
+    // find a better name
+    void groupChanged (const QByteArray &id, const QByteArray &name);
     void incomeMessage (const QByteArray &, //sender
                         const QByteArray &,//date
                         const QByteArray &);//content
@@ -73,7 +75,7 @@ signals:
     void sipcAuthorizeParsed();
 private:
     void parseReceivedData (const QByteArray &in);
-
+    void downloadPortrait (const QByteArray &sipuri);
 public slots:
     void login();
     // This will be connect to a dialog and call there
@@ -93,7 +95,7 @@ private slots:
     void dispatchOutbox();
     void dispatchOfflineBox();
 
-// functions that performance networking
+    void onPortraitDownloaded (const QByteArray &);
     void keepAlive();
     //called in period when connection established SIP_EVENT_KEEPALIVE
     void ssiLogin();
@@ -101,7 +103,6 @@ private slots:
     void ssiVerify();
     void systemConfig();
 
-    void downloadPortrait (const QByteArray &sipuri);
     // uploadPortrait(/*file*/);
     void sipcRegister();
     void sipcAuthorize();

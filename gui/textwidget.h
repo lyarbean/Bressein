@@ -32,7 +32,7 @@ OpenSSL library used as well as that of the covered work.
 #define TEXTWIDGET_H
 
 #include <QtGui/QGraphicsTextItem>
-
+#include <QTextImageFormat>
 namespace Bressein
 {
 
@@ -49,13 +49,16 @@ public:
         return TextWidgetType;
     }
     void setEditable();
-    void addText (const QByteArray &);
+    void addText (const QByteArray &, const QByteArray &);
     const QByteArray plainText() const;
+    void setImage (const QTextImageFormat &);
 protected:
 //     virtual QSizeF sizeHint (Qt::SizeHint which, const QSizeF &constraint = QSizeF()) const;
     void paint (QPainter *painter,
                 const QStyleOptionGraphicsItem *option,
                 QWidget *widget = 0);
+private:
+    QTextImageFormat image;
 };
 }
 #endif // TEXTWIDGET_H

@@ -33,7 +33,7 @@ OpenSSL library used as well as that of the covered work.
 
 #include <QtCore/QObject>
 #include <QMap>
-
+#include <QTextImageFormat>
 class QSystemTrayIcon;
 class QMenu;
 namespace Bressein
@@ -61,22 +61,28 @@ public:
     BresseinManager (QObject *parent = 0);
     virtual ~BresseinManager();
     void initialize();
+
 signals:
+
 public slots:
     void loginAs (const QByteArray &, const QByteArray &);
     void onContactChanged (const QByteArray &);
+    void onGroupChanged (const QByteArray &, const QByteArray &);
     void onChatSpawn (const QByteArray &);
 private slots:
     void onChatClose (const QByteArray &);
     void onIncomeMessage (const QByteArray &,
                           const QByteArray &,
                           const QByteArray &);
+    void readyShow();
 private:
     Account *account;
     SidepanelView *sidePanel;
     QSystemTrayIcon *tray;
     QMenu *trayIconMenu;
     QMap<QByteArray, ChatView *> chatViews;
+    //TODO it should be better to store QTextImageFormats here, but ...
+//     QMap<QByteArray, QTextImageFormat> images;
 };
 
 }

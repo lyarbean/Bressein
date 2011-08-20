@@ -31,6 +31,7 @@ OpenSSL library used as well as that of the covered work.
 #include "textwidget.h"
 #include <QPainter>
 #include <QTextDocument>
+#include <QTextCursor>
 #include <QStyle>
 #include <QStyleOptionGraphicsItem>
 #include <QDebug>
@@ -40,10 +41,8 @@ TextWidget::TextWidget (QGraphicsItem *parent)
     : QGraphicsTextItem (parent)
 {
     setFlags (QGraphicsItem::ItemIsFocusable |
-              QGraphicsItem::ItemAcceptsInputMethod|
               QGraphicsItem::ItemIsSelectable | flags());
     setTextInteractionFlags (Qt::TextBrowserInteraction);
-    document()-> setDefaultStyleSheet ("");
 }
 
 TextWidget::~TextWidget()
@@ -54,19 +53,36 @@ TextWidget::~TextWidget()
 void TextWidget::setEditable ()
 {
     //TODO
-    setTextInteractionFlags (Qt::TextEditorInteraction);
+    setFlags (QGraphicsItem::ItemAcceptsInputMethod | flags());
+    setTextInteractionFlags (Qt::TextEditable);
+    setPanelModality (QGraphicsItem::SceneModal);
 
 }
 
-void TextWidget::addText (const QByteArray &stack)
+void TextWidget::addText (const QByteArray &datetime, const QByteArray &content)
 {
-    setPlainText (toPlainText().append (QString::fromUtf8 (stack)));
+    //     showArea->addText("\n");
+    //     showArea->addText(datetime);
+    //     showArea->addText("\n");
+    //     showArea->addText(message);
+    textCursor().beginEditBlock();
+    textCursor().insertImage (image);
+    //TODO localize
+    textCursor().insertText (QString::fromUtf8 (datetime));
+    textCursor().insertText (QString::fromUtf8 (content));
+    textCursor().insertText ("\n");
+    textCursor().endEditBlock();
 }
 
 
 const QByteArray TextWidget::plainText() const
 {
     return toPlainText().toUtf8();
+}
+
+void TextWidget::setImage (const QTextImageFormat &image)
+{
+    this->image = image;
 }
 
 /*
@@ -80,7 +96,7 @@ void TextWidget::paint (QPainter *painter,
                         QWidget *widget)
 {
     painter->drawRect (boundingRect());
-    QGraphicsTextItem::paint (painter,option,widget);
+    QGraphicsTextItem::paint (painter, option, widget);
 }
 
 
