@@ -28,48 +28,33 @@ combination shall include the source code for the parts of the
 OpenSSL library used as well as that of the covered work.
 */
 
-#ifndef CONTACTITEM_H
-#define CONTACTITEM_H
+#ifndef LOGINWIDGET_H
+#define LOGINWIDGET_H
 
-#include <QtGui/QGraphicsTextItem>
-#include <QTextImageFormat>
-#include "sipc/types.h"
+#include <QWidget>
+class QLabel;
+class QLineEdit;
+class QPushButton;
+
 namespace Bressein
 {
-/**
-shows portrait and local name or nick name or mobile / fetion number
- * */
-class ContactItem : public QGraphicsTextItem
+class LoginWidget : public QWidget
 {
     Q_OBJECT
 public:
-    enum { ContactItemType = UserType + 1 };
-    ContactItem (QGraphicsItem *parent = 0);
-    ~ContactItem();
-
-    int type () const
-    {
-        return ContactItemType;
-    }
-    void paint (QPainter *painter,
-                const QStyleOptionGraphicsItem *option,
-                QWidget *widget = 0);
-    QRectF boundingRect() const;
-//     virtual void hoverEnterEvent(QGraphicsSceneHoverEvent *event);
-//     virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent *event);
-//     ContactItem();
-//     virtual ~ContactItem();
-    void setSipuri (const QByteArray &sipuri);
-    const QByteArray &getSipuri () const ;
-    void updateContact (const ContactInfo &contactInfo);
-protected:
-    void mouseDoubleClickEvent (QGraphicsSceneMouseEvent *event);
-    void hoverEnterEvent (QGraphicsSceneHoverEvent *event);
-    void hoverLeaveEvent (QGraphicsSceneHoverEvent *event);
+    LoginWidget (QWidget *parent = 0, Qt::WindowFlags f = 0);
+    virtual ~LoginWidget();
+    void setMessage (const QString &);
+signals:
+    void commit (const QByteArray &, const QByteArray &);
+private slots:
+    void onCommitButtonClicked (bool);
 private:
-    QByteArray sipuri;
-    ContactInfo contact;
-    QTextImageFormat imageFormat;
+    QLabel *messageLabel;
+    QLineEdit *numberEdit;
+    QLineEdit *passwordEdit;
+    QPushButton *commitButton;
+
 };
 }
-#endif // CONTACTITEM_H
+#endif // LOGINWIDGET_H

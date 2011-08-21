@@ -46,7 +46,8 @@ const static QByteArray NAVIGATION = "nav.fetion.com.cn";
 const static QByteArray DOMAIN = "fetion.com.cn";
 const static QByteArray UID_URI = "uid.fetion.com.cn";
 
-// Connection relative
+extern const QByteArray sipToFetion (const QByteArray &);
+
 extern const QByteArray hashV1 (const QByteArray &userId,
                                 const QByteArray &password);
 

@@ -32,12 +32,14 @@ OpenSSL library used as well as that of the covered work.
 #include "sipc/account.h"
 #include "chatview.h"
 #include "sidepanelview.h"
+#include "loginwidget.h"
 #include <QSystemTrayIcon>
 #include <QMenu>
 namespace Bressein
 {
 BresseinManager::BresseinManager (QObject *parent) : QObject (parent),
     account (new Account),
+    loginDialog (new LoginWidget),
     sidePanel (new SidepanelView),
     tray (new QSystemTrayIcon),
     trayIconMenu (new QMenu)
@@ -57,9 +59,12 @@ BresseinManager::BresseinManager (QObject *parent) : QObject (parent),
                                           const QByteArray &,
                                           const QByteArray &)),
              Qt::QueuedConnection);
+    connect (loginDialog, SIGNAL (commit (const QByteArray &, const QByteArray &)),
+             this, SLOT (loginAs (const QByteArray &, const QByteArray &)));
     connect (sidePanel, SIGNAL (contactActivated (const QByteArray &)),
              this, SLOT (onChatSpawn (const QByteArray &)));
     // trayIconMenu.addAction ...
+    loginDialog->show();
     tray->setContextMenu (trayIconMenu);
     tray->setIcon (QIcon ("/usr/share/icons/oxygen/32x32/emotes/face-smile.png"));
     tray->setToolTip ("Bressein");
@@ -78,7 +83,7 @@ BresseinManager::~BresseinManager()
 void BresseinManager::initialize()
 {
     //demo
-    loginAs (qgetenv ("FETIONNUMBER"), qgetenv ("FETIONPASSWORD"));
+//     loginAs (qgetenv ("FETIONNUMBER"), qgetenv ("FETIONPASSWORD"));
 }
 
 // public slots:
@@ -88,6 +93,7 @@ void BresseinManager::loginAs (const QByteArray &number,
     if (number.isEmpty() or password.isEmpty()) return;
     account->setAccount (number, password);
     account->login();
+    loginDialog->setMessage (tr ("Connecting... "));
 }
 
 void BresseinManager::onContactChanged (const QByteArray &contact)
@@ -110,14 +116,25 @@ void BresseinManager::onChatSpawn (const QByteArray &contact)
     if (chatViews.find (contact) == chatViews.end())
     {
         ChatView *chatview = new ChatView (0);
-        chatview->setContact (contact);
+        const ContactInfo &contactInfo = account->getContactInfo (contact);
+        QByteArray name = contact;
+        if (not contactInfo.detail.nickName.isEmpty())
+        {
+            name = contactInfo.detail.nickName;
+        }
+        if (not contactInfo.basic.localName.isEmpty())
+        {
+            name = contactInfo.basic.localName;
+        }
+        chatview->setContact (contact, name);
         chatViews.insert (contact, chatview);
         connect (chatview, SIGNAL (toClose (const QByteArray &)),
                  this, SLOT (onChatClose (const QByteArray &)));
         connect (chatview,
                  SIGNAL (sendMessage (const QByteArray &, const QByteArray &)),
                  account,
-                 SLOT (sendMessage (const QByteArray &, const QByteArray &)));
+                 SLOT (sendMessage (const QByteArray &, const QByteArray &)),
+                 Qt::QueuedConnection);
         chatview->resize (500, 500);
         chatview->show();
     }
@@ -127,6 +144,8 @@ void BresseinManager::onChatSpawn (const QByteArray &contact)
     }
 }
 
+// TODO if the chatview has been idle for long time, we should destroys it to
+// save memory.
 void BresseinManager::onChatClose (const QByteArray &contact)
 {
     qDebug() << "BresseinManager::onChatClose (const QByteArray &contact)";
@@ -138,6 +157,7 @@ void BresseinManager::onChatClose (const QByteArray &contact)
 // TODO static cast
     qDebug() << "onChatClose found";
     ChatView *chatview  = chatViews.value (contact);
+    chatview->disconnect();
     chatview->close();
     chatview->deleteLater();
     chatViews.remove (contact);
@@ -158,6 +178,7 @@ void BresseinManager::onIncomeMessage (const QByteArray &contact,
 
 void BresseinManager::readyShow()
 {
+    loginDialog->hide();
     sidePanel->show();
 }
 

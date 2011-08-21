@@ -37,6 +37,12 @@ OpenSSL library used as well as that of the covered work.
 
 namespace Bressein
 {
+const QByteArray sipToFetion (const QByteArray &sipuri)
+{
+    int a = sipuri.indexOf (":");
+    int b = sipuri.indexOf ("@");
+    return sipuri.mid (a + 1, b - a - 1);
+}
 
 const QByteArray hashV1 (const QByteArray &userId, const QByteArray &password)
 {

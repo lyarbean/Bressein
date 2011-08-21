@@ -58,13 +58,13 @@ void ContactItem::paint (QPainter *painter,
                          const QStyleOptionGraphicsItem *option,
                          QWidget *widget)
 {
-    painter->drawRect (boundingRect());
+    painter->drawRect (boundingRect().adjusted (2,2,-2,-2));
     QGraphicsTextItem::paint (painter, option, widget);
 }
 
 QRectF ContactItem::boundingRect() const
 {
-    return QRectF (2, 0, 200, document()->size().height());
+    return QRectF (0, 0, 130, document()->size().height());
 }
 
 
@@ -80,43 +80,64 @@ const QByteArray &ContactItem::getSipuri() const
 
 void ContactItem::updateContact (const ContactInfo &contactInfo)
 {
-    setPlainText ("");
+    prepareGeometryChange();
+    document()->clear();
     int a = sipuri.indexOf (":");
     int b = sipuri.indexOf ("@");
     QString path = QDir::homePath().append ("/.bressein/icons/").
                    append (sipuri.mid (a + 1, b - a - 1)).append (".jpeg");
     if (not QFile (path).open (QIODevice::ReadOnly))
     {
-        path = "/usr/share/icons/oxygen/32x32/emotes/face-smile.png";
+        path = "/usr/share/icons/oxygen/128x128/emotes/face-smile.png";
     }
     imageFormat.setName (path);
-    imageFormat.setHeight (32);
-    imageFormat.setWidth (32);
+    imageFormat.setHeight (120);
+    imageFormat.setWidth (120);
+    // retain a copy
     contact = contactInfo;
+    QTextBlockFormat blockFormat;
+    blockFormat.setAlignment (Qt::AlignCenter);
     textCursor().beginEditBlock();
-    textCursor().insertImage (imageFormat);
-    //TODO localize
+    textCursor().insertImage (imageFormat, QTextFrameFormat::InFlow);
+    textCursor().setBlockFormat (blockFormat);
     if (not contact.basic.localName.isEmpty())
     {
         textCursor().insertText (QString::fromUtf8 (contact.basic.localName));
+        textCursor().insertText ("\n");
     }
     else if (not contact.detail.nickName.isEmpty())
     {
         textCursor().insertText (QString::fromUtf8 (contact.detail.nickName));
+        textCursor().insertText ("\n");
     }
-    textCursor().insertText ("\t");
-    textCursor().insertText (QString::fromUtf8 (contact.basic.userId));
+    if (not contact.detail.mobileno.isEmpty())
+    {
+        textCursor().insertText (QString::fromUtf8 (contact.detail.mobileno));
+        textCursor().insertText ("\n");
+    }
     textCursor().insertText (QString::fromUtf8 (sipuri.mid (a + 1, b - a - 1)));
-    textCursor().insertText ("\n");
-    //TODO show imprea when get hovered
-    textCursor().insertText (QString::fromUtf8 (contact.basic.imprea));
-    textCursor().insertText ("\n");
     textCursor().endEditBlock();
+    //
+    //TODO show imprea when get hovered
+    setToolTip (QString::fromUtf8 (contact.basic.imprea));
 }
 
 void ContactItem::mouseDoubleClickEvent (QGraphicsSceneMouseEvent *event)
 {
+    // should not call directly, just for convenience
     Singleton<BresseinManager>::instance()->onChatSpawn (sipuri);
+}
+
+void ContactItem::hoverEnterEvent (QGraphicsSceneHoverEvent *event)
+{
+    setOpacity (0.6);
+    QGraphicsTextItem::hoverEnterEvent (event);
+}
+
+void ContactItem::hoverLeaveEvent (QGraphicsSceneHoverEvent *event)
+{
+    setOpacity (1);
+    QGraphicsTextItem::hoverLeaveEvent (event);
 }
 
 }

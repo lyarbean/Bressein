@@ -41,7 +41,7 @@ OpenSSL library used as well as that of the covered work.
 #include <QDir>
 #include <QDateTime>
 #include <QKeyEvent>
-#include <QDebug>
+#include <sipc/aux.h>
 namespace Bressein
 {
 ChatView::ChatView (QWidget *parent) :
@@ -61,12 +61,9 @@ ChatView::ChatView (QWidget *parent) :
     showArea->setPos (0, 0);
     inputArea->setEditable();
     inputArea->setFocus();
+    setMinimumSize (300, 300);
     adjustSize();
-//     inputArea->setTextWidth(400);
-//     inputArea->setPlainText("Hello");
-//     inputArea->setTextInteractionFlags (Qt::TextEditable);
     setScene (gscene);
-//     gscene->setActivePanel (inputArea);
     connect (inputArea->document(), SIGNAL (contentsChanged()),
              this, SLOT (adjustSize()));
 }
@@ -76,10 +73,20 @@ ChatView::~ChatView()
     gscene->deleteLater();
 }
 
-void ChatView::setContact (const QByteArray &contact)
+void ChatView::setContact (const QByteArray &contact, const QByteArray &name)
 {
     sipuri = contact;
-    showArea->setImage (sipuri);
+//     showArea->setImage (sipuri);
+    QString path = QDir::homePath().append ("/.bressein/icons/").
+                   append (sipToFetion (sipuri)).append (".jpeg");
+    if (not QFile (path).open (QIODevice::ReadOnly))
+    {
+        path = "/usr/share/icons/oxygen/128x128/emotes/face-smile.png";
+    }
+    other.setName (path);
+    other.setHeight (120);
+    other.setWidth (120);
+    setWindowTitle (tr ("Chatting with ").append (QString::fromUtf8 (name)));
 }
 
 //public slots
@@ -88,29 +95,25 @@ void ChatView::incomeMessage (const QByteArray &datetime,
                               const QByteArray &message)
 {
     //TODO make a MessageBlockItem with text datetime and message and ...
-    showArea->addText (datetime,message);
+    // showArea add other
+    showArea->addText (datetime, message);
     adjustSize();
 }
 
 void ChatView::keyReleaseEvent (QKeyEvent *event)
 {
-    switch (event->key())
+    // use ctrl+enter to commit
+    if (event->key() == Qt::Key_Enter and event->modifiers() == Qt::ControlModifier)
     {
-        case Qt::Key_Meta:
-            {
-                QByteArray text = inputArea->plainText();
-                if (not text.isEmpty())
-                {
-                    showArea->addText (QDateTime::currentDateTime().
-                                       toString().toUtf8(),text);
-                    inputArea->setPlainText ("");
-                    sendMessage (sipuri,text);
-                    adjustSize();
-                }
-            }
-            break;
-        default:
-            break;
+        QByteArray text = inputArea->plainText();
+        if (not text.isEmpty())
+        {
+            showArea->addText (QDateTime::currentDateTime().
+                               toString().toUtf8(), text);
+            inputArea->document()->clear();
+            sendMessage (sipuri, text);
+            adjustSize();
+        }
     }
 }
 
@@ -125,8 +128,10 @@ void ChatView::resizeEvent (QResizeEvent *event)
 
 void ChatView::closeEvent (QCloseEvent *event)
 {
+    // hide!
     event->ignore();
-    emit toClose (sipuri);
+    hide();
+//     emit toClose (sipuri);
 }
 
 void ChatView::adjustSize()
@@ -134,10 +139,10 @@ void ChatView::adjustSize()
     int showAreaHeight = showArea->document()->size().height();
     int inputAreaHeight = inputArea->document()->size().height();
 
-    int leftTop = showAreaHeight > 200 ? showAreaHeight+5 : 205;
+    int leftTop = showAreaHeight > 200 ? showAreaHeight + 5 : 205;
     inputArea->setPos (0, leftTop);
-    gscene->setSceneRect (0,0,showArea->textWidth()-10, leftTop +
-                          (inputAreaHeight > 100 ? inputAreaHeight+20 : 120));
+    gscene->setSceneRect (0, 0, showArea->textWidth() - 10, leftTop +
+                          (inputAreaHeight > 100 ? inputAreaHeight + 20 : 120));
     ensureVisible (inputArea);
     updateGeometry();
 }

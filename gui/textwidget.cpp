@@ -72,6 +72,7 @@ void TextWidget::addText (const QByteArray &datetime, const QByteArray &content)
     cursor.insertText (QString::fromUtf8 (content));
     cursor.insertText ("\n");
     setTextCursor (cursor);
+    update();
 }
 
 

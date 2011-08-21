@@ -45,12 +45,14 @@ SidepanelView::SidepanelView (QWidget *parent)
     , linearLayout (new QGraphicsLinearLayout)
 {
     setAlignment (Qt::AlignLeft | Qt::AlignTop);
+    setMinimumWidth (185);
+    setMaximumWidth (185);
     setRenderingSystem();
     setupScene();
     // add default group
     QByteArray id = "0";
     QByteArray name = "untitled";
-    addGroup (id,name);
+    addGroup (id, name);
 }
 
 SidepanelView::~SidepanelView()
@@ -110,14 +112,14 @@ void SidepanelView::updateContact (const QByteArray &contact,
         }
         else // should not been called, just in case
         {
-            qDebug() << "XXXXXXXXXXXXX groupId" <<groupId;
+            qDebug() << "XXXXXXXXXXXXX groupId" << groupId;
             // TODO make a new group?
             item = new ContactItem (groups.first());
             item->setPos (5, 10 + groups.first()->childrenBoundingRect().height());
         }
         item->setSipuri (contact);
         item->updateContact (contactInfo);
-        item->setZValue (10);
+        item->setZValue (1);
         item->setVisible (true);
         itemList.append (item);
         //TODO adjust size
@@ -129,10 +131,10 @@ void SidepanelView::addGroup (const QByteArray &id, const QByteArray &name)
 {
 
     QGraphicsSimpleTextItem *item = new QGraphicsSimpleTextItem;
-    item->setFont (QFont ("Times",14, QFont::Bold));
+    item->setFont (QFont ("Times", 14, QFont::Bold));
     item->setText (QString::fromUtf8 (name));
-    item->setData (1,id);
-    qDebug() << "addGroup"<< QString::fromUtf8 (name);
+    item->setData (1, id);
+    item->setZValue (0);
     groups.append (item);
     gscene->addItem (item);
     resizeScene();
@@ -160,7 +162,7 @@ void SidepanelView::setRenderingSystem()
 //     viewport = new QWidget;
 //     setViewport (viewport);
     setRenderHints (QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
-    setCacheMode (QGraphicsView::CacheBackground);
+    setCacheMode (QGraphicsView::CacheNone);
     setViewportUpdateMode (QGraphicsView::FullViewportUpdate);
     setDragMode (QGraphicsView::ScrollHandDrag);
 
@@ -169,11 +171,8 @@ void SidepanelView::setRenderingSystem()
 void SidepanelView::setupScene()
 {
     // indirectly pass through
-    gscene->setSceneRect (0, 0, 300, 600);
+    gscene->setSceneRect (0, 0, 150, 600);
     gscene->setItemIndexMethod (QGraphicsScene::NoIndex);
-//     QGraphicsWidget *form = new QGraphicsWidget;
-//     form->setLayout(linearLayout);
-//     gscene->addItem(form);
     setScene (gscene);
 }
 
@@ -185,11 +184,30 @@ void SidepanelView::setupSceneItems()
 
 void SidepanelView::resizeScene()
 {
+    //FIXME
     int height = 0;
     QList<QGraphicsSimpleTextItem *>::iterator it = groups.begin();
     while (it not_eq groups.end())
     {
-        (*it)->setPos (0,height);
+        (*it)->setPos (0, height);
+        while (not (*it)->collidingItems().isEmpty())
+        {
+            foreach (QGraphicsItem *item, (*it)->collidingItems())
+            {
+                item->setPos (item->pos().x(), item->pos().y() + 1);
+            }
+        }
+        // update positions of it's childItems
+        foreach (QGraphicsItem *citem, (*it)->childItems())
+        {
+            while (not citem->collidingItems().isEmpty())
+            {
+                foreach (QGraphicsItem *ccitem, citem->collidingItems())
+                {
+                    ccitem->setPos (ccitem->pos().x(), ccitem->pos().y() + 1);
+                }
+            }
+        }
         height += (*it)->childrenBoundingRect().height();
         if (not (*it)->childItems().isEmpty())
             height += (*it)->childItems().last()->boundingRect().height();
@@ -197,12 +215,11 @@ void SidepanelView::resizeScene()
     }
     if (not itemList.isEmpty())
     {
-        ensureVisible (itemList.last());
+//         ensureVisible (itemList.last());
         height += itemList.last()->boundingRect().height();
     }
     if (height > 600)
-        gscene->setSceneRect (0,0, 300, height);
-
+        gscene->setSceneRect (0, 0, 150, height);
     updateGeometry();
 }
 
@@ -210,10 +227,10 @@ void SidepanelView::resizeScene()
 void SidepanelView::resizeEvent (QResizeEvent *event)
 {
     QGraphicsView::resizeEvent (event);
-    if (scene())
-    {
-        scene()->invalidate (scene()->sceneRect());
-    }
+//     if (scene())
+//     {
+//         scene()->invalidate (scene()->sceneRect());
+//     }
 }
 
 }

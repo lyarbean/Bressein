@@ -527,12 +527,11 @@ void Account::parseSsiResponse (QByteArray &data)
                 domChild.hasAttribute ("user-id"))
             {
                 info->sipuri = domChild.attribute ("uri").toUtf8();
-                b = info->sipuri.indexOf ("sip:");
-                e = info->sipuri.indexOf ("@", b);
-                info->fetionNumber = info->sipuri.mid (b + 4, e - b - 4);
+                info->fetionNumber = sipToFetion (info->sipuri);
                 info->mobileNumber = domChild.attribute ("mobile-no").toUtf8();
                 // info->state = domE.attribute ("user-status").toUtf8();
                 info->userId = domChild.attribute ("user-id").toUtf8();
+                downloadPortrait (info->sipuri);
             }
             else
             {
@@ -854,7 +853,7 @@ void Account::parseSipcAuthorize (QByteArray &data)
                         QByteArray sipuri = domGrand.attribute ("u").toUtf8();
                         contacts.insert (sipuri, contact);
                         downloadPortrait (sipuri);
-//                         emit contactChanged(sipuri);
+                        emit contactChanged (sipuri);
                     }
                     domGrand = domGrand.nextSiblingElement ("b");
                 }
@@ -1151,7 +1150,7 @@ void Account::dequeueMessages()
     {
         qDebug() << "==============================";
         qDebug() << "dequeueMessages while (not empty)";
-        qDebug() << data;
+        qDebug() << QString::fromUtf8 (data);
         if (not data.isEmpty())
         {
             parseReceivedData (data);
@@ -1223,7 +1222,7 @@ void Account::dispatchOutbox()
 
 void Account::dispatchOfflineBox()
 {
-    qDebug() << "dispatchLetters";
+    //     qDebug() << "dispatchOfflineBox";
     mutex.lock();
     Letter *data;
     bool empty = offlineBox.isEmpty();
@@ -1273,7 +1272,10 @@ void Account::dispatchOfflineBox()
 
 void Account::onPortraitDownloaded (const QByteArray &sipuri)
 {
-    emit contactChanged (sipuri);
+    if (sipuri not_eq info->sipuri)
+    {
+        emit contactChanged (sipuri);
+    }
 }
 
 void Account::parseReceivedData (const QByteArray &receiveData)
@@ -1401,12 +1403,12 @@ void Account::parseReceivedData (const QByteArray &receiveData)
         }
         else
         {
-            qDebug() << data;
+            qDebug() << QString::fromUtf8 (data);
         }
     }
     else
     {
-        qDebug() << data;
+        qDebug() << QString::fromUtf8 (data);
     }
 //     onReceiveData();
     // blocking?
@@ -1416,7 +1418,7 @@ void Account::onReceivedMessage (const QByteArray &data)
 {
     // save to dataBase
     // do reply
-    qDebug() << data;
+    qDebug() << QString::fromUtf8 (data);
     int b = data.indexOf ("F: ");
     int e = data.indexOf ("\r\n", b);
     QByteArray fromSipuri = data.mid (b + 3, e - b - 3);
@@ -1548,7 +1550,7 @@ void Account::onBNPresenceV4 (const QByteArray &data)
                 contactInfo->basic.state =
                     (StateType) child.attribute ("b").toInt();
                 contacts.insert (sipuri, contactInfo);
-
+                emit contactChanged (sipuri);
                 qDebug() << "Contact Changed";
                 static int contactCount = 0;
                 qDebug() << "contactCount" << ++contactCount;
@@ -1567,7 +1569,7 @@ void Account::onBNConversation (const QByteArray &data)
     qDebug() << "onBNConversation";
     //<events><event type="UserFailed"><member uri="sip:xxxxx@fetion.com.cn;p=aaaa" status="502"/></event></events>
     // when UserEntered, UserFailed, UserLeft, we destroy the conversation corresponding.
-    qDebug() << data;
+    qDebug() << QString::fromUtf8 (data);
     // if UserLeft, get node member, if ok, get property uri, then remove
     // inform conversationManager to remove this sipuri (uri).
 }
@@ -1575,7 +1577,7 @@ void Account::onBNConversation (const QByteArray &data)
 void Account::onBNSyncUserInfoV4 (const QByteArray &data)
 {
     qDebug() << "onBNSyncUserInfoV4";
-    qDebug() << data;
+    qDebug() << QString::fromUtf8 (data);
     // TODO
     // get node "buddy", if ok, process the data
     // get properties action, (if action is add) user-id, uri, relation-status
@@ -1585,7 +1587,7 @@ void Account::onBNSyncUserInfoV4 (const QByteArray &data)
 void Account::onBNcontact (const QByteArray &data)
 {
     qDebug() << "onBNcontact";
-    qDebug() << data;
+    qDebug() << QString::fromUtf8 (data);
     // TODO
     // get node "application", if ok, process the data
     // get properties uri, user-id, desc, addbuddy-phrase-id
@@ -1597,13 +1599,13 @@ void Account::onBNregistration (const QByteArray &data)
     qDebug() << "onBNPGGroup";
     // TODO
     // if event type is deregistered, we nnforced to quit, reset all state
-    qDebug() << data;
+    qDebug() << QString::fromUtf8 (data);
 }
 
 void Account::onBNPGGroup (const QByteArray &data)
 {
     qDebug() << "onBNPGGroup";
-    qDebug() << data;
+    qDebug() << QString::fromUtf8 (data);
     // TODO
     // if event is PGGetGroupInfo
     // for each node group, get properties uri, status-code, name, category,
@@ -1723,7 +1725,7 @@ void Account::onStartChat (const QByteArray &data)
 void Account::onInfo (const QByteArray &data)
 {
     qDebug() << "onIncoming";
-    qDebug() << data;
+    qDebug() << QString::fromUtf8 (data);;
     // TODO
     // if has node share-content, get properties action,
     // if action is accept, ...
@@ -1829,7 +1831,7 @@ void Account::onInfoTransferV4 (const QByteArray &data)
 void Account::onSipc (const QByteArray &data)
 {
     qDebug() << "onSipc";
-    qDebug() << data;
+    qDebug() << QString::fromUtf8 (data);;
     // in openfetion, message is distinguished into by challId.
     // try
     // 1. if callId is pgGroupCallId
@@ -1853,7 +1855,7 @@ void Account::onSipc (const QByteArray &data)
 void Account::onOption (const QByteArray &data)
 {
     qDebug() << "onOption";
-    qDebug() << data;
+    qDebug() << QString::fromUtf8 (data);
 }
 
 void Account::parsePGGroupMembers (const QByteArray &data)
@@ -1869,7 +1871,7 @@ void Account::parsePGGroupMembers (const QByteArray &data)
     {
         qDebug() << "Failed parsePGGroupMembers!";
         qDebug() << errorMsg << errorLine << errorColumn;
-        qDebug() << xml;
+        qDebug() << QString::fromUtf8 (data);;
         return;
     }
     domDoc.normalize();

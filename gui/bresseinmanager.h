@@ -39,6 +39,7 @@ class QMenu;
 namespace Bressein
 {
 class Account;
+class LoginWidget;
 class ChatView;
 class SidepanelView;
 /**
@@ -77,6 +78,7 @@ private slots:
     void readyShow();
 private:
     Account *account;
+    LoginWidget *loginDialog;
     SidepanelView *sidePanel;
     QSystemTrayIcon *tray;
     QMenu *trayIconMenu;

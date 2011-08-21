@@ -53,7 +53,7 @@ class ChatView : public QGraphicsView
 public:
     ChatView (QWidget *parent = 0);
     virtual ~ChatView();
-    void setContact (const QByteArray &);
+    void setContact (const QByteArray &, const QByteArray &);
 public slots:
     void incomeMessage (const QByteArray &, const QByteArray &);
 signals:
@@ -67,6 +67,7 @@ private slots:
     void adjustSize();
 private:
     QByteArray sipuri;
+    QTextImageFormat other;
     QTextImageFormat self;
     QGraphicsScene *gscene;
     TextWidget *showArea;
