@@ -42,6 +42,7 @@ OpenSSL library used as well as that of the covered work.
 #include <QDateTime>
 #include <QKeyEvent>
 #include <sipc/aux.h>
+#include <QDebug>
 namespace Bressein
 {
 ChatView::ChatView (QWidget *parent) :
@@ -89,27 +90,32 @@ void ChatView::setContact (const QByteArray &contact, const QByteArray &name)
     setWindowTitle (tr ("Chatting with ").append (QString::fromUtf8 (name)));
 }
 
+void ChatView::setPortrait (const QTextImageFormat &portrait)
+{
+    self = portrait;
+}
+
 //public slots
 
 void ChatView::incomeMessage (const QByteArray &datetime,
                               const QByteArray &message)
 {
     //TODO make a MessageBlockItem with text datetime and message and ...
-    // showArea add other
-    showArea->addText (datetime, message);
+    showArea->addText (datetime, message,other);
     adjustSize();
 }
 
 void ChatView::keyReleaseEvent (QKeyEvent *event)
 {
     // use ctrl+enter to commit
-    if (event->key() == Qt::Key_Enter and event->modifiers() == Qt::ControlModifier)
+    if (event->key() == Qt::Key_Return and
+        event->modifiers() == Qt::ControlModifier)
     {
         QByteArray text = inputArea->plainText();
         if (not text.isEmpty())
         {
             showArea->addText (QDateTime::currentDateTime().
-                               toString().toUtf8(), text);
+                               toString().toUtf8(), text, self);
             inputArea->document()->clear();
             sendMessage (sipuri, text);
             adjustSize();
@@ -138,7 +144,6 @@ void ChatView::adjustSize()
 {
     int showAreaHeight = showArea->document()->size().height();
     int inputAreaHeight = inputArea->document()->size().height();
-
     int leftTop = showAreaHeight > 200 ? showAreaHeight + 5 : 205;
     inputArea->setPos (0, leftTop);
     gscene->setSceneRect (0, 0, showArea->textWidth() - 10, leftTop +

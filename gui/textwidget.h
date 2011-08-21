@@ -49,16 +49,15 @@ public:
         return TextWidgetType;
     }
     void setEditable();
-    void addText (const QByteArray &, const QByteArray &);
+    void addText (const QByteArray &,
+                  const QByteArray &,
+                  const QTextImageFormat &);
     const QByteArray plainText() const;
-    void setImage (const QByteArray &);
 protected:
 //     virtual QSizeF sizeHint (Qt::SizeHint which, const QSizeF &constraint = QSizeF()) const;
     void paint (QPainter *painter,
                 const QStyleOptionGraphicsItem *option,
                 QWidget *widget = 0);
-private:
-    QTextImageFormat image;
 };
 }
 #endif // TEXTWIDGET_H

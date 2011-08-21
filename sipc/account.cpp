@@ -110,6 +110,12 @@ void Account::setAccount (QByteArray number, QByteArray password)
     info->callId = 1;
 }
 
+void Account::getFetion (QByteArray &out) const
+{
+    out = sipToFetion (info->sipuri);
+}
+
+
 const QList<QByteArray>  &Account::getContacts() const
 {
     QList<QByteArray> contactlist = contacts.keys();
@@ -531,7 +537,6 @@ void Account::parseSsiResponse (QByteArray &data)
                 info->mobileNumber = domChild.attribute ("mobile-no").toUtf8();
                 // info->state = domE.attribute ("user-status").toUtf8();
                 info->userId = domChild.attribute ("user-id").toUtf8();
-                downloadPortrait (info->sipuri);
             }
             else
             {
@@ -1110,9 +1115,9 @@ void Account::activateTimer()
     connect (keepAliveTimer, SIGNAL (timeout()), SLOT (keepAlive()));
     contactSubscribe();
     keepAliveTimer->start (60000);
-
+    downloadPortrait (info->sipuri);
     // call other stuffs right here
-    emit logined();
+//     emit logined();
 }
 
 
@@ -1272,7 +1277,12 @@ void Account::dispatchOfflineBox()
 
 void Account::onPortraitDownloaded (const QByteArray &sipuri)
 {
-    if (sipuri not_eq info->sipuri)
+    if (sipuri == info->sipuri)
+    {
+        qDebug() << " emit logined ()";
+        emit logined ();
+    }
+    else
     {
         emit contactChanged (sipuri);
     }

@@ -34,15 +34,13 @@ OpenSSL library used as well as that of the covered work.
 #include "contactsscene.h"
 #include "contactitem.h"
 #include "chatview.h"
-#include <QGraphicsLinearLayout>
-
 
 namespace Bressein
 {
 SidepanelView::SidepanelView (QWidget *parent)
     : QGraphicsView (parent)
     , gscene (new ContactsScene (this))
-    , linearLayout (new QGraphicsLinearLayout)
+
 {
     setAlignment (Qt::AlignLeft | Qt::AlignTop);
     setMinimumWidth (185);
@@ -231,6 +229,14 @@ void SidepanelView::resizeEvent (QResizeEvent *event)
 //     {
 //         scene()->invalidate (scene()->sceneRect());
 //     }
+}
+
+void SidepanelView::closeEvent (QCloseEvent *event)
+{
+    // TODO
+    event->ignore();
+    hide();
+//     QWidget::closeEvent (event);
 }
 
 }

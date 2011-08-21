@@ -33,8 +33,9 @@ OpenSSL library used as well as that of the covered work.
 #include "chatview.h"
 #include "sidepanelview.h"
 #include "loginwidget.h"
-#include <QSystemTrayIcon>
+#include <QApplication>
 #include <QMenu>
+#include <QDir>
 namespace Bressein
 {
 BresseinManager::BresseinManager (QObject *parent) : QObject (parent),
@@ -59,16 +60,14 @@ BresseinManager::BresseinManager (QObject *parent) : QObject (parent),
                                           const QByteArray &,
                                           const QByteArray &)),
              Qt::QueuedConnection);
+    connect (account, SIGNAL (sipcAuthorizeParsed()),
+             this, SLOT (onStateAuthorized()), Qt::QueuedConnection);
     connect (loginDialog, SIGNAL (commit (const QByteArray &, const QByteArray &)),
              this, SLOT (loginAs (const QByteArray &, const QByteArray &)));
     connect (sidePanel, SIGNAL (contactActivated (const QByteArray &)),
              this, SLOT (onChatSpawn (const QByteArray &)));
-    // trayIconMenu.addAction ...
     loginDialog->show();
-    tray->setContextMenu (trayIconMenu);
-    tray->setIcon (QIcon ("/usr/share/icons/oxygen/32x32/emotes/face-smile.png"));
-    tray->setToolTip ("Bressein");
-    tray->show();
+    initializeTray();
     //TODO show login dialogand connect signals and slots
 }
 
@@ -127,6 +126,7 @@ void BresseinManager::onChatSpawn (const QByteArray &contact)
             name = contactInfo.basic.localName;
         }
         chatview->setContact (contact, name);
+        chatview->setPortrait (myPortrait);
         chatViews.insert (contact, chatview);
         connect (chatview, SIGNAL (toClose (const QByteArray &)),
                  this, SLOT (onChatClose (const QByteArray &)));
@@ -143,6 +143,21 @@ void BresseinManager::onChatSpawn (const QByteArray &contact)
         chatViews.value (contact)->showNormal();
     }
 }
+
+void BresseinManager::initializeTray()
+{
+    // trayIconMenu.addAction ...
+    QAction *quitAction = new QAction (tr ("quit"),tray);
+    connect (quitAction,SIGNAL (triggered (bool)),qApp, SLOT (quit()));
+    trayIconMenu->addAction (quitAction);
+    tray->setContextMenu (trayIconMenu);
+    tray->setIcon (QIcon ("/usr/share/icons/oxygen/32x32/emotes/face-smile.png"));
+    tray->setToolTip ("Bressein");
+    connect (tray, SIGNAL (activated (QSystemTrayIcon::ActivationReason)),
+             this, SLOT (onTrayActivated (QSystemTrayIcon::ActivationReason)));
+    tray->show();
+}
+
 
 // TODO if the chatview has been idle for long time, we should destroys it to
 // save memory.
@@ -178,8 +193,44 @@ void BresseinManager::onIncomeMessage (const QByteArray &contact,
 
 void BresseinManager::readyShow()
 {
-    loginDialog->hide();
+    QByteArray sipuri;
+    account->getFetion (sipuri);
+    QString path = QDir::homePath().append ("/.bressein/icons/").
+                   append (sipuri).append (".jpeg");
+    qDebug() << " BresseinManager::readyShow()";
+    qDebug() << path;
+    if (not QFile (path).open (QIODevice::ReadOnly))
+    {
+        path = "/usr/share/icons/oxygen/128x128/emotes/face-smile.png";
+    }
+    myPortrait.setName (path);
+    myPortrait.setHeight (120);
+    myPortrait.setWidth (120);
+    loginDialog->disconnect();
+    loginDialog->close();
+    loginDialog->deleteLater();
     sidePanel->show();
+}
+
+void BresseinManager::onStateAuthorized()
+{
+    loginDialog->setMessage (tr ("Downloading Portraits"));
+}
+
+void BresseinManager::onTrayActivated (QSystemTrayIcon::ActivationReason reason)
+{
+    switch (reason)
+    {
+        case QSystemTrayIcon::Trigger:
+        case QSystemTrayIcon::DoubleClick:
+            sidePanel->show();
+            break;
+        case QSystemTrayIcon::MiddleClick:
+            //TODO
+            break;
+        default:
+            ;
+    }
 }
 
 }

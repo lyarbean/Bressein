@@ -39,13 +39,8 @@ class QDateTime;
 namespace Bressein
 {
 //TODO move parts to QGraphicsWidget in order to gain more functionalities
-//TODO we use kopete-style chat dialog rather than that of MSN, QQ or fetion;
-// hence we provide show area via QGraphicsItemGroup, which contains items
-// containing chat messages. we provide an inputArea, subclassing from
-// QGraphicsTextItem, when initialize, and every time a message committed, we
-// add a MessageBlockItem(TODO) to QGraphicsItemGroup mentioned above and ajust
-// inputArea's position;
-
+//TODO use kopete-style chat dialog rather than that of MSN, QQ or fetion;
+//TODO provide Edit Tools
 class TextWidget;
 class ChatView : public QGraphicsView
 {
@@ -54,6 +49,7 @@ public:
     ChatView (QWidget *parent = 0);
     virtual ~ChatView();
     void setContact (const QByteArray &, const QByteArray &);
+    void setPortrait (const QTextImageFormat &);
 public slots:
     void incomeMessage (const QByteArray &, const QByteArray &);
 signals:

@@ -34,7 +34,6 @@ OpenSSL library used as well as that of the covered work.
 #include <QtGui/QGraphicsView>
 #include <QtGui/QGraphicsWidget>
 
-class QGraphicsLinearLayout;
 namespace Bressein
 {
 class ContactItem;
@@ -65,10 +64,10 @@ private slots:
     void resizeScene();
 protected:
     void resizeEvent (QResizeEvent *event);
+    void closeEvent (QCloseEvent *event);
 private:
     ContactsScene *gscene;
     QList<ContactItem *> itemList;
-    QGraphicsLinearLayout *linearLayout;
     QList<QGraphicsSimpleTextItem *> groups;
 };
 }

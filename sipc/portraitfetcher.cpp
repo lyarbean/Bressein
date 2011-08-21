@@ -63,7 +63,10 @@ void PortraitFetcher::requestPortrait (const QByteArray &sipuri)
     mutex.lock();
     queue.append (sipuri);
     mutex.unlock();
-    if (not isRunning())
+    if (not isRunning() and
+        not this->server.isEmpty() and
+        not this->path.isEmpty() and
+        not this->ssic.isEmpty())
     {
         start();
     }
@@ -178,8 +181,7 @@ void PortraitFetcher::run ()
             }
 
             QByteArray bytes = responseData.mid (pos_ + 4);
-            int a = sipuri.indexOf (":");
-            int b = sipuri.indexOf ("@");
+
             static QByteArray iconsSubDir =
                 QDir::homePath().toLocal8Bit().append ("/.bressein/icons/");
             if (not  QDir::home().exists (iconsSubDir))
@@ -187,7 +189,7 @@ void PortraitFetcher::run ()
                 QDir::home().mkpath (".bressein/icons/");
             }
             QByteArray filename = iconsSubDir;
-            filename.append (sipuri.mid (a + 1, b - a - 1));
+            filename.append (sipToFetion (sipuri));
             filename.append (".jpeg");
             QFile file (filename);
             file.open (QIODevice::WriteOnly);

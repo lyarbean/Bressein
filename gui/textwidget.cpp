@@ -60,7 +60,9 @@ void TextWidget::setEditable ()
 
 }
 
-void TextWidget::addText (const QByteArray &datetime, const QByteArray &content)
+void TextWidget::addText (const QByteArray &datetime,
+                          const QByteArray &content,
+                          const QTextImageFormat &image)
 {
 
     QTextCursor cursor = textCursor();
@@ -81,20 +83,6 @@ const QByteArray TextWidget::plainText() const
     return toPlainText().toUtf8();
 }
 
-void TextWidget::setImage (const QByteArray &sipuri)
-{
-    int a = sipuri.indexOf (":");
-    int b = sipuri.indexOf ("@");
-    QString path = QDir::homePath().append ("/.bressein/icons/").
-                   append (sipuri.mid (a + 1, b - a - 1)).append (".jpeg");
-    if (not QFile (path).open (QIODevice::ReadOnly))
-    {
-        path = "/usr/share/icons/oxygen/32x32/emotes/face-smile.png";
-    }
-    image.setName (path);
-    image.setHeight (32);
-    image.setWidth (32);
-}
 
 /*
 QSizeF TextWidget::sizeHint (Qt::SizeHint which, const QSizeF &constraint) const
