@@ -426,7 +426,7 @@ const QByteArray catMsgData (const QByteArray &fromFetionNumber,
     data.append ("T: ");
     data.append (toSipuri);
     data.append ("\r\n");
-    data.append ("C: text/plain\r\n");
+    data.append ("C: text/html-fragment\r\n");//text/html-fragment
     data.append ("K: SaveHistory\r\n");
     data.append ("N: CatMsg\r\n");
     data.append ("L: ");

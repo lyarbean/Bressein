@@ -57,13 +57,16 @@ public:
     virtual ~Account();
     virtual bool operator== (const Account &other);
     void setAccount (QByteArray number, QByteArray password);
-    void getFetion (QByteArray &out) const;
     // returns the list of contacts, not including info
     const QList<QByteArray> &getContacts() const;
+    //
+    void getFetion (QByteArray &out) const;
+    void getNickname (QByteArray &name) const;
 signals:
     void logined();
     void needConfirm();
     void contactChanged (const QByteArray &);
+    void verificationPic (const QByteArray &);
     // find a better name
     void groupChanged (const QByteArray &id, const QByteArray &name);
     void incomeMessage (const QByteArray &, //sender
@@ -202,7 +205,7 @@ private:
     QTcpSocket *sipcSocket;
     //TODO replaced with conversation manager
     ConversationManager *conversationManager;
-    QList<QByteArray> receivedMessages;
+    QList<QByteArray> inbox;
     // a letter
     // receiver date content
     struct Letter
@@ -216,8 +219,7 @@ private:
     // if one is to send, we move it to drafts first,
     // and then if it is sent successfully, then we delete it.
     QList<Letter *> drafts;
-
-    QByteArray messageBuffer;
+// FIXME if two are to invite.
     QByteArray toInvite;
     // TODO make use of proxy
     QNetworkProxy proxy;

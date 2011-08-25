@@ -48,7 +48,7 @@ public:
 signals:
     void commit (const QByteArray &, const QByteArray &);
 private slots:
-    void onCommitButtonClicked (bool);
+    void onCommitButtonClicked ();
 private:
     QLabel *messageLabel;
     QLineEdit *numberEdit;

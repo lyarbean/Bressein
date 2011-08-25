@@ -40,7 +40,7 @@ class QMenu;
 namespace Bressein
 {
 class Account;
-class LoginWidget;
+//class LoginWidget;
 class ChatView;
 class SidepanelView;
 /**
@@ -72,8 +72,9 @@ public slots:
     void onGroupChanged (const QByteArray &, const QByteArray &);
     void onChatSpawn (const QByteArray &);
 private slots:
-    void initializeTray();
+
     void readyShow();
+    void onVerificationPic (const QByteArray &);
     void onChatClose (const QByteArray &);
     void onIncomeMessage (const QByteArray &,
                           const QByteArray &,
@@ -81,13 +82,18 @@ private slots:
     void onStateAuthorized();
     void onTrayActivated (QSystemTrayIcon::ActivationReason);
 private:
+    void initializeTray();
+    void connectSignalSlots();
+private:
     Account *account;
-    LoginWidget *loginDialog;
+//   LoginWidget *loginDialog;
     SidepanelView *sidePanel;
     QSystemTrayIcon *tray;
     QMenu *trayIconMenu;
     QMap<QByteArray, ChatView *> chatViews;
-    QTextImageFormat myPortrait;
+    QImage myPortrait;
+    QByteArray myPortraitName;
+
     //TODO it should be better to store QTextImageFormats here, but ...
 //     QMap<QByteArray, QTextImageFormat> images;
 };

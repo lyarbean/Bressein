@@ -28,41 +28,29 @@ combination shall include the source code for the parts of the
 OpenSSL library used as well as that of the covered work.
 */
 
-#ifndef TEXTWIDGET_H
-#define TEXTWIDGET_H
+#ifndef LOGINSCENE_H
+#define LOGINSCENE_H
 
-#include <QtGui/QGraphicsTextItem>
-#include <QTextImageFormat>
+#include <QGraphicsScene>
+
 namespace Bressein
 {
-
-// TextWidget is a QGraphicsWidget with a QGraphicsTextItem inside
-class TextWidget : public QGraphicsTextItem
+// This is used to present login entrance
+class LoginWidget;
+class LoginScene : public QGraphicsScene
 {
     Q_OBJECT
 public:
-    enum { TextWidgetType = UserType + 2 };
-    TextWidget (QGraphicsItem *parent = 0);
-    ~TextWidget();
-    int type () const
-    {
-        return TextWidgetType;
-    }
-    void setEditable();
-    void addText (const QByteArray &,
-                  const QByteArray &,
-                  const QByteArray &,
-                  const QTextImageFormat &);
-    void addText (const QByteArray &,
-                  const QByteArray &,
-                  const QByteArray &,
-                  const QByteArray &);
-    const QByteArray plainText() const;
-protected:
-//     virtual QSizeF sizeHint (Qt::SizeHint which, const QSizeF &constraint = QSizeF()) const;
-    void paint (QPainter *painter,
-                const QStyleOptionGraphicsItem *option,
-                QWidget *widget = 0);
+    LoginScene (QObject *parent = 0);
+    virtual ~LoginScene();
+signals:
+    void loginCommit (const QByteArray &,
+                      const QByteArray &);
+private slots:
+    void onLoginCommit (const QByteArray &,
+                        const QByteArray &);
+private:
+    LoginWidget *loginWidget;
 };
 }
-#endif // TEXTWIDGET_H
+#endif // LOGINSCENE_H

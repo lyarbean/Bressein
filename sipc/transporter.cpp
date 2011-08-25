@@ -98,7 +98,8 @@ void Transporter::setHost()
     socket->connectToHost (ip, port);
     if (not socket->waitForConnected ())
     {
-        qDebug() << "Transporter::waitForConnected" << socket->errorString();
+        qDebug() << this->metaObject()->className()
+                 << "::waitForConnected" << socket->errorString();
         return;
     }
     // now start ticker to check and write if has data
@@ -141,8 +142,8 @@ void Transporter::writeData (const QByteArray &data)
 {
     if (data.isEmpty()) return;
     qDebug() << "=================================";
-    qDebug() << this->metaObject()->className();
-    qDebug() << "::writeData" << data;
+    qDebug() << this->metaObject()->className() << "::writeData";
+    qDebug() << QString::fromUtf8 (data);
     qDebug() << "=================================";
     if (socket->state() not_eq QAbstractSocket::ConnectedState)
     {

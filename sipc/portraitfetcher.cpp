@@ -98,6 +98,7 @@ void PortraitFetcher::run ()
         {
             qDebug() << "PortraitFetcher waitForConnected"
                      << socket.error() << socket.errorString();
+            emit processed (sipuri);
             return;
         }
         // TODO error handle

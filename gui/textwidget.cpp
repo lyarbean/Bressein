@@ -60,23 +60,50 @@ void TextWidget::setEditable ()
 
 }
 
-void TextWidget::addText (const QByteArray &datetime,
+void TextWidget::addText (const QByteArray &from,
+                          const QByteArray &datetime,
                           const QByteArray &content,
                           const QTextImageFormat &image)
 {
 
     QTextCursor cursor = textCursor();
     cursor.movePosition (QTextCursor::End);
-    cursor.insertImage (image);
+    cursor.insertImage (image,QTextFrameFormat::FloatRight);
     //TODO localize
+    cursor.insertText (QString::fromUtf8 (from));
+    cursor.insertText (":\t");
     cursor.insertText (QString::fromUtf8 (datetime));
     cursor.insertText ("\n");
-    cursor.insertText (QString::fromUtf8 (content));
+    // TODO check if content is html
+    // FIXME the style of content should be indicated by event in sip-c
+    cursor.insertHtml (QString::fromUtf8 (content));
     cursor.insertText ("\n");
     setTextCursor (cursor);
     update();
 }
 
+
+void TextWidget::addText (const QByteArray &from,
+                          const QByteArray &datetime,
+                          const QByteArray &content,
+                          const QByteArray &image)
+{
+
+    QTextCursor cursor = textCursor();
+    cursor.movePosition (QTextCursor::End);
+    cursor.insertHtml ("<img src=\""+image+"\" />");
+    //TODO localize
+    cursor.insertText (QString::fromUtf8 (from));
+    cursor.insertText (":\t");
+    cursor.insertText (QString::fromUtf8 (datetime));
+    cursor.insertText ("\n");
+    // TODO check if content is html
+    // FIXME the style of content should be indicated by event in sip-c
+    cursor.insertHtml (QString::fromUtf8 (content));
+    cursor.insertText ("\n");
+    setTextCursor (cursor);
+    update();
+}
 
 const QByteArray TextWidget::plainText() const
 {

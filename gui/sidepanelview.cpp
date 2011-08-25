@@ -31,6 +31,7 @@ OpenSSL library used as well as that of the covered work.
 #include "sidepanelview.h"
 #include "singleton.h"
 #include "sipc/account.h"
+#include "loginscene.h"
 #include "contactsscene.h"
 #include "contactitem.h"
 #include "chatview.h"
@@ -39,22 +40,29 @@ namespace Bressein
 {
 SidepanelView::SidepanelView (QWidget *parent)
     : QGraphicsView (parent)
-    , gscene (new ContactsScene (this))
+    , loginScene (new LoginScene (this))
+    , contactsScene (new ContactsScene (this))
 
 {
     setAlignment (Qt::AlignLeft | Qt::AlignTop);
     setMinimumWidth (185);
     setMaximumWidth (185);
     setRenderingSystem();
-    setupScene();
+    setScene (loginScene);
+    connect (loginScene,
+             SIGNAL (loginCommit (const QByteArray &, const QByteArray &)),
+             this,SLOT (onLoginCommit (const QByteArray &, const QByteArray &)));
     // add default group
     QByteArray id = "0";
-    QByteArray name = "untitled";
+    QByteArray name = "Untitled";
     addGroup (id, name);
 }
 
 SidepanelView::~SidepanelView()
 {
+    loginScene->deleteLater();
+    contactsScene->deleteLater();
+    itemList.clear();
 }
 
 
@@ -134,11 +142,16 @@ void SidepanelView::addGroup (const QByteArray &id, const QByteArray &name)
     item->setData (1, id);
     item->setZValue (0);
     groups.append (item);
-    gscene->addItem (item);
+    contactsScene->addItem (item);
     resizeScene();
 //     linearLayout->addItem(item);
 //     item->setPos(0,gscene->itemsBoundingRect().height());
 
+}
+
+void SidepanelView::onLoginCommit (const QByteArray &n, const QByteArray &p)
+{
+    emit toLogin (n,p);
 }
 
 
@@ -166,12 +179,10 @@ void SidepanelView::setRenderingSystem()
 
 }
 
-void SidepanelView::setupScene()
+void SidepanelView::setupContactsScene()
 {
     // indirectly pass through
-    gscene->setSceneRect (0, 0, 150, 600);
-    gscene->setItemIndexMethod (QGraphicsScene::NoIndex);
-    setScene (gscene);
+    setScene (contactsScene);
 }
 
 void SidepanelView::setupSceneItems()
@@ -217,7 +228,7 @@ void SidepanelView::resizeScene()
         height += itemList.last()->boundingRect().height();
     }
     if (height > 600)
-        gscene->setSceneRect (0, 0, 150, height);
+        contactsScene->setSceneRect (0, 0, 150, height);
     updateGeometry();
 }
 

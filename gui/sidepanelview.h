@@ -37,16 +37,14 @@ OpenSSL library used as well as that of the covered work.
 namespace Bressein
 {
 class ContactItem;
-
-// TODO make a class Bressein Manager that take responsibility of a deliver from
-// SidepanelView.
 /**
- * @brief The sidebar view of Bressein and also a deliver.
- * SidebarView connects to Account instance and other Gui components, and
- * processes their signals and converts them into commands.
+ * @brief The side Panel of Bressein.
  **/
+// There are two scenes, one is loginScene which is a dialog-alike
+// and the other is contactsScene that what gscene is.
 class ContactInfo;
 class ContactsScene;
+class LoginScene;
 class SidepanelView : public QGraphicsView
 {
     Q_OBJECT
@@ -57,16 +55,23 @@ public:
     void addGroup (const QByteArray &,const QByteArray &);
 signals:
     void contactActivated (const QByteArray &sipuri);
+    void toLogin (const QByteArray &,
+                  const QByteArray &);
+public slots:
+    void setupContactsScene();
+
 private slots:
+    void onLoginCommit (const QByteArray &,
+                        const QByteArray &);
     void setRenderingSystem();
-    void setupScene();
     void setupSceneItems();
     void resizeScene();
 protected:
     void resizeEvent (QResizeEvent *event);
     void closeEvent (QCloseEvent *event);
 private:
-    ContactsScene *gscene;
+    LoginScene *loginScene;
+    ContactsScene *contactsScene;
     QList<ContactItem *> itemList;
     QList<QGraphicsSimpleTextItem *> groups;
 };

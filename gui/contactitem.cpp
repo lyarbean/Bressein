@@ -44,9 +44,10 @@ ContactItem::ContactItem (QGraphicsItem *parent)
 {
     qDebug() << "new ContactItem";
     setFlags (QGraphicsItem::ItemIsFocusable |
-              QGraphicsItem::ItemIsSelectable | flags());
+              QGraphicsItem::ItemIsSelectable);
     setTextInteractionFlags (Qt::TextBrowserInteraction);
     setTextWidth (boundingRect().width());
+    setCacheMode (QGraphicsItem::ItemCoordinateCache);
 }
 
 ContactItem::~ContactItem()
@@ -91,8 +92,8 @@ void ContactItem::updateContact (const ContactInfo &contactInfo)
         path = "/usr/share/icons/oxygen/128x128/emotes/face-smile.png";
     }
     imageFormat.setName (path);
-    imageFormat.setHeight (120);
-    imageFormat.setWidth (120);
+    imageFormat.setHeight (64);
+    imageFormat.setWidth (64);
     // retain a copy
     contact = contactInfo;
     QTextBlockFormat blockFormat;
@@ -130,13 +131,13 @@ void ContactItem::mouseDoubleClickEvent (QGraphicsSceneMouseEvent *event)
 
 void ContactItem::hoverEnterEvent (QGraphicsSceneHoverEvent *event)
 {
-    setOpacity (0.6);
+    setOpacity (1.0);
     QGraphicsTextItem::hoverEnterEvent (event);
 }
 
 void ContactItem::hoverLeaveEvent (QGraphicsSceneHoverEvent *event)
 {
-    setOpacity (1);
+    setOpacity (0.9);
     QGraphicsTextItem::hoverLeaveEvent (event);
 }
 

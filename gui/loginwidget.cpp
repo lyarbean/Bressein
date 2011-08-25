@@ -51,7 +51,8 @@ LoginWidget::LoginWidget (QWidget *parent, Qt::WindowFlags f)
     gridLayout->addWidget (messageLabel,2,1);
     passwordEdit->setEchoMode (QLineEdit::Password);
     commitButton->setText (tr ("Login"));
-    connect (commitButton,SIGNAL (clicked (bool)),this,SLOT (onCommitButtonClicked (bool)));
+    connect (commitButton,SIGNAL (clicked ()),this,SLOT (onCommitButtonClicked ()));
+    connect (passwordEdit,SIGNAL (editingFinished()),commitButton,SLOT (click()));
     setLayout (gridLayout);
     setFixedSize (gridLayout->sizeHint());
 }
@@ -67,7 +68,7 @@ void LoginWidget::setMessage (const QString &msg)
 }
 
 
-void LoginWidget::onCommitButtonClicked (bool)
+void LoginWidget::onCommitButtonClicked ()
 {
     QRegExp expression ("[1-9][0-9]*");
     QByteArray number = numberEdit->text().toLocal8Bit();
@@ -78,6 +79,7 @@ void LoginWidget::onCommitButtonClicked (bool)
         messageLabel->setText ("Invalid Number!");
         return;
     }
+    commitButton->setDisabled (true);
     emit commit (number,password);
 
 }

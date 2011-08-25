@@ -18,7 +18,7 @@ add_subdirectory(sipc)
 add_subdirectory(utils)
 # add_subdirectory(gui)
 # gui/loginview.cpp
-set(GUI_SRCS gui/loginwidget.cpp  gui/bresseinmanager.cpp gui/textwidget.cpp gui/chatview.cpp gui/sidepanelview.cpp gui/contactsscene.cpp gui/contactitem.cpp)
+set(GUI_SRCS gui/loginscene.cpp gui/loginwidget.cpp  gui/bresseinmanager.cpp gui/textwidget.cpp gui/chatview.cpp gui/sidepanelview.cpp gui/contactsscene.cpp gui/contactitem.cpp)
 set(SRCS main.cpp ${GUI_SRCS})
 qt4_automoc(${SRCS})
 add_executable(bressein ${SRCS})

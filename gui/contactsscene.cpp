@@ -36,7 +36,8 @@ namespace Bressein
 {
 ContactsScene::ContactsScene (QObject *parent) : QGraphicsScene (parent)
 {
-
+    setSceneRect (0, 0, 150, 600);
+    setItemIndexMethod (QGraphicsScene::NoIndex);
 }
 
 ContactsScene::~ContactsScene()

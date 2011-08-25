@@ -28,41 +28,31 @@ combination shall include the source code for the parts of the
 OpenSSL library used as well as that of the covered work.
 */
 
-#ifndef TEXTWIDGET_H
-#define TEXTWIDGET_H
-
-#include <QtGui/QGraphicsTextItem>
-#include <QTextImageFormat>
+#include "loginscene.h"
+// remove in future
+#include "loginwidget.h"
 namespace Bressein
 {
-
-// TextWidget is a QGraphicsWidget with a QGraphicsTextItem inside
-class TextWidget : public QGraphicsTextItem
+LoginScene::LoginScene (QObject *parent) : QGraphicsScene (parent),
+    loginWidget (new LoginWidget)
 {
-    Q_OBJECT
-public:
-    enum { TextWidgetType = UserType + 2 };
-    TextWidget (QGraphicsItem *parent = 0);
-    ~TextWidget();
-    int type () const
-    {
-        return TextWidgetType;
-    }
-    void setEditable();
-    void addText (const QByteArray &,
-                  const QByteArray &,
-                  const QByteArray &,
-                  const QTextImageFormat &);
-    void addText (const QByteArray &,
-                  const QByteArray &,
-                  const QByteArray &,
-                  const QByteArray &);
-    const QByteArray plainText() const;
-protected:
-//     virtual QSizeF sizeHint (Qt::SizeHint which, const QSizeF &constraint = QSizeF()) const;
-    void paint (QPainter *painter,
-                const QStyleOptionGraphicsItem *option,
-                QWidget *widget = 0);
-};
+    addSimpleText (tr ("Welcome to Bressein"));
+    addWidget (loginWidget);
+    connect (loginWidget, SIGNAL (commit (const QByteArray &,const QByteArray &)),
+             this, SLOT (onLoginCommit (const QByteArray &,const QByteArray &)));
+    addPixmap (QPixmap ("/usr/share/icons/oxygen/32x32/emotes/face-smile.png"));
+
 }
-#endif // TEXTWIDGET_H
+
+LoginScene::~LoginScene()
+{
+
+}
+
+void LoginScene::onLoginCommit (const QByteArray &n, const QByteArray &p)
+{
+    emit loginCommit (n,p);
+}
+
+}
+#include "loginscene.moc"

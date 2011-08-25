@@ -51,9 +51,11 @@ ChatView::ChatView (QWidget *parent) :
     showArea (new TextWidget),
     inputArea (new TextWidget)
 {
+    setBackgroundBrush (Qt::NoBrush);
+//     setForegroundBrush(Qt::black);
     setAlignment (Qt::AlignLeft | Qt::AlignTop);
     setRenderHints (QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
-    setCacheMode (QGraphicsView::CacheNone);
+    setCacheMode (QGraphicsView::CacheBackground);
     setViewportUpdateMode (QGraphicsView::FullViewportUpdate);
     setDragMode (QGraphicsView::RubberBandDrag);
     gscene->addItem (inputArea);
@@ -65,6 +67,7 @@ ChatView::ChatView (QWidget *parent) :
     setMinimumSize (300, 300);
     adjustSize();
     setScene (gscene);
+    viewport()->setAutoFillBackground (0);
     connect (inputArea->document(), SIGNAL (contentsChanged()),
              this, SLOT (adjustSize()));
 }
@@ -74,25 +77,32 @@ ChatView::~ChatView()
     gscene->deleteLater();
 }
 
-void ChatView::setContact (const QByteArray &contact, const QByteArray &name)
+void ChatView::setContact (const QByteArray &contact,
+                           const QByteArray &otherName,
+                           const QByteArray &myName)
 {
     sipuri = contact;
+    this->otherName = otherName;
+    this->myName = myName;
 //     showArea->setImage (sipuri);
     QString path = QDir::homePath().append ("/.bressein/icons/").
                    append (sipToFetion (sipuri)).append (".jpeg");
     if (not QFile (path).open (QIODevice::ReadOnly))
     {
-        path = "/usr/share/icons/oxygen/128x128/emotes/face-smile.png";
+        path = "/usr/share/icons/oxygen/32x32/emotes/face-smile.png";
     }
-    other.setName (path);
-    other.setHeight (120);
-    other.setWidth (120);
-    setWindowTitle (tr ("Chatting with ").append (QString::fromUtf8 (name)));
+    QImage image = QImage (path);
+    otherPortrait = "img:/other";
+    showArea->document()->addResource (QTextDocument::ImageResource,
+                                       QUrl (otherPortrait), QVariant (image));
+    setWindowTitle (tr ("Chatting with ").append (QString::fromUtf8 (otherName)));
 }
 
-void ChatView::setPortrait (const QTextImageFormat &portrait)
+void ChatView::setPortrait (const QByteArray &myPortraitName, const QImage &portrait)
 {
-    self = portrait;
+    myPortrait = myPortraitName;
+    showArea->document()->addResource (QTextDocument::ImageResource,
+                                       QUrl (myPortraitName), QVariant (portrait));
 }
 
 //public slots
@@ -101,7 +111,7 @@ void ChatView::incomeMessage (const QByteArray &datetime,
                               const QByteArray &message)
 {
     //TODO make a MessageBlockItem with text datetime and message and ...
-    showArea->addText (datetime, message,other);
+    showArea->addText (otherName, datetime, message, otherPortrait);
     adjustSize();
 }
 
@@ -114,8 +124,8 @@ void ChatView::keyReleaseEvent (QKeyEvent *event)
         QByteArray text = inputArea->plainText();
         if (not text.isEmpty())
         {
-            showArea->addText (QDateTime::currentDateTime().
-                               toString().toUtf8(), text, self);
+            showArea->addText (myName, QDateTime::currentDateTime().
+                               toString().toUtf8(), text, myPortrait);
             inputArea->document()->clear();
             sendMessage (sipuri, text);
             adjustSize();

@@ -41,15 +41,19 @@ namespace Bressein
 //TODO move parts to QGraphicsWidget in order to gain more functionalities
 //TODO use kopete-style chat dialog rather than that of MSN, QQ or fetion;
 //TODO provide Edit Tools
+//TODO use shared data to save heap
 class TextWidget;
+
 class ChatView : public QGraphicsView
 {
     Q_OBJECT
 public:
     ChatView (QWidget *parent = 0);
     virtual ~ChatView();
-    void setContact (const QByteArray &, const QByteArray &);
-    void setPortrait (const QTextImageFormat &);
+    void setContact (const QByteArray &,
+                     const QByteArray &,
+                     const QByteArray &);
+    void setPortrait (const QByteArray &name, const QImage &portrait);
 public slots:
     void incomeMessage (const QByteArray &, const QByteArray &);
 signals:
@@ -63,8 +67,10 @@ private slots:
     void adjustSize();
 private:
     QByteArray sipuri;
-    QTextImageFormat other;
-    QTextImageFormat self;
+    QByteArray otherPortrait;
+    QByteArray myPortrait;
+    QByteArray otherName;
+    QByteArray myName;
     QGraphicsScene *gscene;
     TextWidget *showArea;
     TextWidget *inputArea;

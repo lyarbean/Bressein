@@ -32,43 +32,24 @@ OpenSSL library used as well as that of the covered work.
 #include "sipc/account.h"
 #include "chatview.h"
 #include "sidepanelview.h"
-#include "loginwidget.h"
+//#include "loginwidget.h"
 #include <QApplication>
 #include <QMenu>
 #include <QDir>
+#include <QLabel>
+
 namespace Bressein
 {
 BresseinManager::BresseinManager (QObject *parent) : QObject (parent),
     account (new Account),
-    loginDialog (new LoginWidget),
+    // loginDialog (new LoginWidget),
     sidePanel (new SidepanelView),
-    tray (new QSystemTrayIcon),
-    trayIconMenu (new QMenu)
+    tray (new QSystemTrayIcon (sidePanel)),
+    trayIconMenu (new QMenu (sidePanel))
 {
-    connect (account, SIGNAL (groupChanged (const QByteArray &, const QByteArray &)),
-             this, SLOT (onGroupChanged (const QByteArray &, const QByteArray &)),
-             Qt::QueuedConnection);
-    connect (account, SIGNAL (contactChanged (const QByteArray &)),
-             this, SLOT (onContactChanged (const QByteArray &)),
-             Qt::QueuedConnection);
-    connect (account, SIGNAL (logined()), this, SLOT (readyShow()),
-             Qt::QueuedConnection);
-    connect (account, SIGNAL (incomeMessage (const QByteArray &,
-                                             const QByteArray &,
-                                             const QByteArray &)),
-             this, SLOT (onIncomeMessage (const QByteArray &,
-                                          const QByteArray &,
-                                          const QByteArray &)),
-             Qt::QueuedConnection);
-    connect (account, SIGNAL (sipcAuthorizeParsed()),
-             this, SLOT (onStateAuthorized()), Qt::QueuedConnection);
-    connect (loginDialog, SIGNAL (commit (const QByteArray &, const QByteArray &)),
-             this, SLOT (loginAs (const QByteArray &, const QByteArray &)));
-    connect (sidePanel, SIGNAL (contactActivated (const QByteArray &)),
-             this, SLOT (onChatSpawn (const QByteArray &)));
-    loginDialog->show();
+    connectSignalSlots();
     initializeTray();
-    //TODO show login dialogand connect signals and slots
+    sidePanel->show();
 }
 
 BresseinManager::~BresseinManager()
@@ -78,6 +59,7 @@ BresseinManager::~BresseinManager()
     account->disconnect();
     account->close();
 }
+
 //TODO initialize database
 void BresseinManager::initialize()
 {
@@ -89,10 +71,13 @@ void BresseinManager::initialize()
 void BresseinManager::loginAs (const QByteArray &number,
                                const QByteArray &password)
 {
-    if (number.isEmpty() or password.isEmpty()) return;
+    if (number.isEmpty() or password.isEmpty())
+    {
+        return;
+    }
     account->setAccount (number, password);
     account->login();
-    loginDialog->setMessage (tr ("Connecting... "));
+    // loginDialog->setMessage (tr ("Connecting... "));
 }
 
 void BresseinManager::onContactChanged (const QByteArray &contact)
@@ -115,6 +100,7 @@ void BresseinManager::onChatSpawn (const QByteArray &contact)
     if (chatViews.find (contact) == chatViews.end())
     {
         ChatView *chatview = new ChatView (0);
+        //FIXME if contact is not one in contacts, i.e., server
         const ContactInfo &contactInfo = account->getContactInfo (contact);
         QByteArray name = contact;
         if (not contactInfo.detail.nickName.isEmpty())
@@ -125,8 +111,10 @@ void BresseinManager::onChatSpawn (const QByteArray &contact)
         {
             name = contactInfo.basic.localName;
         }
-        chatview->setContact (contact, name);
-        chatview->setPortrait (myPortrait);
+        QByteArray nickname;
+        account->getNickname (nickname);
+        chatview->setContact (contact, name, nickname);
+        chatview->setPortrait (myPortraitName,myPortrait);
         chatViews.insert (contact, chatview);
         connect (chatview, SIGNAL (toClose (const QByteArray &)),
                  this, SLOT (onChatClose (const QByteArray &)));
@@ -144,19 +132,6 @@ void BresseinManager::onChatSpawn (const QByteArray &contact)
     }
 }
 
-void BresseinManager::initializeTray()
-{
-    // trayIconMenu.addAction ...
-    QAction *quitAction = new QAction (tr ("quit"),tray);
-    connect (quitAction,SIGNAL (triggered (bool)),qApp, SLOT (quit()));
-    trayIconMenu->addAction (quitAction);
-    tray->setContextMenu (trayIconMenu);
-    tray->setIcon (QIcon ("/usr/share/icons/oxygen/32x32/emotes/face-smile.png"));
-    tray->setToolTip ("Bressein");
-    connect (tray, SIGNAL (activated (QSystemTrayIcon::ActivationReason)),
-             this, SLOT (onTrayActivated (QSystemTrayIcon::ActivationReason)));
-    tray->show();
-}
 
 
 // TODO if the chatview has been idle for long time, we should destroys it to
@@ -203,18 +178,26 @@ void BresseinManager::readyShow()
     {
         path = "/usr/share/icons/oxygen/128x128/emotes/face-smile.png";
     }
-    myPortrait.setName (path);
-    myPortrait.setHeight (120);
-    myPortrait.setWidth (120);
-    loginDialog->disconnect();
-    loginDialog->close();
-    loginDialog->deleteLater();
-    sidePanel->show();
+    myPortrait= QImage (path);
+    myPortraitName = "image:/"+sipuri;
+    //  loginDialog->disconnect();
+    // loginDialog->close();
+    //  loginDialog->deleteLater();
+    sidePanel->setupContactsScene();
+}
+
+void BresseinManager::onVerificationPic (const QByteArray &data)
+{
+    qDebug() << "onVerificationPic" << data;
+    QImage img = QImage::fromData (QByteArray::fromBase64 (data));
+    QLabel *label = new QLabel (0);
+    label->setPixmap (QPixmap::fromImage (img));
+    label->show();
 }
 
 void BresseinManager::onStateAuthorized()
 {
-    loginDialog->setMessage (tr ("Downloading Portraits"));
+    // loginDialog->setMessage (tr ("Downloading Portraits"));
 }
 
 void BresseinManager::onTrayActivated (QSystemTrayIcon::ActivationReason reason)
@@ -231,6 +214,50 @@ void BresseinManager::onTrayActivated (QSystemTrayIcon::ActivationReason reason)
         default:
             ;
     }
+}
+
+
+void BresseinManager::initializeTray()
+{
+    // trayIconMenu.addAction ...
+    QAction *quitAction = new QAction (tr ("quit"), tray);
+    connect (quitAction, SIGNAL (triggered (bool)), qApp, SLOT (quit()));
+    trayIconMenu->addAction (quitAction);
+    tray->setContextMenu (trayIconMenu);
+    tray->setIcon (QIcon ("/usr/share/icons/oxygen/32x32/emotes/face-smile.png"));
+    tray->setToolTip ("Bressein");
+    connect (tray, SIGNAL (activated (QSystemTrayIcon::ActivationReason)),
+             this, SLOT (onTrayActivated (QSystemTrayIcon::ActivationReason)));
+    tray->show();
+}
+
+void BresseinManager::connectSignalSlots()
+{
+    connect (account, SIGNAL (groupChanged (const QByteArray &,
+                                            const QByteArray &)),
+             this, SLOT (onGroupChanged (const QByteArray &,
+                                         const QByteArray &)),
+             Qt::QueuedConnection);
+    connect (account, SIGNAL (contactChanged (const QByteArray &)),
+             this, SLOT (onContactChanged (const QByteArray &)),
+             Qt::QueuedConnection);
+    connect (account, SIGNAL (logined()), this, SLOT (readyShow()),
+             Qt::QueuedConnection);
+    connect (account, SIGNAL (verificationPic (const QByteArray &)),
+             this, SLOT (onVerificationPic (const QByteArray &)));
+    connect (account, SIGNAL (incomeMessage (const QByteArray &,
+                                             const QByteArray &,
+                                             const QByteArray &)),
+             this, SLOT (onIncomeMessage (const QByteArray &,
+                                          const QByteArray &,
+                                          const QByteArray &)),
+             Qt::QueuedConnection);
+    connect (account, SIGNAL (sipcAuthorizeParsed()),
+             this, SLOT (onStateAuthorized()), Qt::QueuedConnection);
+    connect (sidePanel, SIGNAL (toLogin (const QByteArray &, const QByteArray &)),
+             this, SLOT (loginAs (const QByteArray &, const QByteArray &)));
+    connect (sidePanel, SIGNAL (contactActivated (const QByteArray &)),
+             this, SLOT (onChatSpawn (const QByteArray &)));
 }
 
 }
