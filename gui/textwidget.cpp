@@ -84,7 +84,7 @@ void TextWidget::addText (const QByteArray &from,
     html.append ("</span>");
     html.append ("</div>");//heder
     html.append ("<div id='Mainbody'>");//body
-    html.append (QString::fromUtf8 (content));
+    html.append (QString::fromUtf8 (content).replace("\n","<br/>"));
     html.append ("</div>");//body
     html.append ("</div>");//container
     cursor.insertImage("<img width='48' src=\"" + image + "\" />");
