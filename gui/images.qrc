@@ -1,0 +1,8 @@
+<RCC version="1.0">
+<qresource >
+<file>images/envelop_32.png</file>
+<file>images/envelop_64.png</file>
+<file>images/envelop_128.png</file>
+<file>images/envelop_256.png</file>
+</qresource>
+</RCC>

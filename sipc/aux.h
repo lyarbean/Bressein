@@ -62,7 +62,8 @@ extern void RSAPublicEncrypt (const QByteArray &userId,
                               const QByteArray &nonce,
                               const QByteArray &aeskey,
                               const QByteArray &key,
-                              QByteArray &result);
+                              QByteArray &result,
+                              bool &ok);
 
 extern const QByteArray cnouce (quint16 time = 4);
 

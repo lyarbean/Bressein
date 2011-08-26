@@ -14,14 +14,14 @@ include_directories(${QT_INCLUDES}
 
 add_definitions(-std=c++0x -Wall)
 
+QT4_ADD_RESOURCES(RC_SRCS gui/images.qrc )
 add_subdirectory(sipc)
 add_subdirectory(utils)
-# add_subdirectory(gui)
-# gui/loginview.cpp
 set(GUI_SRCS gui/loginscene.cpp gui/loginwidget.cpp  gui/bresseinmanager.cpp gui/textwidget.cpp gui/chatview.cpp gui/sidepanelview.cpp gui/contactsscene.cpp gui/contactitem.cpp)
 set(SRCS main.cpp ${GUI_SRCS})
 qt4_automoc(${SRCS})
-add_executable(bressein ${SRCS})
+
+add_executable(bressein ${SRCS} ${RC_SRCS})
 target_link_libraries(bressein bressein_sipc ssl ${QT_LIBRARIES})
 
 

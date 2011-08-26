@@ -88,7 +88,8 @@ void RSAPublicEncrypt (const QByteArray &userId,
                        const QByteArray &nonce,
                        const QByteArray &aeskey,
                        const QByteArray &key,
-                       QByteArray &result)
+                       QByteArray &result,
+                       bool &ok)
 {
     // Follow openfetion's method
     // in hex
@@ -122,8 +123,8 @@ void RSAPublicEncrypt (const QByteArray &userId,
     RSA_free (r);
     if (ret < 0)
     {
-        printf ("encrypt failed");
         free (out);
+        ok = false;
         return;
     }
     // split ret into hex bytearray
@@ -136,11 +137,10 @@ void RSAPublicEncrypt (const QByteArray &userId,
         sprintf (res + i * 2 , "%02x" , out[i]);
         i++;
     };
-    QByteArray resultHex (res);
+    result = QByteArray(res);
+    ok = true;
     free (out);
     free (res);
-//     qDebug();
-    result = resultHex;
 }
 
 /**

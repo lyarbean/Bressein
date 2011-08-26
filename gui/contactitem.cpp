@@ -89,7 +89,7 @@ void ContactItem::updateContact (const ContactInfo &contactInfo)
                    append (sipuri.mid (a + 1, b - a - 1)).append (".jpeg");
     if (not QFile (path).open (QIODevice::ReadOnly))
     {
-        path = "/usr/share/icons/oxygen/128x128/emotes/face-smile.png";
+        path = ":/images/envelop_64.png";
     }
     imageFormat.setName (path);
     imageFormat.setHeight (64);

@@ -42,7 +42,7 @@ LoginScene::LoginScene (QObject *parent) : QGraphicsScene (parent),
     addWidget (loginWidget);
     connect (loginWidget, SIGNAL (commit (const QByteArray &,const QByteArray &)),
              this, SLOT (onLoginCommit (const QByteArray &,const QByteArray &)));
-    addPixmap (QPixmap ("/usr/share/icons/oxygen/32x32/emotes/face-smile.png"))
+    addPixmap (QPixmap (":/images/envelop_64.png"))
         ->setPos(0,loginWidget->height());
     setSceneRect (itemsBoundingRect());
     setItemIndexMethod (QGraphicsScene::NoIndex);

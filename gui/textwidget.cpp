@@ -37,9 +37,10 @@ OpenSSL library used as well as that of the covered work.
 #include <QDebug>
 #include <QDir>
 const QString  QSTYLESHEET =
-    "*{font:18pt Tahoma;color:#FF8F00;margin:0px;text-align:center;}\
-    #Container {width:100%,margin:0 auto;}\
-    #Header {width:100%;margin:0 ;height:48px;}\
+    "*{font:18pt Tahoma;color:#FF8F00;margin:0 0 0 0;text-align:left;}\
+    #Container {width:100%;margin:0 0 0 0;}\
+    #DateTime {width:90%;margin:0 0 0 0;color:#EFAF00;font:10pt Sans;}\
+    #Header {width:90%;margin:0 0 0 0;height:48px;}\
     #mainbody {width:90%;margin:0 0 0 48;text-align:left;}";
 namespace Bressein
 {
@@ -77,9 +78,9 @@ void TextWidget::addText (const QByteArray &from,
     QString html;
     html.append ("<div id='Container'>");//container
     html.append ("<div id='Header'>"); //header
-    html.append ("<span>");
     html.append (QString::fromUtf8 (from));
     html.append ("<br/>");
+    html.append ("<span id='DateTime'>");
     html.append (QString::fromUtf8 (datetime));
     html.append ("</span>");
     html.append ("</div>");//heder
@@ -87,7 +88,27 @@ void TextWidget::addText (const QByteArray &from,
     html.append (QString::fromUtf8 (content).replace("\n","<br/>"));
     html.append ("</div>");//body
     html.append ("</div>");//container
-    cursor.insertImage("<img width='48' src=\"" + image + "\" />");
+    cursor.insertHtml ("<img  width='48' src=\"" + image + "\" />");
+    cursor.insertHtml (html);
+    cursor.insertText("\n");
+    setTextCursor (cursor);
+    update();
+}
+
+void TextWidget::addText (const QByteArray &datetime,
+                          const QByteArray &content)
+{
+    QTextCursor cursor = textCursor();
+    cursor.movePosition (QTextCursor::End);
+    QString html;
+    html.append ("<div id='Container'>");//container
+    html.append ("<span id='DateTime'>"); //header
+    html.append (QString::fromUtf8 (datetime));
+    html.append ("</span>");//heder
+    html.append ("<div id='Mainbody'>");//body
+    html.append (QString::fromUtf8 (content).replace("\n","<br/>"));
+    html.append ("</div>");//body
+    html.append ("</div>");//container
     cursor.insertHtml (html);
     cursor.insertText("\n");
     setTextCursor (cursor);

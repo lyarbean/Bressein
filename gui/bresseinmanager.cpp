@@ -176,7 +176,7 @@ void BresseinManager::readyShow()
     qDebug() << path;
     if (not QFile (path).open (QIODevice::ReadOnly))
     {
-        path = "/usr/share/icons/oxygen/128x128/emotes/face-smile.png";
+        path = ":/images/envelop_64.png";
     }
     myPortrait= QImage (path);
     myPortraitName = "image:/"+sipuri;
@@ -221,10 +221,11 @@ void BresseinManager::initializeTray()
 {
     // trayIconMenu.addAction ...
     QAction *quitAction = new QAction (tr ("quit"), tray);
+    //TODO add more interaction
     connect (quitAction, SIGNAL (triggered (bool)), qApp, SLOT (quit()));
     trayIconMenu->addAction (quitAction);
     tray->setContextMenu (trayIconMenu);
-    tray->setIcon (QIcon ("/usr/share/icons/oxygen/32x32/emotes/face-smile.png"));
+    tray->setIcon (QIcon (":/images/envelop_64.png"));
     tray->setToolTip ("Bressein");
     connect (tray, SIGNAL (activated (QSystemTrayIcon::ActivationReason)),
              this, SLOT (onTrayActivated (QSystemTrayIcon::ActivationReason)));

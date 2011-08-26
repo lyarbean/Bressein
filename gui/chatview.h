@@ -74,6 +74,7 @@ private:
     QGraphicsScene *gscene;
     TextWidget *showArea;
     TextWidget *inputArea;
+    bool self;
 };
 }
 

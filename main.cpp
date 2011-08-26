@@ -28,16 +28,27 @@ combination shall include the source code for the parts of the
 OpenSSL library used as well as that of the covered work.
 */
 
-#include <QtGui/QApplication>
-#include <QLabel>
+
 #include "gui/singleton.h"
 #include "gui/bresseinmanager.h"
+#include <QtGui/QApplication>
+#include <QLocale>
+#include <QTextCodec>
+#include <QTranslator>
 
-// #include "sipc/user.h"
-// #include "gui/contactsscene.h"
 int main (int argc, char **argv)
 {
     QApplication app (argc, argv);
+    app.setWindowIcon(QIcon(":/images/envelop_64.png"));
+    QString locale = QLocale::system().name();
+    QTranslator translator;
+
+    if (translator.load (QString ("bressein_") + locale) or
+            translator.load ("i18n/" + QString ("bressein_") + locale))
+    {
+        app.installTranslator (&translator);
+    }
+    QTextCodec::setCodecForTr (QTextCodec::codecForName ("utf8"));
     Singleton<Bressein::BresseinManager>::instance()->initialize();
     return app.exec();
 }

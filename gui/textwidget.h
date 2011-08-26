@@ -53,6 +53,8 @@ public:
                   const QByteArray &,
                   const QByteArray &,
                   const QByteArray &);
+    void addText (const QByteArray &,
+                  const QByteArray &);
     const QByteArray plainText() const;
 protected:
 //     virtual QSizeF sizeHint (Qt::SizeHint which, const QSizeF &constraint = QSizeF()) const;
