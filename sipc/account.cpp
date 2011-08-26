@@ -242,18 +242,21 @@ void Account::ssiLogin()
     QSslSocket socket (this);
     socket.connectToHostEncrypted (UID_URI, 443);
     qDebug() << "ssiLogin";
-    if (not socket.waitForEncrypted (10000))
+    if (not socket.waitForEncrypted (5000))
     {
         // TODO handle socket.error() or inform user what happened
         qDebug() << "waitForEncrypted"
                  << socket.error() << socket.errorString();
-        if (socket.error() == QAbstractSocket::SslHandshakeFailedError)
+        if (socket.error() == QAbstractSocket::SslHandshakeFailedError or
+            socket.error() == QAbstractSocket::UnknownSocketError)
         {
+            qDebug() << "waitForEncrypted";
+            socket.close();
             ssiLogin();
         }
+        // emit login failed
         return;
     }
-    qDebug() << "ssiLogin";
     int length = 0;
     while (length < data.length())
     {
@@ -1781,7 +1784,8 @@ void Account::onInvite (const QByteArray &data)
     reply.append ("\r\nI: ");
     reply.append (callId);
     reply.append ("\r\nQ: ");
-    reply.append (sequence);
+    reply.append ("200002");
+//     reply.append (sequence);
     reply.append ("\r\n\r\n");
     serverTransporter->sendData (reply);
     QByteArray toSendMsg =

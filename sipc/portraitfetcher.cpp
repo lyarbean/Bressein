@@ -80,6 +80,9 @@ void PortraitFetcher::run ()
     if (not queue.isEmpty())
         sipuri = queue.takeFirst();
     bool empty = false;
+    QByteArray bytes;
+    QByteArray toSendMsg;
+    QByteArray responseData;
     mutex.unlock();
 
     while (not empty)
@@ -94,19 +97,18 @@ void PortraitFetcher::run ()
             QHostInfo::fromName (server).addresses().first().toString();
         QTcpSocket socket;
         socket.connectToHost (host, 80);
-        if (not socket.waitForConnected ())
+        if (not socket.waitForConnected (10000))
         {
             qDebug() << "PortraitFetcher waitForConnected"
                      << socket.error() << socket.errorString();
-            emit processed (sipuri);
-            return;
+            goto end;
         }
         // TODO error handle
 
-        QByteArray toSendMsg =
+        toSendMsg =
             downloadPortraitData (server, path, sipuri, ssic);
         socket.write (toSendMsg);
-        QByteArray responseData;
+
         while (socket.bytesAvailable() < (int) sizeof (quint16))
         {
             if (not socket.waitForReadyRead ())
@@ -136,7 +138,7 @@ void PortraitFetcher::run ()
             toSendMsg = downloadPortraitAgainData (path, host);
             while (socket.bytesAvailable() < (int) sizeof (quint16))
             {
-                if (not socket.waitForReadyRead ())
+                if (not socket.waitForReadyRead (10000))
                 {
                     // TODO handle socket.error() or inform user what happened
                     qDebug() << "PortraitFetcher  waitForReadyRead"
@@ -153,7 +155,7 @@ void PortraitFetcher::run ()
             if (pos < 0)
             {
                 //TODO
-                return;
+                goto end;
             }
             int pos_ = responseData.indexOf ("\r\n", pos);
             bool ok;
@@ -161,27 +163,27 @@ void PortraitFetcher::run ()
             if (not ok)
             {
                 qDebug() << "not ok" << responseData;
-                return;
+                goto end;
             }
             int received = responseData.size();
             while (received < length + pos_ + 4)
             {
                 while (socket.bytesAvailable() < (int) sizeof (quint16))
                 {
-                    if (not socket.waitForReadyRead ())
+                    if (not socket.waitForReadyRead (10000))
                     {
                         // TODO handle socket.error() or inform user what happened
                         qDebug() << "ssiLogin  waitForReadyRead"
                                  << socket.error() << socket.errorString();
                         emit processed (sipuri);
-                        return;
+                        goto end;
                     }
                 }
                 responseData.append (socket.readAll());
                 received = responseData.size();
             }
 
-            QByteArray bytes = responseData.mid (pos_ + 4);
+            bytes = responseData.mid (pos_ + 4);
 
             static QByteArray iconsSubDir =
                 QDir::homePath().toLocal8Bit().append ("/.bressein/icons/");
@@ -204,7 +206,7 @@ void PortraitFetcher::run ()
         else
         {
             // Unknown
-            return;
+            goto end;
         }
     end:
         emit processed (sipuri);

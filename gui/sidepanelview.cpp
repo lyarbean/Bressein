@@ -45,8 +45,6 @@ SidepanelView::SidepanelView (QWidget *parent)
 
 {
     setAlignment (Qt::AlignLeft | Qt::AlignTop);
-    setMinimumWidth (185);
-    setMaximumWidth (185);
     setRenderingSystem();
     setScene (loginScene);
     connect (loginScene,
@@ -173,8 +171,8 @@ void SidepanelView::setRenderingSystem()
 //     viewport = new QWidget;
 //     setViewport (viewport);
     setRenderHints (QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
-    setCacheMode (QGraphicsView::CacheNone);
-    setViewportUpdateMode (QGraphicsView::FullViewportUpdate);
+    setCacheMode (QGraphicsView::CacheBackground);
+    setViewportUpdateMode (QGraphicsView::BoundingRectViewportUpdate);
     setDragMode (QGraphicsView::ScrollHandDrag);
 
 }
@@ -183,7 +181,10 @@ void SidepanelView::setupContactsScene()
 {
     // indirectly pass through
     setScene (contactsScene);
+    setSceneRect (contactsScene->itemsBoundingRect());
+    resize(contactsScene->itemsBoundingRect().size().toSize());
 }
+
 
 void SidepanelView::setupSceneItems()
 {
@@ -228,7 +229,7 @@ void SidepanelView::resizeScene()
         height += itemList.last()->boundingRect().height();
     }
     if (height > 600)
-        contactsScene->setSceneRect (0, 0, 150, height);
+        contactsScene->setSceneRect (0, 0, contactsScene->width(), height);
     updateGeometry();
 }
 

@@ -52,10 +52,6 @@ public:
     void addText (const QByteArray &,
                   const QByteArray &,
                   const QByteArray &,
-                  const QTextImageFormat &);
-    void addText (const QByteArray &,
-                  const QByteArray &,
-                  const QByteArray &,
                   const QByteArray &);
     const QByteArray plainText() const;
 protected:

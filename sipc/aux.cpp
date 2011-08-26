@@ -140,7 +140,7 @@ void RSAPublicEncrypt (const QByteArray &userId,
     free (out);
     free (res);
 //     qDebug();
-    result = resultHex.toUpper();
+    result = resultHex;
 }
 
 /**
@@ -406,10 +406,10 @@ const QByteArray keepAliveData (const QByteArray &fetionNumber, int &callId)
 
 const QByteArray chatKeepAliveData (const QByteArray &fetionNumber, int &callId)
 {
-    QByteArray data ("R fetion.com.cn SIP-C/4.0\r\n");
+    QByteArray data ("O fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fetionNumber).append ("\r\n");
     data.append ("I: ").append (QByteArray::number (callId++)).append ("\r\n");
-    data.append ("Q: 2 ").append ("R\r\n");
+    data.append ("Q: 1 ").append ("O\r\n");
     data.append ("N: KeepConnectionBusy\r\n\r\n");
     return data;
 }
@@ -428,7 +428,7 @@ const QByteArray catMsgData (const QByteArray &fromFetionNumber,
     data.append ("\r\n");
     data.append ("C: text/html-fragment\r\n");//text/html-fragment
     data.append ("K: SaveHistory\r\n");
-    data.append ("N: CatMsg\r\n");
+    data.append ("N: CatMsg\r\n");//K: NewEmotion
     data.append ("L: ");
     data.append (QByteArray::number (message.size()));
     data.append ("\r\n\r\n");
@@ -593,6 +593,7 @@ const QByteArray presenceV4Data (const QByteArray &fetionNumber, int &callId)
 {
     QByteArray body = "<args><subscription self=\"v4default;mail-count\" "
                       "buddy=\"v4default\" version=\"0\"/></args>";
+    //<args><subscription self="v4default;mail-count;impresa;sms-online-status;feed-version;feed-type;es2all;birthday" buddy="v4default;feed-version;feed-type;es2all;email-enable;rtm;dynamic-title;dynamic-id;birthday" version="" /></args>
     QByteArray data ("SUB fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fetionNumber).append ("\r\n");
     data.append ("I: ").append (QByteArray::number (callId++)).append ("\r\n");
@@ -611,7 +612,7 @@ const QByteArray startChatData (const QByteArray &fetionNumber,
     QByteArray data ("S fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fetionNumber).append ("\r\n");
     data.append ("I: ").append (QByteArray::number (callId++)).append ("\r\n");
-    data.append ("Q: 2 S\r\n");
+    data.append ("Q: 1 S\r\n");
     data.append ("N: StartChat\r\n\r\n");
     return data;
 }
@@ -623,11 +624,13 @@ const QByteArray registerData (const QByteArray &fetionNumber,
     QByteArray data ("R fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fetionNumber).append ("\r\n");
     data.append ("I: ").append (QByteArray::number (callId++)).append ("\r\n");
-    data.append ("Q: 2 R\r\n");
+    data.append ("Q: 1 R\r\n");
     data.append ("A: TICKS auth=\"");
     data.append (credential);
     data.append ("\"\r\n");
-    data.append ("K: text/html-fragment\r\nK: multiparty\r\nK: nudge\r\n\r\n");
+    data.append ("K: text/html-fragment\r\nK: multiparty\r\nK: nudge\r\n");
+    data.append ("K: share-background\r\nK: fetion-show\r\nK: ExModulesApp\r\n");
+    data.append ("K: FileTransferV4\r\n\r\n");
     return data;
 }
 
@@ -1051,6 +1054,7 @@ const QByteArray setPresenceV4Data (const QByteArray &fetionNumber,
                                     const QByteArray &state)
 {
     QByteArray body = "<args><presence><basic value=\"";
+    // <args><presence><extends><extend type="rtm"/></extends></presence><args>
     body.append (state);
     body.append ("\"/></presence></args>");
     QByteArray data ("S fetion.com.cn SIP-C/4.0\r\n");

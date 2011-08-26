@@ -36,13 +36,19 @@ OpenSSL library used as well as that of the covered work.
 #include <QStyleOptionGraphicsItem>
 #include <QDebug>
 #include <QDir>
+const QString  QSTYLESHEET =
+    "*{font:18pt Tahoma;color:#FF8F00;margin:0px;text-align:center;}\
+    #Container {width:100%,margin:0 auto;}\
+    #Header {width:100%;margin:0 ;height:48px;}\
+    #mainbody {width:90%;margin:0 0 0 48;text-align:left;}";
 namespace Bressein
 {
 TextWidget::TextWidget (QGraphicsItem *parent)
-    : QGraphicsTextItem (parent)
+        : QGraphicsTextItem (parent)
 {
 //     setFlags (QGraphicsItem::ItemIsSelectable);
     setTextInteractionFlags (Qt::TextSelectableByMouse);
+    document()->setDefaultStyleSheet (QSTYLESHEET);
 }
 
 TextWidget::~TextWidget()
@@ -54,53 +60,35 @@ void TextWidget::setEditable ()
 {
     //TODO
     setFlags (QGraphicsItem::ItemAcceptsInputMethod |
-              QGraphicsItem::ItemIsFocusable | flags());
+            QGraphicsItem::ItemIsFocusable | flags());
     setTextInteractionFlags (Qt::TextEditable | Qt::TextEditorInteraction);
     setPanelModality (QGraphicsItem::SceneModal);
 
 }
 
 void TextWidget::addText (const QByteArray &from,
-                          const QByteArray &datetime,
-                          const QByteArray &content,
-                          const QTextImageFormat &image)
+        const QByteArray &datetime,
+        const QByteArray &content,
+        const QByteArray &image)
 {
 
     QTextCursor cursor = textCursor();
     cursor.movePosition (QTextCursor::End);
-    cursor.insertImage (image,QTextFrameFormat::FloatRight);
-    //TODO localize
-    cursor.insertText (QString::fromUtf8 (from));
-    cursor.insertText (":\t");
-    cursor.insertText (QString::fromUtf8 (datetime));
-    cursor.insertText ("\n");
-    // TODO check if content is html
-    // FIXME the style of content should be indicated by event in sip-c
-    cursor.insertHtml (QString::fromUtf8 (content));
-    cursor.insertText ("\n");
-    setTextCursor (cursor);
-    update();
-}
-
-
-void TextWidget::addText (const QByteArray &from,
-                          const QByteArray &datetime,
-                          const QByteArray &content,
-                          const QByteArray &image)
-{
-
-    QTextCursor cursor = textCursor();
-    cursor.movePosition (QTextCursor::End);
-    cursor.insertHtml ("<img src=\""+image+"\" />");
-    //TODO localize
-    cursor.insertText (QString::fromUtf8 (from));
-    cursor.insertText (":\t");
-    cursor.insertText (QString::fromUtf8 (datetime));
-    cursor.insertText ("\n");
-    // TODO check if content is html
-    // FIXME the style of content should be indicated by event in sip-c
-    cursor.insertHtml (QString::fromUtf8 (content));
-    cursor.insertText ("\n");
+    QString html;
+    html.append ("<div id='Container'>");//container
+    html.append ("<div id='Header'>"); //header
+    html.append ("<span>");
+    html.append (QString::fromUtf8 (from));
+    html.append ("<br/>");
+    html.append (QString::fromUtf8 (datetime));
+    html.append ("</span>");
+    html.append ("</div>");//heder
+    html.append ("<div id='Mainbody'>");//body
+    html.append (QString::fromUtf8 (content));
+    html.append ("</div>");//body
+    html.append ("</div>");//container
+    cursor.insertImage("<img width='48' src=\"" + image + "\" />");
+    cursor.insertHtml (html);
     setTextCursor (cursor);
     update();
 }
@@ -118,8 +106,8 @@ QSizeF TextWidget::sizeHint (Qt::SizeHint which, const QSizeF &constraint) const
 }*/
 
 void TextWidget::paint (QPainter *painter,
-                        const QStyleOptionGraphicsItem *option,
-                        QWidget *widget)
+        const QStyleOptionGraphicsItem *option,
+        QWidget *widget)
 {
     painter->drawRect (boundingRect());
     QGraphicsTextItem::paint (painter, option, widget);

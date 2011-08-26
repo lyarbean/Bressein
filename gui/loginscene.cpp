@@ -31,6 +31,8 @@ OpenSSL library used as well as that of the covered work.
 #include "loginscene.h"
 // remove in future
 #include "loginwidget.h"
+
+#include <QGraphicsPixmapItem>
 namespace Bressein
 {
 LoginScene::LoginScene (QObject *parent) : QGraphicsScene (parent),
@@ -40,8 +42,10 @@ LoginScene::LoginScene (QObject *parent) : QGraphicsScene (parent),
     addWidget (loginWidget);
     connect (loginWidget, SIGNAL (commit (const QByteArray &,const QByteArray &)),
              this, SLOT (onLoginCommit (const QByteArray &,const QByteArray &)));
-    addPixmap (QPixmap ("/usr/share/icons/oxygen/32x32/emotes/face-smile.png"));
-
+    addPixmap (QPixmap ("/usr/share/icons/oxygen/32x32/emotes/face-smile.png"))
+        ->setPos(0,loginWidget->height());
+    setSceneRect (itemsBoundingRect());
+    setItemIndexMethod (QGraphicsScene::NoIndex);
 }
 
 LoginScene::~LoginScene()
