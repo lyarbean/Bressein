@@ -89,6 +89,7 @@ void TextWidget::addText (const QByteArray &from,
     html.append ("</div>");//container
     cursor.insertImage("<img width='48' src=\"" + image + "\" />");
     cursor.insertHtml (html);
+    cursor.insertText("\n");
     setTextCursor (cursor);
     update();
 }
