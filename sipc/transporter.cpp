@@ -149,7 +149,7 @@ void Transporter::writeData (const QByteArray &data)
     {
         qDebug() <<  "writeData::Error: socket is not connected";
         // TODO handle this,
-        // ask manager to remove this instance
+        // ask parent to remove this instance
         // failed to write data
         return;
     }

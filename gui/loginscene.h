@@ -43,6 +43,7 @@ class LoginScene : public QGraphicsScene
 public:
     LoginScene (QObject *parent = 0);
     virtual ~LoginScene();
+    void setEnable(bool ok);
 signals:
     void loginCommit (const QByteArray &,
                       const QByteArray &);

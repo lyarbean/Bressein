@@ -39,6 +39,12 @@ namespace Bressein
 {
 PortraitFetcher::PortraitFetcher (QObject *parent) : QThread (parent)
 {
+    iconsSubDir =
+        QDir::homePath().toLocal8Bit().append ("/.bressein/icons/");
+    if (not  QDir::home().exists (iconsSubDir))
+    {
+        QDir::home().mkpath (".bressein/icons/");
+    }
 }
 
 PortraitFetcher::~PortraitFetcher()
@@ -47,8 +53,8 @@ PortraitFetcher::~PortraitFetcher()
 }
 
 void PortraitFetcher::setData (const QByteArray &server,
-                               const QByteArray &path,
-                               const QByteArray &ssic)
+        const QByteArray &path,
+        const QByteArray &ssic)
 {
     mutex.lock();
     this->server = server;
@@ -64,9 +70,9 @@ void PortraitFetcher::requestPortrait (const QByteArray &sipuri)
     queue.append (sipuri);
     mutex.unlock();
     if (not isRunning() and
-        not this->server.isEmpty() and
-        not this->path.isEmpty() and
-        not this->ssic.isEmpty())
+            not this->server.isEmpty() and
+            not this->path.isEmpty() and
+            not this->ssic.isEmpty())
     {
         start();
     }
@@ -91,23 +97,31 @@ void PortraitFetcher::run ()
         if (sipuri.isEmpty()) return;
         if (server.isEmpty() or path.isEmpty())
         {
+            emit processed (sipuri);
             return;
         }
         QString host =
             QHostInfo::fromName (server).addresses().first().toString();
         QTcpSocket socket;
         socket.connectToHost (host, 80);
-        if (not socket.waitForConnected (10000))
+        if (not socket.waitForConnected (5000))
         {
             qDebug() << "PortraitFetcher waitForConnected"
-                     << socket.error() << socket.errorString();
-            goto end;
+            << socket.error() << socket.errorString();
+            emit processed (sipuri);
+            return;
         }
         // TODO error handle
 
         toSendMsg =
             downloadPortraitData (server, path, sipuri, ssic);
-        socket.write (toSendMsg);
+        int length = 0;
+        while (length < toSendMsg.length())
+        {
+            length += socket.write (toSendMsg.right (toSendMsg.size() - length));
+        }
+        socket.waitForBytesWritten ();
+        socket.flush();
 
         while (socket.bytesAvailable() < (int) sizeof (quint16))
         {
@@ -115,10 +129,9 @@ void PortraitFetcher::run ()
             {
                 // TODO handle socket.error() or inform user what happened
                 qDebug() << "PortraitFetcher  waitForReadyRead"
-                         << socket.error() << socket.errorString();
+                << socket.error() << socket.errorString();
                 //FIXME
-                emit processed (sipuri);
-                return;
+                goto end;
             }
         }
         responseData = socket.readAll();
@@ -142,9 +155,8 @@ void PortraitFetcher::run ()
                 {
                     // TODO handle socket.error() or inform user what happened
                     qDebug() << "PortraitFetcher  waitForReadyRead"
-                             << socket.error() << socket.errorString();
-                    emit processed (sipuri);
-                    return;
+                    << socket.error() << socket.errorString();
+                    goto end;
                 }
             }
             responseData = socket.readAll();
@@ -174,8 +186,7 @@ void PortraitFetcher::run ()
                     {
                         // TODO handle socket.error() or inform user what happened
                         qDebug() << "ssiLogin  waitForReadyRead"
-                                 << socket.error() << socket.errorString();
-                        emit processed (sipuri);
+                        << socket.error() << socket.errorString();
                         goto end;
                     }
                 }
@@ -185,12 +196,6 @@ void PortraitFetcher::run ()
 
             bytes = responseData.mid (pos_ + 4);
 
-            static QByteArray iconsSubDir =
-                QDir::homePath().toLocal8Bit().append ("/.bressein/icons/");
-            if (not  QDir::home().exists (iconsSubDir))
-            {
-                QDir::home().mkpath (".bressein/icons/");
-            }
             QByteArray filename = iconsSubDir;
             filename.append (sipToFetion (sipuri));
             filename.append (".jpeg");
@@ -203,12 +208,12 @@ void PortraitFetcher::run ()
             if (socket.state() not_eq QAbstractSocket::UnconnectedState)
                 socket.waitForDisconnected (1000);
         }
-        else
-        {
-            // Unknown
-            goto end;
-        }
-    end:
+//         else
+//         {
+//             // Unknown
+//             goto end;
+//         }
+end:
         emit processed (sipuri);
         mutex.lock();
         if (not queue.isEmpty())

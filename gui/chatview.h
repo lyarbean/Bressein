@@ -32,7 +32,6 @@ OpenSSL library used as well as that of the covered work.
 #define CHATVIEW_H
 
 #include <QGraphicsView>
-#include <QTextImageFormat>
 class QGraphicsTextItem;
 class QDateTime;
 
@@ -50,15 +49,13 @@ class ChatView : public QGraphicsView
 public:
     ChatView (QWidget *parent = 0);
     virtual ~ChatView();
-    void setContact (const QByteArray &,
-                     const QByteArray &,
-                     const QByteArray &);
-    void setPortrait (const QByteArray &name, const QImage &portrait);
+    void setNames (const QByteArray &, const QByteArray &);
+    void setPortraits (const QByteArray &,
+                       const QByteArray &);
 public slots:
     void incomeMessage (const QByteArray &, const QByteArray &);
 signals:
-    void sendMessage (const QByteArray &, const QByteArray &);
-    void toClose (const QByteArray &);
+    void sendMessage (const QByteArray &);
 protected:
     void keyReleaseEvent (QKeyEvent *event);
     void resizeEvent (QResizeEvent *event);
@@ -66,10 +63,9 @@ protected:
 private slots:
     void adjustSize();
 private:
-    QByteArray sipuri;
-    QByteArray otherPortrait;
-    QByteArray myPortrait;
-    QByteArray otherName;
+    QByteArray otherPortraitName;// a resource path
+    QByteArray myPortraitName;// a resource path
+    QByteArray otherName; // literal name
     QByteArray myName;
     QGraphicsScene *gscene;
     TextWidget *showArea;

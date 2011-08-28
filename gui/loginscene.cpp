@@ -53,6 +53,11 @@ LoginScene::~LoginScene()
 
 }
 
+void LoginScene::setEnable(bool ok)
+{
+    loginWidget->setEnable(ok);
+}
+
 void LoginScene::onLoginCommit (const QByteArray &n, const QByteArray &p)
 {
     emit loginCommit (n,p);

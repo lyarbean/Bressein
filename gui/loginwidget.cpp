@@ -37,10 +37,10 @@ namespace Bressein
 {
 LoginWidget::LoginWidget (QWidget *parent, Qt::WindowFlags f)
     : QWidget (parent,f),
-      messageLabel (new QLabel (this)),
       numberEdit (new QLineEdit (this)),
       passwordEdit (new QLineEdit (this)),
-      commitButton (new QPushButton (this))
+      commitButton (new QPushButton (this)),
+      messageLabel (new QLabel (this))
 {
     QGridLayout *gridLayout = new QGridLayout (this);
     gridLayout->addWidget (new QLabel (tr ("Number")),0,0);
@@ -51,8 +51,11 @@ LoginWidget::LoginWidget (QWidget *parent, Qt::WindowFlags f)
     gridLayout->addWidget (messageLabel,2,1);
     passwordEdit->setEchoMode (QLineEdit::Password);
     commitButton->setText (tr ("Login"));
-    connect (commitButton,SIGNAL (clicked ()),this,SLOT (onCommitButtonClicked ()));
-    connect (passwordEdit,SIGNAL (editingFinished()),commitButton,SLOT (click()));
+    connect (commitButton,SIGNAL (clicked ()),
+             this,SLOT (onCommitButtonClicked ()));
+    connect (passwordEdit,SIGNAL (editingFinished()),
+             commitButton,SLOT (click()));
+    connect (numberEdit,SIGNAL(selectionChanged()),messageLabel,SLOT(clear()));
     setLayout (gridLayout);
     setFixedSize (gridLayout->sizeHint());
 }
@@ -62,9 +65,11 @@ LoginWidget::~LoginWidget()
 
 }
 
-void LoginWidget::setMessage (const QString &msg)
+void LoginWidget::setEnable (bool ok)
 {
-    messageLabel->setText (msg);
+    commitButton->setEnabled (ok);
+    passwordEdit->setEnabled (ok);
+    numberEdit->setEnabled(ok);
 }
 
 
@@ -79,7 +84,7 @@ void LoginWidget::onCommitButtonClicked ()
         messageLabel->setText ("Invalid Number!");
         return;
     }
-    commitButton->setDisabled (true);
+    setEnable(false);
     emit commit (number,password);
 
 }

@@ -71,7 +71,7 @@ const QByteArray hashV2 (const QByteArray &userId, const QByteArray &hashV4)
 
 const QByteArray hashV4 (const QByteArray &userId, const QByteArray &password)
 {
-    QByteArray prefix = DOMAIN;
+    QByteArray prefix = DOMAIN_URI;
     prefix.append (':');
     QByteArray res = hashV1 (prefix, password);
     if (userId.isNull() or userId.isEmpty())
@@ -149,7 +149,7 @@ void RSAPublicEncrypt (const QByteArray &userId,
 const QByteArray cnouce (quint16 time)
 {
     QByteArray t;
-    qsrand (QDateTime::currentMSecsSinceEpoch());
+    qsrand (QDateTime::currentDateTime().toTime_t());
     for (quint16 i = 0; i < time; i++)
     {
         t.append (QByteArray::number (qrand(), 16));
@@ -205,7 +205,7 @@ const QByteArray ssiLoginData (const QByteArray &number,
     QByteArray data ("GET /ssiportal/SSIAppSignInV4.aspx?");
     data.append (numberString);
     data.append ("&domains=");
-    data.append (DOMAIN);
+    data.append (DOMAIN_URI);
     data.append ("&v4digest-type=");
     data.append (passwordType);
     data.append ("&v4digest=");
@@ -254,7 +254,7 @@ const QByteArray ssiVerifyData (const QByteArray &number,
     QByteArray data ("GET /ssiportal/SSIAppSignInV4.aspx?");
     data.append (numberString);
     data.append ("&domains=");
-    data.append (DOMAIN);
+    data.append (DOMAIN_URI);
     data.append ("&pid=");
     data.append (id);
     data.append ("&pic=");
@@ -347,7 +347,7 @@ const QByteArray sipcAuthorizeData (const QByteArray &mobileNumber,
     body.append (contactVersion);
     body.append ("\" buddy-attributes=\"v4default\"/>"
                  "</user-info><credentials domains=\"");
-    body.append (DOMAIN);
+    body.append (DOMAIN_URI);
     body.append ("\"/><presence><basic value=\"");
     body.append (state);
     body.append ("\" desc=\"\"/></presence></args>\r\n");
@@ -406,10 +406,10 @@ const QByteArray keepAliveData (const QByteArray &fetionNumber, int &callId)
 
 const QByteArray chatKeepAliveData (const QByteArray &fetionNumber, int &callId)
 {
-    QByteArray data ("O fetion.com.cn SIP-C/4.0\r\n");
+    QByteArray data ("R fetion.com.cn SIP-C/4.0\r\n");
     data.append ("F: ").append (fetionNumber).append ("\r\n");
     data.append ("I: ").append (QByteArray::number (callId++)).append ("\r\n");
-    data.append ("Q: 1 ").append ("O\r\n");
+    data.append ("Q: 1 ").append ("R\r\n");
     data.append ("N: KeepConnectionBusy\r\n\r\n");
     return data;
 }

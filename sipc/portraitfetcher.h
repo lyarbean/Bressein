@@ -56,6 +56,7 @@ public slots:
 protected:
     void run ();
 private:
+    QByteArray iconsSubDir;
     QMutex mutex;
     QByteArray server;
     QByteArray path;

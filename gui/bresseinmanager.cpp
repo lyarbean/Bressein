@@ -94,98 +94,27 @@ void BresseinManager::onGroupChanged (const QByteArray &id,
     sidePanel->addGroup (id, name);
 }
 
-void BresseinManager::onChatSpawn (const QByteArray &contact)
+void BresseinManager::onWrongPassword()
 {
-    qDebug() << "onChatSpawn" << contact;
-    if (chatViews.find (contact) == chatViews.end())
-    {
-        ChatView *chatview = new ChatView (0);
-        //FIXME if contact is not one in contacts, i.e., server
-        const ContactInfo &contactInfo = account->getContactInfo (contact);
-        QByteArray name = contact;
-        if (not contactInfo.detail.nickName.isEmpty())
-        {
-            name = contactInfo.detail.nickName;
-        }
-        if (not contactInfo.basic.localName.isEmpty())
-        {
-            name = contactInfo.basic.localName;
-        }
-        QByteArray nickname;
-        account->getNickname (nickname);
-        chatview->setContact (contact, name, nickname);
-        chatview->setPortrait (myPortraitName,myPortrait);
-        chatViews.insert (contact, chatview);
-        connect (chatview, SIGNAL (toClose (const QByteArray &)),
-                 this, SLOT (onChatClose (const QByteArray &)));
-        connect (chatview,
-                 SIGNAL (sendMessage (const QByteArray &, const QByteArray &)),
-                 account,
-                 SLOT (sendMessage (const QByteArray &, const QByteArray &)),
-                 Qt::QueuedConnection);
-        chatview->resize (500, 500);
-        chatview->show();
-    }
-    else
-    {
-        chatViews.value (contact)->showNormal();
-    }
+   // account->close();
+    sidePanel->activateLogin(true);
 }
 
-
-
-// TODO if the chatview has been idle for long time, we should destroys it to
-// save memory.
-void BresseinManager::onChatClose (const QByteArray &contact)
-{
-    qDebug() << "BresseinManager::onChatClose (const QByteArray &contact)";
-    if (chatViews.find (contact) == chatViews.end())
-    {
-        qDebug() << "onChatClose not found" << contact;
-        return;
-    }
-// TODO static cast
-    qDebug() << "onChatClose found";
-    ChatView *chatview  = chatViews.value (contact);
-    chatview->disconnect();
-    chatview->close();
-    chatview->deleteLater();
-    chatViews.remove (contact);
-}
-
-void BresseinManager::onIncomeMessage (const QByteArray &contact,
-                                       const QByteArray &datetime,
-                                       const QByteArray &content)
-{
-    //TODO notification
-    if (chatViews.find (contact) == chatViews.end())
-    {
-        // TODO should make one chatview for it
-        onChatSpawn (contact);
-    }
-    chatViews.value (contact)->incomeMessage (datetime, content);
-}
 
 void BresseinManager::readyShow()
 {
     QByteArray sipuri;
     account->getFetion (sipuri);
-    QString path = QDir::homePath().append ("/.bressein/icons/").
-                   append (sipuri).append (".jpeg");
-    qDebug() << " BresseinManager::readyShow()";
-    qDebug() << path;
-    if (not QFile (path).open (QIODevice::ReadOnly))
-    {
-        path = ":/images/envelop_64.png";
-    }
-    myPortrait= QImage (path);
-    myPortraitName = "image:/"+sipuri;
-    //  loginDialog->disconnect();
-    // loginDialog->close();
-    //  loginDialog->deleteLater();
+    QByteArray nickname;
+    account->getNickname(nickname);
     sidePanel->setupContactsScene();
+    sidePanel->setNickname(nickname);
+    sidePanel->setHostSipuri(sipuri);
+
+
 }
 
+// TODO move to loginScene
 void BresseinManager::onVerificationPic (const QByteArray &data)
 {
     qDebug() << "onVerificationPic" << data;
@@ -249,16 +178,24 @@ void BresseinManager::connectSignalSlots()
     connect (account, SIGNAL (incomeMessage (const QByteArray &,
                                              const QByteArray &,
                                              const QByteArray &)),
-             this, SLOT (onIncomeMessage (const QByteArray &,
+             sidePanel, SLOT (onIncomeMessage (const QByteArray &,
                                           const QByteArray &,
                                           const QByteArray &)),
              Qt::QueuedConnection);
+    connect (account, SIGNAL (wrongPassword()),
+             this, SLOT (onWrongPassword()),
+             Qt::QueuedConnection);
     connect (account, SIGNAL (sipcAuthorizeParsed()),
              this, SLOT (onStateAuthorized()), Qt::QueuedConnection);
-    connect (sidePanel, SIGNAL (toLogin (const QByteArray &, const QByteArray &)),
-             this, SLOT (loginAs (const QByteArray &, const QByteArray &)));
-    connect (sidePanel, SIGNAL (contactActivated (const QByteArray &)),
-             this, SLOT (onChatSpawn (const QByteArray &)));
+    connect (sidePanel,
+             SIGNAL (toLogin (const QByteArray &, const QByteArray &)),
+             this,
+             SLOT (loginAs (const QByteArray &, const QByteArray &)));
+    connect (sidePanel,
+             SIGNAL (sendMessage (const QByteArray &, const QByteArray &)),
+             account,
+             SLOT (sendMessage (const QByteArray &, const QByteArray &)),
+             Qt::QueuedConnection);
 }
 
 }

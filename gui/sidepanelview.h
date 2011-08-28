@@ -51,18 +51,26 @@ class SidepanelView : public QGraphicsView
 public:
     SidepanelView (QWidget *parent = 0);
     virtual ~SidepanelView();
+    void setHostSipuri(const QByteArray&);
+    void setNickname (const QByteArray&);
     void updateContact (const QByteArray &, const ContactInfo &);
     void addGroup (const QByteArray &,const QByteArray &);
 signals:
-    void contactActivated (const QByteArray &sipuri);
     void toLogin (const QByteArray &,
                   const QByteArray &);
+    void sendMessage (const QByteArray &sipuri,
+                      const QByteArray &message);
 public slots:
     void setupContactsScene();
-
+    void activateLogin(bool ok);
+    void onIncomeMessage (const QByteArray &,
+                          const QByteArray &,
+                          const QByteArray &);
 private slots:
     void onLoginCommit (const QByteArray &,
                         const QByteArray &);
+    void onSendMessage(const QByteArray &,
+                       const QByteArray &);
     void setRenderingSystem();
     void setupSceneItems();
     void resizeScene();
@@ -70,6 +78,8 @@ protected:
     void resizeEvent (QResizeEvent *event);
     void closeEvent (QCloseEvent *event);
 private:
+    QByteArray myNickname;
+    QByteArray hostSipuri;
     LoginScene *loginScene;
     ContactsScene *contactsScene;
     QList<ContactItem *> itemList;

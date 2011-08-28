@@ -70,15 +70,12 @@ public slots:
     void loginAs (const QByteArray &, const QByteArray &);
     void onContactChanged (const QByteArray &);
     void onGroupChanged (const QByteArray &, const QByteArray &);
-    void onChatSpawn (const QByteArray &);
+
 private slots:
 
     void readyShow();
     void onVerificationPic (const QByteArray &);
-    void onChatClose (const QByteArray &);
-    void onIncomeMessage (const QByteArray &,
-                          const QByteArray &,
-                          const QByteArray &);
+    void onWrongPassword();
     void onStateAuthorized();
     void onTrayActivated (QSystemTrayIcon::ActivationReason);
 private:
@@ -90,7 +87,6 @@ private:
     SidepanelView *sidePanel;
     QSystemTrayIcon *tray;
     QMenu *trayIconMenu;
-    QMap<QByteArray, ChatView *> chatViews;
     QImage myPortrait;
     QByteArray myPortraitName;
 

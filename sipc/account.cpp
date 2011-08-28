@@ -56,7 +56,8 @@ Account::Account (QObject *parent) : QObject (parent), step (NONE)
     serverTransporter = new Transporter (0);
     conversationManager = new ConversationManager (this);
     connect (serverTransporter, SIGNAL (socketError (const int)),
-            this, SLOT (onServerTransportError (const int)));
+             this, SLOT (onServerTransportError (const int)),
+             Qt::QueuedConnection);
     connect (this, SIGNAL (ssiResponseParsed()), SLOT (systemConfig()));
     connect (this, SIGNAL (serverConfigParsed()), SLOT (sipcRegister()));
     connect (this, SIGNAL (sipcRegisterParsed()), SLOT (sipcAuthorize()));
@@ -530,6 +531,7 @@ void Account::parseSsiResponse (QByteArray &data)
             //404
             //TODO as user to re-input password
             // emit wrong password
+            emit wrongPassword();
             return;
         }
         else if (statusCode == "200")
@@ -1173,8 +1175,13 @@ void Account::onServerTransportError (const int se)
     {
         case QAbstractSocket::ConnectionRefusedError:
         case QAbstractSocket::RemoteHostClosedError:
+            // TODO need confirm from user
+            // relogin
+            login();
+            break;
         case QAbstractSocket::HostNotFoundError:
             // TODO
+            login();
             //  close();
             break;
         default:

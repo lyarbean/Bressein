@@ -36,6 +36,7 @@ OpenSSL library used as well as that of the covered work.
 #include "sipc/types.h"
 namespace Bressein
 {
+    class ChatView;
 /**
 shows portrait and local name or nick name or mobile / fetion number
  * */
@@ -59,17 +60,33 @@ public:
 //     virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent *event);
 //     ContactItem();
 //     virtual ~ContactItem();
+    void setHostSipuri (const QByteArray &sipuri);
     void setSipuri (const QByteArray &sipuri);
+    void setHostName(const QByteArray &);
     const QByteArray &getSipuri () const ;
     void updateContact (const ContactInfo &contactInfo);
+private slots:
+    void setupChatView();
+    void activateChatView (bool ok);
+    void closeChatView();
+signals:
+    void sendMessage (const QByteArray &, const QByteArray &);
+    //private:
+    void incomeMessage (const QByteArray &, const QByteArray &);
+public slots:
+    void onSendMessage (const QByteArray &);
+    void onIncomeMessage (const QByteArray &, const QByteArray &);
 protected:
     void mouseDoubleClickEvent (QGraphicsSceneMouseEvent *event);
     void hoverEnterEvent (QGraphicsSceneHoverEvent *event);
     void hoverLeaveEvent (QGraphicsSceneHoverEvent *event);
 private:
+    QByteArray hostSipuri;
+    QByteArray hostName;
     QByteArray sipuri;
     ContactInfo contact;
-    QTextImageFormat imageFormat;
+    QImage sipuriImage;
+    ChatView *chatView;
 };
 }
 #endif // CONTACTITEM_H

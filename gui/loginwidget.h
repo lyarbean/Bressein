@@ -44,16 +44,16 @@ class LoginWidget : public QWidget
 public:
     LoginWidget (QWidget *parent = 0, Qt::WindowFlags f = 0);
     virtual ~LoginWidget();
-    void setMessage (const QString &);
+    void setEnable (bool ok);
 signals:
     void commit (const QByteArray &, const QByteArray &);
 private slots:
     void onCommitButtonClicked ();
 private:
-    QLabel *messageLabel;
     QLineEdit *numberEdit;
     QLineEdit *passwordEdit;
     QPushButton *commitButton;
+    QLabel *messageLabel;
 
 };
 }

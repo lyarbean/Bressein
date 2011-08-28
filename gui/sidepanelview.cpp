@@ -39,17 +39,17 @@ OpenSSL library used as well as that of the covered work.
 namespace Bressein
 {
 SidepanelView::SidepanelView (QWidget *parent)
-    : QGraphicsView (parent)
-    , loginScene (new LoginScene (this))
-    , contactsScene (new ContactsScene (this))
+        : QGraphicsView (parent)
+        , loginScene (new LoginScene (this))
+        , contactsScene (new ContactsScene (this))
 
 {
     setAlignment (Qt::AlignLeft | Qt::AlignTop);
     setRenderingSystem();
     setScene (loginScene);
     connect (loginScene,
-             SIGNAL (loginCommit (const QByteArray &, const QByteArray &)),
-             this,SLOT (onLoginCommit (const QByteArray &, const QByteArray &)));
+            SIGNAL (loginCommit (const QByteArray &, const QByteArray &)),
+            this, SLOT (onLoginCommit (const QByteArray &, const QByteArray &)));
     // add default group
     QByteArray id = "0";
     QByteArray name = "Untitled";
@@ -63,9 +63,18 @@ SidepanelView::~SidepanelView()
     itemList.clear();
 }
 
+void SidepanelView::setHostSipuri (const QByteArray &sipuri)
+{
+    hostSipuri = sipuri;
+}
+
+void SidepanelView::setNickname (const QByteArray &nickname)
+{
+    myNickname = nickname;
+}
 
 void SidepanelView::updateContact (const QByteArray &contact,
-                                   const ContactInfo &contactInfo)
+        const ContactInfo &contactInfo)
 {
     qDebug() << "SidepanelView::updateContact";
     bool updated = false;
@@ -125,6 +134,8 @@ void SidepanelView::updateContact (const QByteArray &contact,
         item->updateContact (contactInfo);
         item->setZValue (1);
         item->setVisible (true);
+        connect(item, SIGNAL(sendMessage(QByteArray,QByteArray)),
+                this, SLOT(onSendMessage(QByteArray,QByteArray)));
         itemList.append (item);
         //TODO adjust size
     }
@@ -149,7 +160,12 @@ void SidepanelView::addGroup (const QByteArray &id, const QByteArray &name)
 
 void SidepanelView::onLoginCommit (const QByteArray &n, const QByteArray &p)
 {
-    emit toLogin (n,p);
+    emit toLogin (n, p);
+}
+
+void SidepanelView::onSendMessage (const QByteArray &sipuri, const QByteArray &message)
+{
+    emit sendMessage(sipuri,message);
 }
 
 
@@ -182,7 +198,44 @@ void SidepanelView::setupContactsScene()
     // indirectly pass through
     setScene (contactsScene);
     setSceneRect (contactsScene->itemsBoundingRect());
-    resize(contactsScene->itemsBoundingRect().size().toSize());
+    resize (contactsScene->itemsBoundingRect().size().toSize());
+    int itemlists = itemList.size();
+    for (int i = 0; i < itemlists; i++)
+    {
+        itemList.at (i)->setHostSipuri(hostSipuri);
+        itemList.at (i)->setHostName(myNickname);
+    }
+    qDebug() << "XXXXXXXXXXX";
+    qDebug() << hostSipuri << QString::fromUtf8(myNickname);
+}
+
+void SidepanelView::activateLogin (bool ok)
+{
+    loginScene->setEnable (ok);
+}
+
+void SidepanelView::onIncomeMessage (const QByteArray &contact,
+        const QByteArray &datetime,
+        const QByteArray &content)
+{
+    ContactItem *item;
+    int itemlists = itemList.size();
+    for (int i = 0; i < itemlists; i++)
+    {
+        if (itemList.at (i)->getSipuri() == contact)
+        {
+           item = itemList.at (i);
+            break;
+        }
+    }
+    if (item)
+    {
+        item->onIncomeMessage(datetime,content);
+    }
+    else // TODO if contact is from stranger
+    {
+
+    }
 }
 
 

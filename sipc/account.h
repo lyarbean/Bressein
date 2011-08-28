@@ -64,6 +64,7 @@ public:
     void getNickname (QByteArray &name) const;
 signals:
     void logined();
+    void wrongPassword();
     void needConfirm();
     void contactChanged (const QByteArray &);
     void verificationPic (const QByteArray &);
