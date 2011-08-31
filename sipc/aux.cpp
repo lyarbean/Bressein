@@ -137,7 +137,7 @@ void RSAPublicEncrypt (const QByteArray &userId,
         sprintf (res + i * 2 , "%02x" , out[i]);
         i++;
     };
-    result = QByteArray(res);
+    result = QByteArray (res);
     ok = true;
     free (out);
     free (res);
@@ -157,20 +157,10 @@ const QByteArray cnouce (quint16 time)
     return t.toUpper();
 }
 
-const QByteArray configData (const QByteArray &number)
+const QByteArray configData ()
 {
-    QByteArray part = ("<config><user ");
-
-    if (number.size() == 11)   //mobileNumber
-    {
-        part.append ("mobile-no=\"");
-    }
-    else
-    {
-        part.append ("user-id=\"");
-    }
-    part.append (number);
-    part.append ("\"/><client type=\"PC\" version=\"");
+    QByteArray part = "<config><user mobile-no=\"13910000000\"/>"
+                      "<client type=\"PC\" version=\"";
     part.append (PROTOCOL_VERSION);
     part.append ("\" platform=\"W5.1\"/><servers version=\"0\"/>"
                  "<parameters version=\"0\"/><hints version=\"0\"/></config>");
@@ -179,7 +169,7 @@ const QByteArray configData (const QByteArray &number)
     data.append (PROTOCOL_VERSION);
     data.append ("\r\nHost: ");
     data.append (NAVIGATION);
-    data.append ("\r\nConnection: Close\r\n");
+    data.append ("\r\nConnection: Close\r\nCache-Control: no-cache\r\n");
     data.append ("Content-length: ");
     data.append (QByteArray::number (part.size()));
     data.append ("\r\n\r\n");

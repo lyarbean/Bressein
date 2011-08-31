@@ -30,16 +30,16 @@ OpenSSL library used as well as that of the covered work.
 
 #ifndef BRESSEIN_ACCOUNT_H
 #define BRESSEIN_ACCOUNT_H
+#include "types.h"
+#include "portraitfetcher.h"
+#include "conversationmanager.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QThread>
 #include <QtNetwork/QTcpSocket>
 #include <QtNetwork/QNetworkProxy>
 #include <QDateTime>
-#include "types.h"
-#include "portraitfetcher.h"
-#include "conversationmanager.h"
-class QTimer;
+
 namespace Bressein
 {
 
@@ -51,6 +51,7 @@ class Transporter;
 class Account : public QObject
 {
     Q_OBJECT
+    //TODO remove these
     enum STEP {NONE, SSI, SYSCONF, SIPCR, SIPCA, SIPCP};
 public:
     explicit Account (QObject *parent = 0);
@@ -67,6 +68,7 @@ signals:
     void wrongPassword();
     void needConfirm();
     void contactChanged (const QByteArray &);
+    void portraitDownloaded (const QByteArray &);
     void verificationPic (const QByteArray &);
     // find a better name
     void groupChanged (const QByteArray &id, const QByteArray &name);
@@ -78,9 +80,7 @@ signals:
     void serverConfigParsed();
     void sipcRegisterParsed();
     void sipcAuthorizeParsed();
-private:
-    void parseReceivedData (const QByteArray &in);
-    void downloadPortrait (const QByteArray &sipuri);
+
 public slots:
     void login();
     // This will be connect to a dialog and call there
@@ -90,8 +90,20 @@ public slots:
     // the sender can just call this, regardless of the state of receiver
     void sendMessage (const QByteArray &toSipuri, const QByteArray &message);
     const ContactInfo &getContactInfo (const QByteArray &sipuri);
-
-
+    //change states
+    void setOnline ();
+    void setRightback ();
+    void setAway ();
+    void setBusy ();
+    void setOutforlunch ();
+    void setOnthephone ();
+    void setMeeting ();
+    void setDonotdisturb ();
+    void setHidden ();
+    void setOffline();
+private:
+    void parseReceivedData (const QByteArray &in);
+    void downloadPortrait (const QByteArray &sipuri);
 private slots:
     void activateTimer();
     void onServerTransportError (const int);
@@ -99,29 +111,23 @@ private slots:
     void dequeueMessages();
     void dispatchOutbox();
     void dispatchOfflineBox();
-
     void onPortraitDownloaded (const QByteArray &);
     void keepAlive();
-    //called in period when connection established SIP_EVENT_KEEPALIVE
     void ssiLogin();
     void ssiPic();
     void ssiVerify();
     void systemConfig();
-
     // uploadPortrait(/*file*/);
     void sipcRegister();
     void sipcAuthorize();
-
     // sipc events
     //SIP_EVENT_CONVERSATION ?
     void contactInfo (const QByteArray &userId);
     // To overload correctly, pass one more argument to distinct
     void contactInfo (const QByteArray &Number, bool mobile);
-
     //SIP_EVENT_GETCONTACTINFO or by number
     //pg_group_update_group_info
     //void groupInfo;// SIP_EVENT_GETCONTACTINFO
-
     void addBuddy (const QByteArray &number,
                    QByteArray buddyLists = "0",
                    QByteArray localName = "",
@@ -159,7 +165,7 @@ private slots:
     // subsribePg SIP_EVENT_PGPRESENCE
     // sendPgMessage SIP_EVENT_PGSENDCATSMS
 
-    void setClientState (StateType state);   //SIP_EVENT_SETPRESENCE
+    void setClientState (int state);   //SIP_EVENT_SETPRESENCE
 
 // functions for parsing data
     void parseSsiResponse (QByteArray &data);
@@ -189,6 +195,7 @@ private slots:
 
 private:
     STEP step;
+    ContactInfo *publicInfo; //
     // the PIMPL
     class  Info;
     typedef Info *InfoAccess;

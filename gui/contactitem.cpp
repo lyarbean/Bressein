@@ -42,11 +42,11 @@ OpenSSL library used as well as that of the covered work.
 namespace Bressein
 {
 ContactItem::ContactItem (QGraphicsItem *parent)
-        : QGraphicsTextItem (parent), chatView (0)
+    : QGraphicsTextItem (parent), chatView (0)
 {
     qDebug() << "new ContactItem";
     setFlags (QGraphicsItem::ItemIsFocusable |
-            QGraphicsItem::ItemIsSelectable);
+              QGraphicsItem::ItemIsSelectable);
     setTextInteractionFlags (Qt::TextBrowserInteraction);
     setTextWidth (boundingRect().width());
     setCacheMode (QGraphicsItem::ItemCoordinateCache);
@@ -58,8 +58,8 @@ ContactItem::~ContactItem()
 }
 
 void ContactItem::paint (QPainter *painter,
-        const QStyleOptionGraphicsItem *option,
-        QWidget *widget)
+                         const QStyleOptionGraphicsItem *option,
+                         QWidget *widget)
 {
     painter->drawRect (boundingRect().adjusted (2, 2, -2, -2));
     QGraphicsTextItem::paint (painter, option, widget);
@@ -67,10 +67,10 @@ void ContactItem::paint (QPainter *painter,
 
 QRectF ContactItem::boundingRect() const
 {
-    return QRectF (0, 0, 130, document()->size().height());
+    return QRectF (0, 0, 300, document()->size().height());
 }
 
-void ContactItem::setHostSipuri (const QByteArray& sipuri)
+void ContactItem::setHostSipuri (const QByteArray &sipuri)
 {
     this->hostSipuri = sipuri;
 }
@@ -93,58 +93,67 @@ const QByteArray &ContactItem::getSipuri() const
 // FIXME
 void ContactItem::updateContact (const ContactInfo &contactInfo)
 {
-    prepareGeometryChange();
-    document()->clear();
-
-    QString iconPath = QDir::homePath().append ("/.bressein/icons/");
-    QString other = iconPath.append (sipToFetion (sipuri)).append (".jpeg");
-    if (not QFile (other).open (QIODevice::ReadOnly))
-    {
-        other = ":/images/envelop_128.png";
-    }
-    sipuriImage = QImage (other);
-    // TODO using Html
-    // retain a copy
     contact = contactInfo;
-    QTextBlockFormat blockFormat;
-    blockFormat.setAlignment (Qt::AlignCenter);
-    textCursor().beginEditBlock();
-    textCursor().insertImage (sipuriImage);
-    textCursor().setBlockFormat (blockFormat);
-    if (not contact.basic.localName.isEmpty())
+    document()->clear();
+    QString iconPath = QDir::homePath().append ("/.bressein/icons/");
+    QString iconFullPath = iconPath.append (sipToFetion (sipuri)).append (".jpeg");
+    QImageReader reader (iconFullPath);
+    QImage image (120, 120, QImage::Format_RGB32);
+    if (reader.read (&image))
     {
-        textCursor().insertText (QString::fromUtf8 (contact.basic.localName));
-        textCursor().insertText ("\n");
+        document()->addResource (QTextDocument::ImageResource,
+                                 QUrl (imagePath),
+                                 QVariant (image));
     }
-    else if (not contact.detail.nickName.isEmpty())
+    else
     {
-        textCursor().insertText (QString::fromUtf8 (contact.detail.nickName));
-        textCursor().insertText ("\n");
+        imagePath = ":/images/envelop_32.png";
     }
-    if (not contact.detail.mobileno.isEmpty())
+
+    QString text;
+    if (not contact.localName.isEmpty())
     {
-        textCursor().insertText (QString::fromUtf8 (contact.detail.mobileno));
-        textCursor().insertText ("\n");
+        text.append (QString::fromUtf8 (contact.localName));
+        text.append (" ");
     }
-    textCursor().insertText (QString::fromUtf8 (sipToFetion (sipuri)));
-    textCursor().endEditBlock();
-    //
-    //TODO show imprea when get hovered
-    setToolTip (QString::fromUtf8 (contact.basic.imprea));
+    else if (not contact.nickName.isEmpty())
+    {
+        text.append (QString::fromUtf8 (contact.nickName));
+        text.append (" ");
+    }
+    if (not contact.mobileno.isEmpty())
+    {
+        text.append (QString::fromUtf8 (contact.mobileno));
+        text.append (" ");
+    }
+    text.append (QString::fromUtf8 (sipToFetion (sipuri)));
+    if (not contact.impresa.isEmpty())
+    {
+        text.append ("<br/>");
+        text.append (QString::fromUtf8 (contact.impresa));
+    }
+    prepareGeometryChange();
+    QTextCursor cursor = textCursor();
+    cursor.movePosition (QTextCursor::End);
+    cursor.insertHtml ("<img width='48' src=\"" + imagePath +
+                       "\" style='float:left;'/>");
+    cursor.insertHtml (text);
+    cursor.insertText ("\n");
+    setTextCursor (cursor);
 }
 
 void ContactItem::setupChatView()
 {
     chatView = new ChatView;
     connect (chatView, SIGNAL (sendMessage (QByteArray)),
-            this, SLOT (onSendMessage (QByteArray)));
+             this, SLOT (onSendMessage (QByteArray)));
     // should query for info, such as hostName
-    QByteArray otherName = contact.basic.localName;
+    QByteArray otherName = contact.localName;
     if (otherName.isEmpty())
     {
-        otherName = contact.detail.nickName;
+        otherName = contact.nickName;
     }
-    chatView->setNames(otherName,hostName);
+    chatView->setNames (otherName, hostName);
     chatView->setPortraits (sipuri, hostSipuri);
 }
 
@@ -165,7 +174,7 @@ void ContactItem::activateChatView (bool ok)
 }
 
 void ContactItem::onIncomeMessage (const QByteArray &datetime,
-        const QByteArray &message)
+                                   const QByteArray &message)
 {
     activateChatView (true);
     chatView->incomeMessage (datetime, message);
@@ -202,7 +211,7 @@ void ContactItem::hoverEnterEvent (QGraphicsSceneHoverEvent *event)
 
 void ContactItem::hoverLeaveEvent (QGraphicsSceneHoverEvent *event)
 {
-    setOpacity (0.9);
+    setOpacity (0.5);
     QGraphicsTextItem::hoverLeaveEvent (event);
 }
 

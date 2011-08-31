@@ -55,7 +55,7 @@ LoginWidget::LoginWidget (QWidget *parent, Qt::WindowFlags f)
              this,SLOT (onCommitButtonClicked ()));
     connect (passwordEdit,SIGNAL (editingFinished()),
              commitButton,SLOT (click()));
-    connect (numberEdit,SIGNAL(selectionChanged()),messageLabel,SLOT(clear()));
+    connect (numberEdit,SIGNAL (selectionChanged()),messageLabel,SLOT (clear()));
     setLayout (gridLayout);
     setFixedSize (gridLayout->sizeHint());
 }
@@ -69,7 +69,7 @@ void LoginWidget::setEnable (bool ok)
 {
     commitButton->setEnabled (ok);
     passwordEdit->setEnabled (ok);
-    numberEdit->setEnabled(ok);
+    numberEdit->setEnabled (ok);
 }
 
 
@@ -84,7 +84,7 @@ void LoginWidget::onCommitButtonClicked ()
         messageLabel->setText ("Invalid Number!");
         return;
     }
-    setEnable(false);
+    setEnable (false);
     emit commit (number,password);
 
 }

@@ -36,7 +36,7 @@ OpenSSL library used as well as that of the covered work.
 #include "sipc/types.h"
 namespace Bressein
 {
-    class ChatView;
+class ChatView;
 /**
 shows portrait and local name or nick name or mobile / fetion number
  * */
@@ -62,7 +62,7 @@ public:
 //     virtual ~ContactItem();
     void setHostSipuri (const QByteArray &sipuri);
     void setSipuri (const QByteArray &sipuri);
-    void setHostName(const QByteArray &);
+    void setHostName (const QByteArray &);
     const QByteArray &getSipuri () const ;
     void updateContact (const ContactInfo &contactInfo);
 private slots:
@@ -85,7 +85,7 @@ private:
     QByteArray hostName;
     QByteArray sipuri;
     ContactInfo contact;
-    QImage sipuriImage;
+    QString imagePath;
     ChatView *chatView;
 };
 }

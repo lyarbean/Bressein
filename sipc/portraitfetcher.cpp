@@ -53,8 +53,8 @@ PortraitFetcher::~PortraitFetcher()
 }
 
 void PortraitFetcher::setData (const QByteArray &server,
-        const QByteArray &path,
-        const QByteArray &ssic)
+                               const QByteArray &path,
+                               const QByteArray &ssic)
 {
     mutex.lock();
     this->server = server;
@@ -70,9 +70,9 @@ void PortraitFetcher::requestPortrait (const QByteArray &sipuri)
     queue.append (sipuri);
     mutex.unlock();
     if (not isRunning() and
-            not this->server.isEmpty() and
-            not this->path.isEmpty() and
-            not this->ssic.isEmpty())
+        not this->server.isEmpty() and
+        not this->path.isEmpty() and
+        not this->ssic.isEmpty())
     {
         start();
     }
@@ -83,9 +83,9 @@ void PortraitFetcher::run ()
     //FIXME
     mutex.lock();
     QByteArray sipuri;
-    if (not queue.isEmpty())
+    bool empty = queue.isEmpty();
+    if (not empty)
         sipuri = queue.takeFirst();
-    bool empty = false;
     QByteArray bytes;
     QByteArray toSendMsg;
     QByteArray responseData;
@@ -107,7 +107,7 @@ void PortraitFetcher::run ()
         if (not socket.waitForConnected (5000))
         {
             qDebug() << "PortraitFetcher waitForConnected"
-            << socket.error() << socket.errorString();
+                     << socket.error() << socket.errorString();
             emit processed (sipuri);
             return;
         }
@@ -129,7 +129,7 @@ void PortraitFetcher::run ()
             {
                 // TODO handle socket.error() or inform user what happened
                 qDebug() << "PortraitFetcher  waitForReadyRead"
-                << socket.error() << socket.errorString();
+                         << socket.error() << socket.errorString();
                 //FIXME
                 goto end;
             }
@@ -155,7 +155,7 @@ void PortraitFetcher::run ()
                 {
                     // TODO handle socket.error() or inform user what happened
                     qDebug() << "PortraitFetcher  waitForReadyRead"
-                    << socket.error() << socket.errorString();
+                             << socket.error() << socket.errorString();
                     goto end;
                 }
             }
@@ -186,7 +186,7 @@ void PortraitFetcher::run ()
                     {
                         // TODO handle socket.error() or inform user what happened
                         qDebug() << "ssiLogin  waitForReadyRead"
-                        << socket.error() << socket.errorString();
+                                 << socket.error() << socket.errorString();
                         goto end;
                     }
                 }
@@ -213,7 +213,7 @@ void PortraitFetcher::run ()
 //             // Unknown
 //             goto end;
 //         }
-end:
+    end:
         emit processed (sipuri);
         mutex.lock();
         if (not queue.isEmpty())

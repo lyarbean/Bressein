@@ -45,7 +45,7 @@ const QString  QSTYLESHEET =
 namespace Bressein
 {
 TextWidget::TextWidget (QGraphicsItem *parent)
-        : QGraphicsTextItem (parent)
+    : QGraphicsTextItem (parent)
 {
 //     setFlags (QGraphicsItem::ItemIsSelectable);
     setTextInteractionFlags (Qt::TextSelectableByMouse);
@@ -61,16 +61,16 @@ void TextWidget::setEditable ()
 {
     //TODO
     setFlags (QGraphicsItem::ItemAcceptsInputMethod |
-            QGraphicsItem::ItemIsFocusable | flags());
+              QGraphicsItem::ItemIsFocusable | flags());
     setTextInteractionFlags (Qt::TextEditable | Qt::TextEditorInteraction);
     setPanelModality (QGraphicsItem::SceneModal);
 
 }
 
 void TextWidget::addText (const QByteArray &from,
-        const QByteArray &datetime,
-        const QByteArray &content,
-        const QByteArray &image)
+                          const QByteArray &datetime,
+                          const QByteArray &content,
+                          const QByteArray &image)
 {
 
     QTextCursor cursor = textCursor();
@@ -85,12 +85,12 @@ void TextWidget::addText (const QByteArray &from,
     html.append ("</span>");
     html.append ("</div>");//heder
     html.append ("<div id='Mainbody'>");//body
-    html.append (QString::fromUtf8 (content).replace("\n","<br/>"));
+    html.append (QString::fromUtf8 (content).replace ("\n","<br/>"));
     html.append ("</div>");//body
     html.append ("</div>");//container
     cursor.insertHtml ("<img  width='48' src=\"" + image + "\" />");
     cursor.insertHtml (html);
-    cursor.insertText("\n");
+    cursor.insertText ("\n");
     setTextCursor (cursor);
     update();
 }
@@ -106,11 +106,11 @@ void TextWidget::addText (const QByteArray &datetime,
     html.append (QString::fromUtf8 (datetime));
     html.append ("</span>");//heder
     html.append ("<div id='Mainbody'>");//body
-    html.append (QString::fromUtf8 (content).replace("\n","<br/>"));
+    html.append (QString::fromUtf8 (content).replace ("\n","<br/>"));
     html.append ("</div>");//body
     html.append ("</div>");//container
     cursor.insertHtml (html);
-    cursor.insertText("\n");
+    cursor.insertText ("\n");
     setTextCursor (cursor);
     update();
 }
@@ -128,8 +128,8 @@ QSizeF TextWidget::sizeHint (Qt::SizeHint which, const QSizeF &constraint) const
 }*/
 
 void TextWidget::paint (QPainter *painter,
-        const QStyleOptionGraphicsItem *option,
-        QWidget *widget)
+                        const QStyleOptionGraphicsItem *option,
+                        QWidget *widget)
 {
     painter->drawRect (boundingRect());
     QGraphicsTextItem::paint (painter, option, widget);

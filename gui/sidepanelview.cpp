@@ -39,21 +39,17 @@ OpenSSL library used as well as that of the covered work.
 namespace Bressein
 {
 SidepanelView::SidepanelView (QWidget *parent)
-        : QGraphicsView (parent)
-        , loginScene (new LoginScene (this))
-        , contactsScene (new ContactsScene (this))
+    : QGraphicsView (parent)
+    , loginScene (new LoginScene (this))
+    , contactsScene (new ContactsScene (this))
 
 {
     setAlignment (Qt::AlignLeft | Qt::AlignTop);
     setRenderingSystem();
     setScene (loginScene);
     connect (loginScene,
-            SIGNAL (loginCommit (const QByteArray &, const QByteArray &)),
-            this, SLOT (onLoginCommit (const QByteArray &, const QByteArray &)));
-    // add default group
-    QByteArray id = "0";
-    QByteArray name = "Untitled";
-    addGroup (id, name);
+             SIGNAL (loginCommit (const QByteArray &, const QByteArray &)),
+             this, SLOT (onLoginCommit (const QByteArray &, const QByteArray &)));
 }
 
 SidepanelView::~SidepanelView()
@@ -74,28 +70,30 @@ void SidepanelView::setNickname (const QByteArray &nickname)
 }
 
 void SidepanelView::updateContact (const QByteArray &contact,
-        const ContactInfo &contactInfo)
+                                   const ContactInfo &contactInfo)
 {
-    qDebug() << "SidepanelView::updateContact";
-    bool updated = false;
-    int itemlists = itemList.size();
+    qDebug() << "SidepanelView::updateContact" << contact;
 
-    updated = false;
-    for (int i = 0; i < itemlists; i++)
+    bool updated = false;
+    if (not itemList.isEmpty())
     {
-        if (itemList.at (i)->getSipuri() == contact)
+        int itemlists = itemList.size();
+        for (int i = 0; i < itemlists; i++)
         {
-            // update this
-            itemList.at (i)->updateContact (contactInfo);
-            updated = true;
-            break;
+            if (itemList.at (i)->getSipuri() == contact)
+            {
+                // update this
+                itemList.at (i)->updateContact (contactInfo);
+                updated = true;
+                break;
+            }
         }
     }
     if (not updated)
     {
         ContactItem *item;
         QGraphicsSimpleTextItem *groupItem = 0;
-        QByteArray groupId = contactInfo.basic.groupId;
+        QByteArray groupId = contactInfo.groupId;
         // one may have multi-groups, like, 1;0;2
         // we take the first group id
         QList<QByteArray> ids = groupId.split (';');
@@ -134,8 +132,8 @@ void SidepanelView::updateContact (const QByteArray &contact,
         item->updateContact (contactInfo);
         item->setZValue (1);
         item->setVisible (true);
-        connect(item, SIGNAL(sendMessage(QByteArray,QByteArray)),
-                this, SLOT(onSendMessage(QByteArray,QByteArray)));
+        connect (item, SIGNAL (sendMessage (QByteArray, QByteArray)),
+                 this, SLOT (onSendMessage (QByteArray, QByteArray)));
         itemList.append (item);
         //TODO adjust size
     }
@@ -165,7 +163,7 @@ void SidepanelView::onLoginCommit (const QByteArray &n, const QByteArray &p)
 
 void SidepanelView::onSendMessage (const QByteArray &sipuri, const QByteArray &message)
 {
-    emit sendMessage(sipuri,message);
+    emit sendMessage (sipuri, message);
 }
 
 
@@ -202,11 +200,11 @@ void SidepanelView::setupContactsScene()
     int itemlists = itemList.size();
     for (int i = 0; i < itemlists; i++)
     {
-        itemList.at (i)->setHostSipuri(hostSipuri);
-        itemList.at (i)->setHostName(myNickname);
+        itemList.at (i)->setHostSipuri (hostSipuri);
+        itemList.at (i)->setHostName (myNickname);
     }
     qDebug() << "XXXXXXXXXXX";
-    qDebug() << hostSipuri << QString::fromUtf8(myNickname);
+    qDebug() << hostSipuri << QString::fromUtf8 (myNickname);
 }
 
 void SidepanelView::activateLogin (bool ok)
@@ -215,8 +213,8 @@ void SidepanelView::activateLogin (bool ok)
 }
 
 void SidepanelView::onIncomeMessage (const QByteArray &contact,
-        const QByteArray &datetime,
-        const QByteArray &content)
+                                     const QByteArray &datetime,
+                                     const QByteArray &content)
 {
     ContactItem *item;
     int itemlists = itemList.size();
@@ -224,13 +222,13 @@ void SidepanelView::onIncomeMessage (const QByteArray &contact,
     {
         if (itemList.at (i)->getSipuri() == contact)
         {
-           item = itemList.at (i);
+            item = itemList.at (i);
             break;
         }
     }
     if (item)
     {
-        item->onIncomeMessage(datetime,content);
+        item->onIncomeMessage (datetime, content);
     }
     else // TODO if contact is from stranger
     {

@@ -37,7 +37,7 @@ OpenSSL library used as well as that of the covered work.
 #include "accountinfo.h"
 #include "aux.h"
 #include "transporter.h"
-// N.B. all data through socket are utf-8
+// N.B. all data through socket are utf-8 encoded
 // N.B. we call buddyList contacts
 namespace Bressein
 {
@@ -46,12 +46,13 @@ Account::Account (QObject *parent) : QObject (parent), step (NONE)
     keepAliveTimer = new QTimer (this);
     messageTimer = new QTimer (this);
     connect (messageTimer, SIGNAL (timeout()),
-            this, SLOT (dequeueMessages()));
+             this, SLOT (dequeueMessages()));
     connect (messageTimer, SIGNAL (timeout()),
-            this, SLOT (dispatchOutbox()));
+             this, SLOT (dispatchOutbox()));
     connect (messageTimer, SIGNAL (timeout()),
-            this, SLOT (dispatchOfflineBox()));
+             this, SLOT (dispatchOfflineBox()));
     messageTimer->start (1000);
+    publicInfo = new ContactInfo;
     info = new Info (this);
     serverTransporter = new Transporter (0);
     conversationManager = new ConversationManager (this);
@@ -62,16 +63,16 @@ Account::Account (QObject *parent) : QObject (parent), step (NONE)
     connect (this, SIGNAL (serverConfigParsed()), SLOT (sipcRegister()));
     connect (this, SIGNAL (sipcRegisterParsed()), SLOT (sipcAuthorize()));
     connect (this, SIGNAL (sipcAuthorizeParsed()), SLOT (activateTimer()));
-    // thread crossing
     connect (conversationManager, SIGNAL (receiveData (const QByteArray &)),
-            this, SLOT (queueMessages (const QByteArray &)),
-            Qt::QueuedConnection);
+             this, SLOT (queueMessages (const QByteArray &)),
+             Qt::QueuedConnection);
     connect (serverTransporter, SIGNAL (dataReceived (const QByteArray &)),
-            this, SLOT (queueMessages (const QByteArray &)),
-            Qt::QueuedConnection);
+             this, SLOT (queueMessages (const QByteArray &)),
+             Qt::QueuedConnection);
     connect (&fetcher, SIGNAL (processed (const QByteArray &)),
-            this, SLOT (onPortraitDownloaded (const QByteArray &)),
-            Qt::QueuedConnection);
+             this, SLOT (onPortraitDownloaded (const QByteArray &)),
+             Qt::QueuedConnection);
+    // move to slave thread
     this->moveToThread (&workerThread);
     workerThread.start();
 }
@@ -83,7 +84,7 @@ Account::~Account()
 
 bool Account::operator== (const Account &other)
 {
-    return this->info->fetionNumber == other.info->fetionNumber;
+    return this->info->sipuri == other.info->sipuri;
 }
 
 void Account::setAccount (QByteArray number, QByteArray password)
@@ -99,16 +100,27 @@ void Account::setAccount (QByteArray number, QByteArray password)
     info->loginNumber = number;
     if (number.size() == 11)
     {
-        info->mobileNumber = number;
+        publicInfo->mobileno = number;
     }
     else
     {
         info->fetionNumber = number;
     }
     info->password = password;
-    info->state = "400";// online
-    info->cnonce = cnouce();
+    publicInfo->state = StateType::ONLINE;// online
+    info->cnouce = cnouce();
     info->callId = 1;
+    //add group self
+    Group *group = new Group;
+    group->groupId = "-1";
+    group->groupname = "Myself";
+    groups.append (group);
+    emit groupChanged (group->groupId, group->groupname);
+    group->groupId = "0";
+    group->groupname = "Untitled";
+    groups.append (group);
+    emit groupChanged (group->groupId, group->groupname);
+    publicInfo->groupId = "-1";
 }
 
 void Account::getFetion (QByteArray &out) const
@@ -118,7 +130,7 @@ void Account::getFetion (QByteArray &out) const
 
 void Account::getNickname (QByteArray &name) const
 {
-    name = info->client.nickname;
+    name = publicInfo->nickName;
 }
 
 
@@ -128,6 +140,12 @@ const QList<QByteArray>  &Account::getContacts() const
     return contactlist;
 }
 
+const ContactInfo &Account::getContactInfo (const QByteArray &sipuri)
+{
+    if (contacts.contains (sipuri))
+        return * contacts.value (sipuri);
+    return ContactInfo();
+}
 /**--------------**/
 /** public slots **/
 /**--------------**/
@@ -155,9 +173,9 @@ void Account::close()
     serverTransporter->close();
     conversationManager->closeAll();
     disconnect (serverTransporter, SIGNAL (dataReceived (const QByteArray &)),
-            this, SLOT (queueMessages (const QByteArray &)));
+                this, SLOT (queueMessages (const QByteArray &)));
     disconnect (conversationManager, SIGNAL (receiveData (const QByteArray &)),
-            this, SLOT (queueMessages (const QByteArray &)));
+                this, SLOT (queueMessages (const QByteArray &)));
     conversationManager->deleteLater();
 
     if (not contacts.isEmpty())
@@ -185,7 +203,7 @@ void Account::close()
 
 
 void Account::sendMessage (const QByteArray &toSipuri,
-        const QByteArray &message)
+                           const QByteArray &message)
 {
     // firstly we check the status of toSipuri
     mutex.lock();
@@ -193,7 +211,7 @@ void Account::sendMessage (const QByteArray &toSipuri,
     letter->receiver = toSipuri;
     letter->datetime = QDateTime::currentDateTime();
     letter->content = message;
-    if (contacts.find (toSipuri).value()->basic.state == StateType::OFFLINE)
+    if (contacts.find (toSipuri).value()->state <= StateType::HIDDEN)
     {
         offlineBox.append (letter);
     }
@@ -202,22 +220,84 @@ void Account::sendMessage (const QByteArray &toSipuri,
         if (not conversationManager->isOnConversation (toSipuri))
         {
             QMetaObject::invokeMethod (this, "inviteFriend",
-                    Qt::QueuedConnection,
-                    Q_ARG (QByteArray, toSipuri));
+                                       Qt::QueuedConnection,
+                                       Q_ARG (QByteArray, toSipuri));
         }
         outbox.append (letter);
     }
     mutex.unlock();
 }
 
-const Bressein::ContactInfo &Account::getContactInfo (const QByteArray &sipuri)
+
+void Account::setOnline()
 {
-    return * contacts.value (sipuri);
+    QMetaObject::invokeMethod (this, "setClientState",
+                               Qt::QueuedConnection,
+                               Q_ARG (int, 400));
 }
 
-/**---------**/
-/** private **/
-/**---------**/
+void Account::setRightback()
+{
+    QMetaObject::invokeMethod (this, "setClientState",
+                               Qt::QueuedConnection,
+                               Q_ARG (int, 300));
+}
+
+void Account::setAway()
+{
+    QMetaObject::invokeMethod (this, "setClientState",
+                               Qt::QueuedConnection,
+                               Q_ARG (int, 100));
+}
+
+void Account::setBusy()
+{
+    QMetaObject::invokeMethod (this, "setClientState",
+                               Qt::QueuedConnection,
+                               Q_ARG (int, 600));
+}
+
+void Account::setOutforlunch()
+{
+    QMetaObject::invokeMethod (this, "setClientState",
+                               Qt::QueuedConnection,
+                               Q_ARG (int, 500));
+}
+
+void Account::setOnthephone()
+{
+    QMetaObject::invokeMethod (this, "setClientState",
+                               Qt::QueuedConnection,
+                               Q_ARG (int, 150));
+}
+
+void Account::setMeeting()
+{
+    QMetaObject::invokeMethod (this, "setClientState",
+                               Qt::QueuedConnection,
+                               Q_ARG (int, 850));
+}
+
+void Account::setDonotdisturb()
+{
+    QMetaObject::invokeMethod (this, "setClientState",
+                               Qt::QueuedConnection,
+                               Q_ARG (int, 800));
+}
+
+void Account::setHidden()
+{
+    QMetaObject::invokeMethod (this, "setClientState",
+                               Qt::QueuedConnection,
+                               Q_ARG (int, 0));
+}
+
+void Account::setOffline()
+{
+    QMetaObject::invokeMethod (this, "setClientState",
+                               Qt::QueuedConnection,
+                               Q_ARG (int, -1));
+}
 
 
 /**---------------**/
@@ -238,7 +318,7 @@ void Account::ssiLogin()
     if (info->loginNumber.isEmpty()) return;
     step = SSI;
     //TODO if proxy
-    QByteArray password = hashV4 (info->userId, info->password);
+    QByteArray password = hashV4 (publicInfo->userId, info->password);
     QByteArray data = ssiLoginData (info->loginNumber, password);
     QSslSocket socket (this);
     socket.connectToHostEncrypted (UID_URI, 443);
@@ -247,9 +327,10 @@ void Account::ssiLogin()
     {
         // TODO handle socket.error() or inform user what happened
         qDebug() << "waitForEncrypted"
-        << socket.error() << socket.errorString();
+                 << socket.error() << socket.errorString();
         if (socket.error() == QAbstractSocket::SslHandshakeFailedError or
-                socket.error() == QAbstractSocket::UnknownSocketError)
+            socket.error() == QAbstractSocket::SocketTimeoutError or
+            socket.error() == QAbstractSocket::UnknownSocketError)
         {
             qDebug() << "waitForEncrypted";
             socket.close();
@@ -271,7 +352,7 @@ void Account::ssiLogin()
         if (not socket.waitForReadyRead ())
         {
             qDebug() << "When waitForReadyRead"
-            << socket.error() << socket.errorString();
+                     << socket.error() << socket.errorString();
             return;
         }
     }
@@ -283,7 +364,7 @@ void Account::ssiLogin()
             if (not socket.waitForReadyRead ())
             {
                 qDebug() << "When waitForReadyRead"
-                << socket.error() << socket.errorString();
+                         << socket.error() << socket.errorString();
                 return;
             }
         }
@@ -300,8 +381,8 @@ void Account::ssiLogin()
     int pos_ = responseData.indexOf ("\r\n", pos);
     bool ok;
     length = responseData
-            .mid (pos + delimit.size(), pos_ - pos - delimit.size())
-            .toUInt (&ok);
+             .mid (pos + delimit.size(), pos_ - pos - delimit.size())
+             .toUInt (&ok);
     if (not ok)
     {
         qDebug() << "Not ok" << responseData;
@@ -317,7 +398,7 @@ void Account::ssiLogin()
             {
                 // TODO handle socket.error() or inform user what happened
                 qDebug() << "ssiLogin  waitForReadyRead"
-                << socket.error() << socket.errorString();
+                         << socket.error() << socket.errorString();
                 return;
             }
         }
@@ -332,7 +413,7 @@ void Account::systemConfig()
 {
     qDebug() << "systemConfig";
     step = SYSCONF;
-    QByteArray body = configData (info->loginNumber);
+    QByteArray body = configData (/*info->loginNumber*/);
     QTcpSocket socket (this);
     QHostInfo info = QHostInfo::fromName ("nav.fetion.com.cn");
     socket.connectToHost (info.addresses().first().toString(), 80);
@@ -347,7 +428,7 @@ void Account::systemConfig()
         if (not socket.waitForReadyRead ())
         {
             qDebug() << "When waitForReadyRead"
-            << socket.error() << socket.errorString();
+                     << socket.error() << socket.errorString();
             return;
         }
     }
@@ -363,7 +444,7 @@ void Account::systemConfig()
             if (not socket.waitForReadyRead ())
             {
                 qDebug() << "When waitForReadyRead"
-                << socket.error() << socket.errorString();
+                         << socket.error() << socket.errorString();
                 return;
             }
         }
@@ -395,7 +476,7 @@ void Account::systemConfig()
             {
                 // TODO handle socket.error() or inform user what happened
                 qDebug() << "ssiLogin  waitForReadyRead"
-                << socket.error() << socket.errorString();
+                         << socket.error() << socket.errorString();
                 return;
             }
         }
@@ -434,7 +515,7 @@ void Account::sipcRegister()
     toSendMsg.append ("F: ").append (info->fetionNumber).append ("\r\n");
     toSendMsg.append ("I: ").append (QByteArray::number (info->callId++));
     toSendMsg.append ("\r\nQ: 2 R\r\nCN: ");
-    toSendMsg.append (info->cnonce).append ("\r\nCL: type=\"pc\" ,version=\"");
+    toSendMsg.append (info->cnouce).append ("\r\nCL: type=\"pc\" ,version=\"");
     toSendMsg.append (PROTOCOL_VERSION + "\"\r\n\r\n");
     serverTransporter->sendData (toSendMsg);
 }
@@ -457,12 +538,12 @@ void Account::sipcAuthorize()
     qDebug() << "sipcAuthorize";
     step = SIPCA;
     QByteArray toSendMsg = sipcAuthorizeData
-            (info->loginNumber, info->fetionNumber,
-                    info->userId, info->callId, info->response,
-                    info->client.version,
-                    info->client.customConfigVersion,
-                    info->client.contactVersion, info->state, "");
-    qDebug() << toSendMsg;
+                           (info->loginNumber, info->fetionNumber,
+                            publicInfo->userId, info->callId, info->response,
+                            info->client.version,
+                            info->client.customConfigVersion,
+                            info->client.contactVersion,
+                            QByteArray::number (publicInfo->state), "");
     serverTransporter->sendData (toSendMsg);
 }
 
@@ -483,7 +564,7 @@ void Account::parseSsiResponse (QByteArray &data)
     QString errorMsg;
     int errorLine, errorColumn;
     bool ok = domDoc.setContent
-            (xml, false, &errorMsg, &errorLine, &errorColumn);
+              (xml, false, &errorMsg, &errorLine, &errorColumn);
     if (not ok)
     {
         qDebug() << "Failed to parse Ssi response!";
@@ -512,9 +593,9 @@ void Account::parseSsiResponse (QByteArray &data)
             qDebug() << "requires validation";
             QDomElement domE =  domRoot.firstChildElement ("verification");
             if (domE.hasAttribute ("algorithm") and
-                    domE.hasAttribute ("type") and
-                    domE.hasAttribute ("text") and
-                    domE.hasAttribute ("tips"))
+                domE.hasAttribute ("type") and
+                domE.hasAttribute ("text") and
+                domE.hasAttribute ("tips"))
             {
                 info->verification.algorithm =
                     domE.attribute ("algorithm").toUtf8();
@@ -542,15 +623,17 @@ void Account::parseSsiResponse (QByteArray &data)
             QDomElement domChild =  domRoot.firstChildElement ("user");
 
             if (domChild.hasAttribute ("uri") and
-                    domChild.hasAttribute ("mobile-no") and
-                    domChild.hasAttribute ("user-status") and
-                    domChild.hasAttribute ("user-id"))
+                domChild.hasAttribute ("mobile-no") and
+                domChild.hasAttribute ("user-status") and
+                domChild.hasAttribute ("user-id"))
             {
                 info->sipuri = domChild.attribute ("uri").toUtf8();
                 info->fetionNumber = sipToFetion (info->sipuri);
-                info->mobileNumber = domChild.attribute ("mobile-no").toUtf8();
+                publicInfo->mobileno = domChild.attribute ("mobile-no").toUtf8();
                 // info->state = domE.attribute ("user-status").toUtf8();
-                info->userId = domChild.attribute ("user-id").toUtf8();
+                publicInfo->userId = domChild.attribute ("user-id").toUtf8();
+                contacts.insert (info->sipuri, publicInfo);
+                emit contactChanged (info->sipuri);
             }
             else
             {
@@ -564,8 +647,8 @@ void Account::parseSsiResponse (QByteArray &data)
                 domChild  = domChild.firstChildElement ("credential");
 
                 if (not domChild.isNull() and
-                        domChild.hasAttribute ("domain") and
-                        domChild.hasAttribute ("c"))
+                    domChild.hasAttribute ("domain") and
+                    domChild.hasAttribute ("c"))
                 {
                     info->credential = domChild.attribute ("c").toUtf8();
                 }
@@ -602,9 +685,9 @@ void Account::parseSipcRegister (QByteArray &data)
     // FIXME sometimes RSAPublicEncrypt fails
     while (not ok)
     {
-        RSAPublicEncrypt (info->userId, info->password,
-                info->nonce, info->aeskey, info->key,
-                info->response, ok);
+        RSAPublicEncrypt (publicInfo->userId, info->password,
+                          info->nonce, info->aeskey, info->key,
+                          info->response, ok);
     }
     emit sipcRegisterParsed();
 }
@@ -622,7 +705,7 @@ void Account::parseServerConfig (QByteArray &data)
     QString errorMsg;
     int errorLine, errorColumn;
     bool ok = domDoc.setContent
-            (xml, false, &errorMsg, &errorLine, &errorColumn);
+              (xml, false, &errorMsg, &errorLine, &errorColumn);
     if (not ok)
     {
         qDebug() << "Failed to parse server config response!";
@@ -661,8 +744,8 @@ void Account::parseServerConfig (QByteArray &data)
                 info->systemconfig.portraitServerPath =
                     info->systemconfig.serverNamePath.mid (b, c - b);
                 fetcher.setData (info->systemconfig.portraitServerName,
-                        info->systemconfig.portraitServerPath,
-                        info->ssic);
+                                 info->systemconfig.portraitServerPath,
+                                 info->ssic);
             }
         }
         domRoot = domRoot.nextSiblingElement ("parameters");
@@ -713,7 +796,7 @@ void Account::parseSipcAuthorize (QByteArray &data)
     QString errorMsg;
     int errorLine, errorColumn;
     bool ok = domDoc.setContent
-            (xml, false, &errorMsg, &errorLine, &errorColumn);
+              (xml, false, &errorMsg, &errorLine, &errorColumn);
     if (not ok)
     {
         // perhaps need more data from  socket
@@ -729,8 +812,8 @@ void Account::parseSipcAuthorize (QByteArray &data)
         domChild = domRoot.firstChildElement ("client");
 
         if (not domChild.isNull() and domChild.hasAttribute ("public-ip") and
-                domChild.hasAttribute ("last-login-time") and
-                domChild.hasAttribute ("last-login-ip"))
+            domChild.hasAttribute ("last-login-time") and
+            domChild.hasAttribute ("last-login-ip"))
         {
             info->client.publicIp =
                 domChild.attribute ("public-ip").toUtf8();
@@ -745,9 +828,9 @@ void Account::parseSipcAuthorize (QByteArray &data)
         {
             QList<QByteArray> attributes;
             attributes << "user-id" << "carrier"//should be CMCC?
-            << "version" << "nickname" << "gender" << "birth-date"
-            << "mobile-no" << "sms-online-status" << "carrier-region"
-            << "carrier-status" << "impresa";
+                       << "version" << "nickname" << "gender" << "birth-date"
+                       << "mobile-no" << "sms-online-status" << "carrier-region"
+                       << "carrier-status" << "impresa";
             bool ok = true;
             foreach (const QByteArray& attribute, attributes)
             {
@@ -761,21 +844,23 @@ void Account::parseSipcAuthorize (QByteArray &data)
             }
             if (ok)
             {
-                info->client.birthDate =
+                publicInfo->birthdate =
                     domChild.attribute ("birth-date").toUtf8();
                 info->client.carrierRegion =
                     domChild.attribute ("carrier-region").toUtf8();
-                info->client.carrierStatus =
+                publicInfo->carrierStatus =
                     domChild.attribute ("carrier-status").toUtf8();
-                info->client.gender = domChild.attribute ("gender").toUtf8();
-                info->client.impresa = domChild.attribute ("impresa").toUtf8();
-                info->client.mobileNo =
+                publicInfo->gender = domChild.attribute ("gender").toUtf8();
+                publicInfo->impresa = domChild.attribute ("impresa").toUtf8();
+                publicInfo->mobileno =
                     domChild.attribute ("mobile-no").toUtf8();
-                info->client.nickname =
+                publicInfo->nickName =
                     domChild.attribute ("nickname").toUtf8();
                 info->client.smsOnLineStatus =
                     domChild.attribute ("sms-online-status").toUtf8();
                 info->client.version = domChild.attribute ("version").toUtf8();
+                contacts.insert (info->sipuri, publicInfo);
+                emit contactChanged (info->sipuri);
             }
         }
         domChild = domChild.nextSiblingElement ("custom-config");
@@ -821,8 +906,8 @@ void Account::parseSipcAuthorize (QByteArray &data)
             {
                 domGrand = domGrand.firstChildElement ("buddy-list");
                 while (not domGrand.isNull() and
-                        domGrand.hasAttribute ("id") and
-                        domGrand.hasAttribute ("name"))
+                       domGrand.hasAttribute ("id") and
+                       domGrand.hasAttribute ("name"))
                 {
                     Group *group = new Group;
                     group->groupId = domGrand.attribute ("id").toUtf8();
@@ -856,17 +941,17 @@ void Account::parseSipcAuthorize (QByteArray &data)
                     if (ok)
                     {
                         ContactInfo *contact = new ContactInfo;
-                        contact->basic.userId =
+                        contact->userId =
                             domGrand.attribute ("i").toUtf8();
                         // get fetionNumber from userId
-                        contact->basic.groupId =
+                        contact->groupId =
                             domGrand.attribute ("l").toUtf8();
-                        contact->basic.localName =
+                        contact->localName =
                             domGrand.attribute ("n").toUtf8();
 //                         contact-> = domGrand.attribute ("o").toUtf8();
-                        contact->basic.identity =
+                        contact->identity =
                             domGrand.attribute ("p").toUtf8();
-                        contact->basic.relationStatus =
+                        contact->relationStatus =
                             domGrand.attribute ("r").toUtf8();
                         QByteArray sipuri = domGrand.attribute ("u").toUtf8();
                         contacts.insert (sipuri, contact);
@@ -887,10 +972,10 @@ void Account::parseSipcAuthorize (QByteArray &data)
                 domChild = domChild.firstChildElement ("frequency");
 
                 if (not domChild.isNull() and
-                        domChild.hasAttribute ("day-limit") and
-                        domChild.hasAttribute ("day-count") and
-                        domChild.hasAttribute ("month-limit") and
-                        domChild.hasAttribute ("month-count"))
+                    domChild.hasAttribute ("day-limit") and
+                    domChild.hasAttribute ("day-count") and
+                    domChild.hasAttribute ("month-limit") and
+                    domChild.hasAttribute ("month-count"))
                 {
                     info->client.smsDayLimit =
                         domChild.attribute ("day-limit").toUtf8();
@@ -905,6 +990,7 @@ void Account::parseSipcAuthorize (QByteArray &data)
         }
         emit sipcAuthorizeParsed();
     }
+    emit contactChanged (info->sipuri);
 }
 
 void Account::ssiPic()
@@ -929,7 +1015,7 @@ void Account::ssiPic()
             if (socket.error() not_eq QAbstractSocket::SocketTimeoutError)
             {
                 qDebug() << "When waitForReadyRead"
-                << socket.error() << socket.errorString();
+                         << socket.error() << socket.errorString();
             }
             return;
         }
@@ -950,8 +1036,8 @@ void Account::ssiPic()
     pos = responseData.indexOf (delimit);
     pos_ = responseData.indexOf ("\r\n", pos);
     length = responseData
-            .mid (pos + delimit.size(), pos_ - pos - delimit.size())
-            .toUInt (&ok);
+             .mid (pos + delimit.size(), pos_ - pos - delimit.size())
+             .toUInt (&ok);
     int received = responseData.size();
     qDebug() << length;
     while (received < length + seperator + 4)
@@ -963,7 +1049,7 @@ void Account::ssiPic()
                 if (socket.error() not_eq QAbstractSocket::SocketTimeoutError)
                 {
                     qDebug() << "When waitForReadyRead"
-                    << socket.error() << socket.errorString();
+                             << socket.error() << socket.errorString();
                 }
             }
         }
@@ -978,7 +1064,7 @@ void Account::ssiPic()
     QString errorMsg;
     int errorLine, errorColumn;
     ok = domDoc.setContent
-            (xml, false, &errorMsg, &errorLine, &errorColumn);
+         (xml, false, &errorMsg, &errorLine, &errorColumn);
     if (not ok)
     {
         // perhaps need more data from  socket
@@ -990,7 +1076,7 @@ void Account::ssiPic()
     {
         domRoot = domRoot.firstChildElement ("pic-certificate");
         if (not domRoot.isNull() and domRoot.hasAttribute ("id") and
-                domRoot.hasAttribute ("pic"))
+            domRoot.hasAttribute ("pic"))
         {
             info->verification.id = domRoot.attribute ("id").toUtf8();
             info->verification.pic = domRoot.attribute ("pic").toUtf8();
@@ -1008,11 +1094,11 @@ void Account::ssiPic()
 
 void Account::ssiVerify()
 {
-    QByteArray password = (hashV4 (info->userId, info->password));
+    QByteArray password = (hashV4 (publicInfo->userId, info->password));
     QByteArray data = ssiVerifyData (info->loginNumber, password,
-            info->verification.id,
-            info->verification.code,
-            info->verification.algorithm);
+                                     info->verification.id,
+                                     info->verification.code,
+                                     info->verification.algorithm);
     QSslSocket socket (this);
     socket.connectToHostEncrypted (UID_URI, 443);
 
@@ -1031,7 +1117,7 @@ void Account::ssiVerify()
         {
             // TODO handle socket.error() or inform user what happened
             qDebug() << "ssiLogin  waitForReadyRead"
-            << socket.error() << socket.errorString();
+                     << socket.error() << socket.errorString();
         }
     }
     responseData = socket.readAll();
@@ -1041,7 +1127,7 @@ void Account::ssiVerify()
 void Account::contactInfo (const QByteArray &userId)
 {
     QByteArray toSendMsg = contactInfoData
-            (info->fetionNumber, userId, info->callId);
+                           (info->fetionNumber, userId, info->callId);
     serverTransporter->sendData (toSendMsg);
     //TODO handle responseData
     // carrier-region
@@ -1050,7 +1136,7 @@ void Account::contactInfo (const QByteArray &userId)
 void Account::contactInfo (const QByteArray &Number, bool mobile)
 {
     QByteArray toSendMsg = contactInfoData
-            (info->fetionNumber, Number, info->callId, mobile);
+                           (info->fetionNumber, Number, info->callId, mobile);
     serverTransporter->sendData (toSendMsg);
     //TODO handle responseData
     // carrier-region
@@ -1066,8 +1152,8 @@ void Account::addBuddy (
     QByteArray phraseId)
 {
     QByteArray toSendMsg = addBuddyV4Data (info->fetionNumber, number,
-            info->callId, buddyLists, localName,
-            desc, phraseId);
+                                           info->callId, buddyLists, localName,
+                                           desc, phraseId);
     serverTransporter->sendData (toSendMsg);
     // TODO handle responseData
 }
@@ -1075,7 +1161,7 @@ void Account::addBuddy (
 void Account::deleteBuddy (const QByteArray &userId)
 {
     QByteArray toSendMsg = deleteBuddyV4Data
-            (info->fetionNumber, userId, info->callId);
+                           (info->fetionNumber, userId, info->callId);
     serverTransporter->sendData (toSendMsg);
     // TODO handle responseData
 }
@@ -1098,7 +1184,7 @@ void Account::inviteFriend (const QByteArray &sipuri)
 void Account::createBuddylist (const QByteArray &name)
 {
     QByteArray toSendMsg = createBuddyListData
-            (info->fetionNumber, info->callId, name);
+                           (info->fetionNumber, info->callId, name);
 
     serverTransporter->sendData (toSendMsg);
     // TODO handle responseData, get version, name, id
@@ -1107,7 +1193,7 @@ void Account::createBuddylist (const QByteArray &name)
 void Account::deleteBuddylist (const QByteArray &id)
 {
     QByteArray toSendMsg = deleteBuddyListData
-            (info->fetionNumber, info->callId, id);
+                           (info->fetionNumber, info->callId, id);
     serverTransporter->sendData (toSendMsg);
     // TODO handle responseData, get version, name, id
 }
@@ -1115,7 +1201,7 @@ void Account::deleteBuddylist (const QByteArray &id)
 void Account::renameBuddylist (const QByteArray &id, const QByteArray &name)
 {
     QByteArray toSendMsg = setBuddyListInfoData
-            (info->fetionNumber, info->callId, id, name);
+                           (info->fetionNumber, info->callId, id, name);
     serverTransporter->sendData (toSendMsg);
     // TODO
 }
@@ -1123,11 +1209,11 @@ void Account::renameBuddylist (const QByteArray &id, const QByteArray &name)
 void Account::updateInfo()
 {
     QByteArray toSendMsg = setUserInfoV4Data (info->fetionNumber, info->callId,
-            info->client.impresa,
-            info->client.nickname,
-            info->client.gender,
-            info->client.customConfig,
-            info->client.customConfigVersion);
+                                              publicInfo->impresa,
+                                              publicInfo->nickName,
+                                              publicInfo->gender,
+                                              info->client.customConfig,
+                                              info->client.customConfigVersion);
     serverTransporter->sendData (toSendMsg);
     // TODO handle responseData
 }
@@ -1135,9 +1221,9 @@ void Account::updateInfo()
 void Account::setImpresa (const QByteArray &impresa)
 {
     QByteArray toSendMsg = setUserInfoV4Data (info->fetionNumber, info->callId,
-            impresa, info->client.version,
-            info->client.customConfig,
-            info->client.customConfigVersion);
+                                              impresa, info->client.version,
+                                              info->client.customConfig,
+                                              info->client.customConfigVersion);
     serverTransporter->sendData (toSendMsg);
     // TODO handle responseData
 }
@@ -1145,15 +1231,16 @@ void Account::setImpresa (const QByteArray &impresa)
 void Account::setMessageStatus (int days)
 {
     QByteArray toSendMsg = setUserInfoV4Data
-            (info->fetionNumber, info->callId, days);
+                           (info->fetionNumber, info->callId, days);
     serverTransporter->sendData (toSendMsg);
 }
 
-void Account::setClientState (StateType state)
+void Account::setClientState (int state)
 {
-    QByteArray statetype = QByteArray::number ( (int) state);
+    QByteArray statetype = QByteArray::number (state);
     QByteArray toSendMsg = setPresenceV4Data
-            (info->fetionNumber, info->callId, statetype);
+                           (info->fetionNumber, info->callId, statetype);
+    publicInfo->state = (StateType) state;
     serverTransporter->sendData (toSendMsg);
 }
 
@@ -1164,8 +1251,8 @@ void Account::activateTimer()
     contactSubscribe();
     keepAliveTimer->start (60000);
     downloadPortrait (info->sipuri);
+    emit logined ();
     // call other stuffs right here
-//     emit logined();
 }
 
 
@@ -1245,7 +1332,7 @@ void Account::dispatchOutbox()
         content = data->content;
         drafts.append (data);
         toSendMsg = catMsgData (info->fetionNumber, sipuri,
-                info->callId, content);
+                                info->callId, content);
     }
     mutex.unlock();
     while (not empty)
@@ -1267,7 +1354,7 @@ void Account::dispatchOutbox()
             content = data->content;
             drafts.append (data);
             toSendMsg = catMsgData (info->fetionNumber, sipuri,
-                    info->callId, content);
+                                    info->callId, content);
         }
         else
         {
@@ -1295,7 +1382,7 @@ void Account::dispatchOfflineBox()
         content = data->content;
         drafts.append (data);
         toSendMsg = sendCatMsgPhoneData (info->fetionNumber, sipuri,
-                info->callId, content, "", "");
+                                         info->callId, content, "", "");
     }
     mutex.unlock();
     while (not empty)
@@ -1317,7 +1404,7 @@ void Account::dispatchOfflineBox()
             content = data->content;
             drafts.append (data);
             toSendMsg = sendCatMsgPhoneData (info->fetionNumber, sipuri,
-                    info->callId, content, "", "");
+                                             info->callId, content, "", "");
         }
         else
         {
@@ -1330,15 +1417,7 @@ void Account::dispatchOfflineBox()
 
 void Account::onPortraitDownloaded (const QByteArray &sipuri)
 {
-    if (sipuri == info->sipuri)
-    {
-        qDebug() << " emit logined ()";
-        emit logined ();
-    }
-    else
-    {
-        emit contactChanged (sipuri);
-    }
+    emit portraitDownloaded (sipuri);
 }
 
 void Account::parseReceivedData (const QByteArray &receiveData)
@@ -1456,7 +1535,7 @@ void Account::parseReceivedData (const QByteArray &receiveData)
     else if (code == "SIP-C/4.0")
     {
         if (data.startsWith ("SIP-C/4.0 401 Unauthoried") and
-                data.contains ("\r\nW: Digest") and step == SIPCR)
+            data.contains ("\r\nW: Digest") and step == SIPCR)
         {
             qDebug() << "parseSipcRegister";
             qDebug() << data;
@@ -1464,12 +1543,12 @@ void Account::parseReceivedData (const QByteArray &receiveData)
             parseSipcRegister (data);
         }
         else if (data.startsWith ("SIP-C/4.0 200 OK") and
-                data.contains ("<client") and step == SIPCA)
+                 data.contains ("<client") and step == SIPCA)
         {
             parseSipcAuthorize (data);
         }
         else if (data.startsWith ("SIP-C/4.0 200 OK") and
-                data.contains ("A: CS address=")) // right after startChat
+                 data.contains ("A: CS address=")) // right after startChat
         {
             onStartChat (data);
         }
@@ -1527,8 +1606,10 @@ void Account::onReceivedMessage (const QByteArray &data)
 //         reply.append ("\r\n\r\n");
 //     }
     // ?fromsiprui , callid , sequence
+    qDebug() << contacts.find (fromSipuri).value()->state;
     if (conversationManager->isOnConversation (fromSipuri))
     {
+
         conversationManager->sendData (fromSipuri, reply);
     }
     else
@@ -1541,15 +1622,13 @@ void Account::onReceivedMessage (const QByteArray &data)
 void Account::onBNPresenceV4 (const QByteArray &data)
 {
     qDebug() << "onBNPresenceV4 >>>>";
-    qDebug() << QString::fromUtf8 (data);
-    qDebug() << "onBNPresenceV4 <<<<";
     int b = data.indexOf ("\r\n\r\n");
     QByteArray xml = data.mid (b + 4);
     QDomDocument domDoc;
     QString errorMsg;
     int errorLine, errorColumn;
     bool ok = domDoc.setContent
-            (xml, false, &errorMsg, &errorLine, &errorColumn);
+              (xml, false, &errorMsg, &errorLine, &errorColumn);
     if (not ok)
     {
         qDebug() << "Failed onBNPresenceV4!";
@@ -1566,7 +1645,7 @@ void Account::onBNPresenceV4 (const QByteArray &data)
     }
     domRoot = domRoot.firstChildElement ("event");
     if (not domRoot.isNull() and domRoot.hasAttribute ("type") and
-            domRoot.attribute ("type") == "PresenceChanged")
+        domRoot.attribute ("type") == "PresenceChanged")
     {
         domRoot = domRoot.firstChildElement ("contacts");
         if (not domRoot.isNull())
@@ -1598,35 +1677,35 @@ void Account::onBNPresenceV4 (const QByteArray &data)
                     goto next;
                 }
                 downloadPortrait (sipuri);
-                contactInfo->basic.userId = userId;
-                contactInfo->detail.mobileno = child.attribute ("m").toUtf8();
-                contactInfo->detail.nickName = child.attribute ("n").toUtf8();
-                contactInfo->basic.imprea = child.attribute ("i").toUtf8();
-                contactInfo->detail.scoreLevel = child.attribute ("l").toUtf8();
-                // FIXME
-//             contactInfo->detail.imageChanged = child.attribute("p").toUtf8();
-                contactInfo->detail.carrier = child.attribute ("c").toUtf8();
-                contactInfo->detail.carrierStatus =
+                contactInfo->userId = userId;
+                contactInfo->mobileno = child.attribute ("m").toUtf8();
+                contactInfo->nickName = child.attribute ("n").toUtf8();
+                contactInfo->impresa = child.attribute ("i").toUtf8();
+                contactInfo->scoreLevel = child.attribute ("l").toUtf8();
+                // FIXME not to downloadPortrait if there is one up to date;
+                // p is the portraitCrc
+                //  contactInfo->imageChanged = child.attribute("p").toUtf8();
+                contactInfo->carrier = child.attribute ("c").toUtf8();
+                contactInfo->carrierStatus =
                     child.attribute ("cs").toUtf8();
-                contactInfo->detail.serviceStatus =
+                contactInfo->serviceStatus =
                     child.attribute ("s").toUtf8();
-                // go to <pr/>
                 child = child.nextSiblingElement ("pr");
                 if (child.isNull() or not child.hasAttribute ("dt"))
                 {
                     return;
                 }
-                contactInfo->basic.devicetype = child.attribute ("dt").toUtf8();
-                contactInfo->basic.state =
+                contactInfo->devicetype = child.attribute ("dt").toUtf8();
+                contactInfo->state =
                     (StateType) child.attribute ("b").toInt();
                 contacts.insert (sipuri, contactInfo);
                 emit contactChanged (sipuri);
-                qDebug() << "Contact Changed";
-                static int contactCount = 0;
-                qDebug() << "contactCount" << ++contactCount;
-                // TODO inform conversationManager to update state,
-                // that is, to remove if OFFLINE
-next:
+                if (contactInfo->state <= StateType::HIDDEN)
+                {
+                    conversationManager->removeConversation (sipuri);
+                }
+                // TODO inform conversationManager to remove one that is OFFLINE
+            next:
                 domRoot = domRoot.nextSiblingElement ("c");
             }
         }
@@ -1649,7 +1728,7 @@ void Account::onBNConversation (const QByteArray &data)
     QString errorMsg;
     int errorLine, errorColumn;
     bool ok = domDoc.setContent
-            (xml, false, &errorMsg, &errorLine, &errorColumn);
+              (xml, false, &errorMsg, &errorLine, &errorColumn);
     if (not ok)
     {
         qDebug() << "Failed onBNPresenceV4!";
@@ -1740,10 +1819,6 @@ void Account::onBNPGGroup (const QByteArray &data)
 void Account::onInvite (const QByteArray &data)
 {
     qDebug() << "onInvite";
-    qDebug() << inbox;
-    qDebug() << "==========================";
-    qDebug() << data;
-    qDebug() << "==========================";
     /**
      I xxxxYYYY SIP-C/4.0                     *
      F: sip:zzzzzzz@fetion.com.cn;p=4162
@@ -1807,7 +1882,7 @@ void Account::onStartChat (const QByteArray &data)
     toInvite.clear();
     if (sipuri.isEmpty())
     {
-        qDebug() << "toInvite is empty================";
+        qDebug() << "toInvite is empty ================";
         return;
     }
     int b, e;
@@ -1823,24 +1898,11 @@ void Account::onStartChat (const QByteArray &data)
     qDebug() << "registerData";
     QByteArray toSendMsg;
     toSendMsg = registerData (info->fetionNumber, info->callId, credential);
-    // append conversation to conversation manager
-    /** **/
     conversationManager->addConversation (sipuri);
     conversationManager->setHost (sipuri, ip, port);
     conversationManager->sendData (sipuri, toSendMsg);
     toSendMsg = inviteBuddyData (info->fetionNumber, info->callId, sipuri);
     conversationManager->sendData (sipuri, toSendMsg);
-
-    // TODO check if 200
-    //FIXME Check contact correctly
-    //     QByteArray message ("Hi!");
-    //     toSendMsg = catMsgData
-    //             (info->fetionNumber, sipuri, info->callId, message);
-    //     data.clear();
-    //     sipcWriteRead (toSendMsg, data, sipsocket);
-    //     qDebug() << data;
-    // demo only
-
 }
 
 void Account::onInfo (const QByteArray &data)
@@ -1903,7 +1965,7 @@ void Account::onInfoTransferV4 (const QByteArray &data)
     QString errorMsg;
     int errorLine, errorColumn;
     bool ok = domDoc.setContent
-            (content, false, &errorMsg, &errorLine, &errorColumn);
+              (content, false, &errorMsg, &errorLine, &errorColumn);
     if (not ok)
     {
         qDebug() << "Failed onInfoTransferV4!";
@@ -1935,8 +1997,7 @@ void Account::onInfoTransferV4 (const QByteArray &data)
     reply.append ("\r\n\r\n");
     reply.append (body);
     // ?fromsiprui , callid , sequence
-    qDebug() << "$$$$$$$$$$$$$";
-    qDebug() << reply;
+
     if (conversationManager->isOnConversation (fromSipuri))
     {
         conversationManager->sendData (fromSipuri, reply);
@@ -1987,7 +2048,7 @@ void Account::parsePGGroupMembers (const QByteArray &data)
     QString errorMsg;
     int errorLine, errorColumn;
     bool ok = domDoc.setContent
-            (xml, false, &errorMsg, &errorLine, &errorColumn);
+              (xml, false, &errorMsg, &errorLine, &errorColumn);
     if (not ok)
     {
         qDebug() << "Failed parsePGGroupMembers!";

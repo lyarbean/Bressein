@@ -40,7 +40,7 @@ class ContactItem;
 /**
  * @brief The side Panel of Bressein.
  **/
-// There are two scenes, one is loginScene which is a dialog-alike
+// There are two scenes, one is a dialog-alike loginScene
 // and the other is contactsScene that what gscene is.
 class ContactInfo;
 class ContactsScene;
@@ -51,8 +51,8 @@ class SidepanelView : public QGraphicsView
 public:
     SidepanelView (QWidget *parent = 0);
     virtual ~SidepanelView();
-    void setHostSipuri(const QByteArray&);
-    void setNickname (const QByteArray&);
+    void setHostSipuri (const QByteArray &);
+    void setNickname (const QByteArray &);
     void updateContact (const QByteArray &, const ContactInfo &);
     void addGroup (const QByteArray &,const QByteArray &);
 signals:
@@ -62,15 +62,15 @@ signals:
                       const QByteArray &message);
 public slots:
     void setupContactsScene();
-    void activateLogin(bool ok);
+    void activateLogin (bool ok);
     void onIncomeMessage (const QByteArray &,
                           const QByteArray &,
                           const QByteArray &);
 private slots:
     void onLoginCommit (const QByteArray &,
                         const QByteArray &);
-    void onSendMessage(const QByteArray &,
-                       const QByteArray &);
+    void onSendMessage (const QByteArray &,
+                        const QByteArray &);
     void setRenderingSystem();
     void setupSceneItems();
     void resizeScene();

@@ -63,8 +63,6 @@ BresseinManager::~BresseinManager()
 //TODO initialize database
 void BresseinManager::initialize()
 {
-    //demo
-//     loginAs (qgetenv ("FETIONNUMBER"), qgetenv ("FETIONPASSWORD"));
 }
 
 // public slots:
@@ -96,8 +94,8 @@ void BresseinManager::onGroupChanged (const QByteArray &id,
 
 void BresseinManager::onWrongPassword()
 {
-   // account->close();
-    sidePanel->activateLogin(true);
+    // account->close();
+    sidePanel->activateLogin (true);
 }
 
 
@@ -106,12 +104,10 @@ void BresseinManager::readyShow()
     QByteArray sipuri;
     account->getFetion (sipuri);
     QByteArray nickname;
-    account->getNickname(nickname);
+    account->getNickname (nickname);
     sidePanel->setupContactsScene();
-    sidePanel->setNickname(nickname);
-    sidePanel->setHostSipuri(sipuri);
-
-
+    sidePanel->setNickname (nickname);
+    sidePanel->setHostSipuri (sipuri);
 }
 
 // TODO move to loginScene
@@ -149,10 +145,25 @@ void BresseinManager::onTrayActivated (QSystemTrayIcon::ActivationReason reason)
 void BresseinManager::initializeTray()
 {
     // trayIconMenu.addAction ...
-    QAction *quitAction = new QAction (tr ("quit"), tray);
-    //TODO add more interaction
-    connect (quitAction, SIGNAL (triggered (bool)), qApp, SLOT (quit()));
-    trayIconMenu->addAction (quitAction);
+    QAction *action;
+    action = new QAction (tr ("Online"),tray);
+    connect (action, SIGNAL (triggered ()), account, SLOT (setOnline()));
+    trayIconMenu->addAction (action);
+    action = new QAction (tr ("Offline"),tray);
+    connect (action, SIGNAL (triggered ()), account, SLOT (setOffline()));
+    trayIconMenu->addAction (action);
+    action = new QAction (tr ("Busy"),tray);
+    connect (action, SIGNAL (triggered ()), account, SLOT (setBusy()));
+    trayIconMenu->addAction (action);
+    action = new QAction (tr ("Hidden"),tray);
+    connect (action, SIGNAL (triggered ()), account, SLOT (setHidden()));
+    trayIconMenu->addAction (action);
+    action = new QAction (tr ("Metting"),tray);
+    connect (action, SIGNAL (triggered ()), account, SLOT (setMeeting()));
+    trayIconMenu->addAction (action);
+    action = new QAction (tr ("quit"), tray);
+    connect (action, SIGNAL (triggered (bool)), qApp, SLOT (quit()));
+    trayIconMenu->addAction (action);
     tray->setContextMenu (trayIconMenu);
     tray->setIcon (QIcon (":/images/envelop_64.png"));
     tray->setToolTip ("Bressein");
@@ -171,6 +182,9 @@ void BresseinManager::connectSignalSlots()
     connect (account, SIGNAL (contactChanged (const QByteArray &)),
              this, SLOT (onContactChanged (const QByteArray &)),
              Qt::QueuedConnection);
+//    connect (account, SIGNAL (portraitDownloaded (const QByteArray &)),
+//              this, SLOT (onPortraitDownloaded (const QByteArray &)),
+//              Qt::QueuedConnection);
     connect (account, SIGNAL (logined()), this, SLOT (readyShow()),
              Qt::QueuedConnection);
     connect (account, SIGNAL (verificationPic (const QByteArray &)),
@@ -179,8 +193,8 @@ void BresseinManager::connectSignalSlots()
                                              const QByteArray &,
                                              const QByteArray &)),
              sidePanel, SLOT (onIncomeMessage (const QByteArray &,
-                                          const QByteArray &,
-                                          const QByteArray &)),
+                                               const QByteArray &,
+                                               const QByteArray &)),
              Qt::QueuedConnection);
     connect (account, SIGNAL (wrongPassword()),
              this, SLOT (onWrongPassword()),
