@@ -103,7 +103,8 @@ const QByteArray &ContactItem::getSipuri() const
 // FIXME
 void ContactItem::updateContact (const ContactInfo &contactInfo)
 {
-    contact = contactInfo;
+    // TODO assignment
+    //contact = contactInfo;
     document()->clear();
     QString iconPath = QDir::homePath().append ("/.bressein/icons/");
     QString iconFullPath =
@@ -120,12 +121,12 @@ void ContactItem::updateContact (const ContactInfo &contactInfo)
     {
         imagePath = ":/images/envelop_32.png";
     }
-
     QString text;
-    text.append ("<img width='48' src=\"" + imagePath +
-                 "\" style='float:left;clear:right;text-align:center;'/>");
-    text.append ("<div style='margin:0 0 1px 0;font-size:12px;color:#333;"
-                 "display:block;'>");
+    text.append ("<div style='display:inline'><img width='48' src=\"" +
+                 imagePath + "\" style='float:left;clear:right;"
+                 "text-align:center;'/>");
+    text.append ("<div style='margin:0 0 0 0;font-size:12px;color:#333;"
+                 "padding-top:30%;'>");
     if (not contact.localName.isEmpty())
     {
         text.append (QString::fromUtf8 (contact.localName));
@@ -146,11 +147,12 @@ void ContactItem::updateContact (const ContactInfo &contactInfo)
     text.append ("</div>");
     if (not contact.impresa.isEmpty())
     {
-        text.append ("<div style='margin:0 0 2px 0;overflow:scroll;"
+        text.append ("<div style='margin:0 0 3px 0;overflow:scroll;"
                      "font-size:10px;color:#F80;display:block'>");
         text.append (QString::fromUtf8 (contact.impresa));
         text.append ("</div>");
     }
+    text.append ("</div>");
     prepareGeometryChange();
     QTextCursor cursor = textCursor();
     cursor.movePosition (QTextCursor::End);

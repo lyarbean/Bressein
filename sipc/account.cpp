@@ -230,8 +230,9 @@ void Account::sendMessage (const QByteArray &toSipuri,
     letter->receiver = toSipuri;
     letter->datetime = QDateTime::currentDateTime();
     letter->content = message;
-    if (contacts.find (toSipuri).value()->state <= StateType::HIDDEN)
+    if (contacts.find (toSipuri).value()->state < StateType::HIDDEN)
     {
+        qDebug() << "append to offlineBox" << (int) contacts.find (toSipuri).value()->state;
         offlineBox.append (letter);
     }
     else
@@ -661,7 +662,7 @@ void Account::parseSsiResponse (QByteArray &data)
             else
             {
                 qDebug() << "fail to pass ssi response";
-                // TODO ask for re-login
+                login();
                 return;
             }
             domChild = domChild.firstChildElement ("credentials");
@@ -1281,7 +1282,7 @@ void Account::activateTimer()
 
 void Account::onServerTransportError (const int se)
 {
-    qDebug() << "onServerTransportError"<< se;
+    qDebug() << "onServerTransportError" << se;
     keepAliveTimer->stop();
     switch (se)
     {
@@ -1732,54 +1733,63 @@ void Account::onBNPresenceV4 (const QByteArray &data)
             QDomElement child;
             domRoot = domRoot.firstChildElement ("c");
             QByteArray sipuri;
-            ContactInfo *contactInfo;
+            ContactInfo *contactInfo = 0;
             while (not domRoot.isNull())
             {
+                contactInfo = 0;
                 QByteArray userId = domRoot.attribute ("id").toUtf8();
                 child = domRoot.firstChildElement ("p");
-                if (child.isNull() or not child.hasAttribute ("su"))
+                if (not child.isNull() and child.hasAttribute ("su"))
                 {
-                    goto next;
+                    sipuri = child.attribute ("su").toUtf8();
+                    if (contacts.contains (sipuri))
+                    {
+                        contactInfo = contacts.value (sipuri);
+                    }
+                    downloadPortrait (sipuri);
+                    contactInfo->userId = userId;
+                    contactInfo->mobileno = child.attribute ("m").toUtf8();
+                    contactInfo->nickName = child.attribute ("n").toUtf8();
+                    contactInfo->impresa = child.attribute ("i").toUtf8();
+                    contactInfo->scoreLevel = child.attribute ("l").toUtf8();
+                    // FIXME not to downloadPortrait if there is one up to date;
+                    // p is the portraitCrc
+                    //  contactInfo->imageChanged = child.attribute("p").toUtf8();
+                    contactInfo->carrier = child.attribute ("c").toUtf8();
+                    contactInfo->carrierStatus =
+                        child.attribute ("cs").toUtf8();
+                    contactInfo->serviceStatus =
+                        child.attribute ("s").toUtf8();
                 }
-                sipuri = child.attribute ("su").toUtf8();
-                if (contacts.contains (sipuri))
+                else if (not contactInfo) // get contactif by userId
                 {
-                    contactInfo = contacts.value (sipuri);
-                }
-                else
-                {
-                    qDebug() << "no contact info" << sipuri;
-                    goto next;
+                    foreach (ContactInfo *ci, contacts.values())
+                    {
+                        if (ci->userId == userId)
+                        {
+                            contactInfo = ci;
+                            qDebug() << "Get ContactInfo by userId" << userId
+                                     << ci->mobileno;
+                            break;
+                        }
+                    }
                 }
                 if (not contactInfo)
                 {
                     goto next;
                 }
-                downloadPortrait (sipuri);
-                contactInfo->userId = userId;
-                contactInfo->mobileno = child.attribute ("m").toUtf8();
-                contactInfo->nickName = child.attribute ("n").toUtf8();
-                contactInfo->impresa = child.attribute ("i").toUtf8();
-                contactInfo->scoreLevel = child.attribute ("l").toUtf8();
-                // FIXME not to downloadPortrait if there is one up to date;
-                // p is the portraitCrc
-                //  contactInfo->imageChanged = child.attribute("p").toUtf8();
-                contactInfo->carrier = child.attribute ("c").toUtf8();
-                contactInfo->carrierStatus =
-                    child.attribute ("cs").toUtf8();
-                contactInfo->serviceStatus =
-                    child.attribute ("s").toUtf8();
-                child = child.nextSiblingElement ("pr");
-                if (child.isNull() or not child.hasAttribute ("dt"))
+                child = domRoot.firstChildElement ("pr");
+                if (not child.isNull() and child.hasAttribute ("dt"))
                 {
-                    return;
+                    contactInfo->devicetype = child.attribute ("dt").toUtf8();
                 }
-                contactInfo->devicetype = child.attribute ("dt").toUtf8();
-                contactInfo->state =
-                    (StateType) child.attribute ("b").toInt();
-                contacts.insert (sipuri, contactInfo);
+                if (not child.isNull() and child.hasAttribute ("b"))
+                {
+                    contactInfo->state =
+                        (StateType) child.attribute ("b").toInt();
+                }
                 emit contactChanged (sipuri);
-                if (contactInfo->state <= StateType::HIDDEN)
+                if (contactInfo->state < StateType::HIDDEN)
                 {
                     conversationManager->removeConversation (sipuri);
                 }
