@@ -1,21 +1,20 @@
 This is Bressein, a fetion client, written in Qt framework, inspired by Openfetion.
+
 Openfetion (see https://ofetion.googlecode.com/hg/ for detail) is a GTK based
-fetion client. Our work starts inspired by Levin's Openfetion, and we rewrite sipc
-in Qt (http://qt.nokia.com/).
+fetion client.
+
+Bressein is inspired by Levin's Openfetion, but completely written in Qt (http://qt.nokia.com/).
 
 Bressein is distributed under the terms of the GNU Lesser General Public License.
-Additionally we provide Bressein under the terms of a commercial licensing
-agreement for the development of proprietary and/or commercial software and
- technical support.
 
 We host repository on gitorious.org and github.com:
     https://gitorious.org/bressein/bressein
     https://github.com/lyarbean/Bressein
 
 If you would like to improve this software or have any suggestion,
-please contact Lyarbean <slbyan@gmail.com>!
+please contact 颜烈彬(Lyarbean) <slbyan@gmail.com>!
 
-
+Additionally we provide commercial technical support if you need.
 
 Status: this project is under refactoring, and many features that openfetion has
 haven't been implemented.
