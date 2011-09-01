@@ -92,7 +92,7 @@ public slots:
 
     // the sender can just call this, regardless of the state of receiver
     void sendMessage (const QByteArray &toSipuri, const QByteArray &message);
-    const ContactInfo &getContactInfo (const QByteArray &sipuri);
+    const ContactInfo getContactInfo (const QByteArray &sipuri);
     //change states
     void setOnline ();
     void setRightback ();

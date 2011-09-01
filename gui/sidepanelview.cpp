@@ -85,6 +85,8 @@ void SidepanelView::updateContact (const QByteArray &contact,
             {
                 // update this
                 itemList.at (i)->updateContact (contactInfo);
+                // FIXME need resorting sometimes
+                resizeScene();
                 updated = true;
                 break;
             }
@@ -99,7 +101,9 @@ void SidepanelView::updateContact (const QByteArray &contact,
         // we take the first group id
         QList<QByteArray> ids = groupId.split (';');
         if (not ids.isEmpty())
+        {
             groupId = ids.first();
+        }
         if (groupId.isEmpty())
         {
             groupId = "0";
@@ -206,7 +210,6 @@ void SidepanelView::setupContactsScene()
 
     setScene (contactsScene);
     resizeScene();
-    //FIXME ensure all are visible
     setMinimumSize (contactsScene->itemsBoundingRect().width() *3, 300);
     viewport()->resize (contactsScene->width(), contactsScene->height());
 

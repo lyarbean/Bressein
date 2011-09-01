@@ -104,7 +104,7 @@ const QByteArray &ContactItem::getSipuri() const
 void ContactItem::updateContact (const ContactInfo &contactInfo)
 {
     // TODO assignment
-    //contact = contactInfo;
+    contact = contactInfo;
     document()->clear();
     QString iconPath = QDir::homePath().append ("/.bressein/icons/");
     QString iconFullPath =
@@ -134,6 +134,10 @@ void ContactItem::updateContact (const ContactInfo &contactInfo)
     else if (not contact.nickName.isEmpty())
     {
         text.append (QString::fromUtf8 (contact.nickName));
+    }
+    else
+    {
+        text.append (QString::fromUtf8 (sipToFetion (sipuri)));
     }
     if (not contact.mobileno.isEmpty())
     {

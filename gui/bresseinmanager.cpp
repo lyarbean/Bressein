@@ -82,7 +82,7 @@ void BresseinManager::onContactChanged (const QByteArray &contact)
 {
     // notify sidePanel to update its data
     // as sidePanel has no knowledge about Account, we pass that contact too
-    const ContactInfo &contactInfo = account->getContactInfo (contact);
+    const ContactInfo contactInfo = account->getContactInfo (contact);
     sidePanel->updateContact (contact, contactInfo);
 }
 
