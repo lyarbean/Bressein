@@ -49,7 +49,9 @@ SidepanelView::SidepanelView (QWidget *parent)
     setScene (loginScene);
     connect (loginScene,
              SIGNAL (loginCommit (const QByteArray &, const QByteArray &)),
-             this, SLOT (onLoginCommit (const QByteArray &, const QByteArray &)));
+             this,
+             SLOT (onLoginCommit (const QByteArray &, const QByteArray &)));
+    setMinimumSize (loginScene->itemsBoundingRect().size().toSize());
 }
 
 SidepanelView::~SidepanelView()
@@ -73,7 +75,6 @@ void SidepanelView::updateContact (const QByteArray &contact,
                                    const ContactInfo &contactInfo)
 {
     qDebug() << "SidepanelView::updateContact" << contact;
-
     bool updated = false;
     if (not itemList.isEmpty())
     {
@@ -117,16 +118,13 @@ void SidepanelView::updateContact (const QByteArray &contact,
         if (groupItem)
         {
             item = new ContactItem (groupItem);
-            item->setPos (5, 10 + groupItem->childrenBoundingRect().height());
-            // for each other groups whose id is great than that of this,
-            // arrange them
+            item->setParentItem (groupItem);
         }
         else // should not been called, just in case
         {
             qDebug() << "XXXXXXXXXXXXX groupId" << groupId;
-            // TODO make a new group?
             item = new ContactItem (groups.first());
-            item->setPos (5, 10 + groups.first()->childrenBoundingRect().height());
+            item->setParentItem (groups.first());
         }
         item->setSipuri (contact);
         item->updateContact (contactInfo);
@@ -137,23 +135,26 @@ void SidepanelView::updateContact (const QByteArray &contact,
         itemList.append (item);
         //TODO adjust size
     }
-    resizeScene();
 }
 
 void SidepanelView::addGroup (const QByteArray &id, const QByteArray &name)
 {
-
+    foreach (QGraphicsSimpleTextItem *it, groups)
+    {
+        if (it->data (1).toByteArray() == id)
+        {
+            it->setText (QString::fromUtf8 (name));
+            return;
+        }
+    }
     QGraphicsSimpleTextItem *item = new QGraphicsSimpleTextItem;
     item->setFont (QFont ("Times", 14, QFont::Bold));
+    item->setPen (QPen (Qt::darkMagenta));
     item->setText (QString::fromUtf8 (name));
     item->setData (1, id);
     item->setZValue (0);
     groups.append (item);
     contactsScene->addItem (item);
-    resizeScene();
-//     linearLayout->addItem(item);
-//     item->setPos(0,gscene->itemsBoundingRect().height());
-
 }
 
 void SidepanelView::onLoginCommit (const QByteArray &n, const QByteArray &p)
@@ -161,7 +162,8 @@ void SidepanelView::onLoginCommit (const QByteArray &n, const QByteArray &p)
     emit toLogin (n, p);
 }
 
-void SidepanelView::onSendMessage (const QByteArray &sipuri, const QByteArray &message)
+void SidepanelView::onSendMessage (const QByteArray &sipuri,
+                                   const QByteArray &message)
 {
     emit sendMessage (sipuri, message);
 }
@@ -185,8 +187,8 @@ void SidepanelView::setRenderingSystem()
 //     viewport = new QWidget;
 //     setViewport (viewport);
     setRenderHints (QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
-    setCacheMode (QGraphicsView::CacheBackground);
-    setViewportUpdateMode (QGraphicsView::BoundingRectViewportUpdate);
+    setCacheMode (QGraphicsView::CacheNone);
+    setViewportUpdateMode (QGraphicsView::FullViewportUpdate);
     setDragMode (QGraphicsView::ScrollHandDrag);
 
 }
@@ -194,17 +196,20 @@ void SidepanelView::setRenderingSystem()
 void SidepanelView::setupContactsScene()
 {
     // indirectly pass through
-    setScene (contactsScene);
-    setSceneRect (contactsScene->itemsBoundingRect());
-    resize (contactsScene->itemsBoundingRect().size().toSize());
+
     int itemlists = itemList.size();
     for (int i = 0; i < itemlists; i++)
     {
         itemList.at (i)->setHostSipuri (hostSipuri);
         itemList.at (i)->setHostName (myNickname);
     }
-    qDebug() << "XXXXXXXXXXX";
-    qDebug() << hostSipuri << QString::fromUtf8 (myNickname);
+
+    setScene (contactsScene);
+    resizeScene();
+    //FIXME ensure all are visible
+    setMinimumSize (contactsScene->itemsBoundingRect().width() *3, 300);
+    viewport()->resize (contactsScene->width(), contactsScene->height());
+
 }
 
 void SidepanelView::activateLogin (bool ok)
@@ -246,52 +251,53 @@ void SidepanelView::setupSceneItems()
 void SidepanelView::resizeScene()
 {
     //FIXME
-    int height = 0;
+    qDebug() << "resizeScene called";
+    qreal height = 0;
+    qreal subHeight = 0;
+    quint16 s = itemList.size();
     QList<QGraphicsSimpleTextItem *>::iterator it = groups.begin();
     while (it not_eq groups.end())
     {
+
         (*it)->setPos (0, height);
-        while (not (*it)->collidingItems().isEmpty())
-        {
-            foreach (QGraphicsItem *item, (*it)->collidingItems())
-            {
-                item->setPos (item->pos().x(), item->pos().y() + 1);
-            }
-        }
+        height += (*it)->boundingRect().height();
         // update positions of it's childItems
-        foreach (QGraphicsItem *citem, (*it)->childItems())
+        if (not (*it)->childItems().isEmpty())
         {
-            while (not citem->collidingItems().isEmpty())
+            subHeight = (*it)->boundingRect().height();
+            foreach (ContactItem *item, itemList)
             {
-                foreach (QGraphicsItem *ccitem, citem->collidingItems())
+                if (item->parentItem() == (*it))
                 {
-                    ccitem->setPos (ccitem->pos().x(), ccitem->pos().y() + 1);
+                    item->setPos (5, subHeight);
+                    subHeight += item->boundingRect().height() +3;
                 }
             }
+
         }
         height += (*it)->childrenBoundingRect().height();
-        if (not (*it)->childItems().isEmpty())
-            height += (*it)->childItems().last()->boundingRect().height();
         ++it;
     }
-    if (not itemList.isEmpty())
-    {
-//         ensureVisible (itemList.last());
-        height += itemList.last()->boundingRect().height();
-    }
     if (height > 600)
+    {
         contactsScene->setSceneRect (0, 0, contactsScene->width(), height);
-    updateGeometry();
+    }
 }
 
 
 void SidepanelView::resizeEvent (QResizeEvent *event)
 {
+
     QGraphicsView::resizeEvent (event);
-//     if (scene())
-//     {
-//         scene()->invalidate (scene()->sceneRect());
-//     }
+    int w = event->size().width();
+    if (w)
+    {
+        foreach (ContactItem *item, itemList)
+        {
+            item->setTextWidth (w - 10);
+            item->update();
+        }
+    }
 }
 
 void SidepanelView::closeEvent (QCloseEvent *event)

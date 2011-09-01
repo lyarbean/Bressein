@@ -52,7 +52,7 @@ class Account : public QObject
 {
     Q_OBJECT
     //TODO remove these
-    enum STEP {NONE, SSI, SYSCONF, SIPCR, SIPCA, SIPCP};
+//     enum STEP {NONE, SSI, SYSCONF, SIPCR, SIPCA, SIPCP};
 public:
     explicit Account (QObject *parent = 0);
     virtual ~Account();
@@ -75,6 +75,9 @@ signals:
     void incomeMessage (const QByteArray &, //sender
                         const QByteArray &,//date
                         const QByteArray &);//content
+    void notSentMessage (const QByteArray &,
+                         const QDateTime &,
+                         const QByteArray &);
     //private use
     void ssiResponseParsed();
     void serverConfigParsed();
@@ -111,6 +114,7 @@ private slots:
     void dequeueMessages();
     void dispatchOutbox();
     void dispatchOfflineBox();
+    void clearDrafts();
     void onPortraitDownloaded (const QByteArray &);
     void keepAlive();
     void ssiLogin();
@@ -188,13 +192,14 @@ private slots:
     void onInfoTransferV4 (const QByteArray &data);
     void onSipc (const QByteArray &data);
     void onStartChat (const QByteArray &data);
+    void onSendReplay (const QByteArray &data);
     void onOption (const QByteArray &data);
     // some functions that helps above on's
     void parsePGGroupMembers (const QByteArray &data);
 
 
 private:
-    STEP step;
+//     STEP step;
     ContactInfo *publicInfo; //
     // the PIMPL
     class  Info;
@@ -205,6 +210,7 @@ private:
     QMutex mutex;
     QTimer *keepAliveTimer;
     QTimer *messageTimer;
+    QTimer *draftsClearTimer;
     Contacts contacts;
     QList<Group *> groups;
     // groups
@@ -221,6 +227,7 @@ private:
         QByteArray receiver; // a sipuri
         QDateTime datetime;
         QByteArray content;
+        int callId; // when to send, it get a callId
     };
     QList<Letter *> outbox;
     QList<Letter *> offlineBox;

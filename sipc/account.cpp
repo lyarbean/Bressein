@@ -41,17 +41,21 @@ OpenSSL library used as well as that of the covered work.
 // N.B. we call buddyList contacts
 namespace Bressein
 {
-Account::Account (QObject *parent) : QObject (parent), step (NONE)
+Account::Account (QObject *parent) : QObject (parent)
 {
     keepAliveTimer = new QTimer (this);
     messageTimer = new QTimer (this);
+    draftsClearTimer = new QTimer (this);
     connect (messageTimer, SIGNAL (timeout()),
              this, SLOT (dequeueMessages()));
     connect (messageTimer, SIGNAL (timeout()),
              this, SLOT (dispatchOutbox()));
     connect (messageTimer, SIGNAL (timeout()),
              this, SLOT (dispatchOfflineBox()));
+    connect (draftsClearTimer, SIGNAL (timeout()),
+             this, SLOT (clearDrafts()));
     messageTimer->start (1000);
+    draftsClearTimer->start (15000);
     publicInfo = new ContactInfo;
     info = new Info (this);
     serverTransporter = new Transporter (0);
@@ -170,6 +174,8 @@ void Account::close()
     keepAliveTimer->deleteLater();
     messageTimer->stop();
     messageTimer->deleteLater();
+    draftsClearTimer->stop();
+    draftsClearTimer->deleteLater();
     serverTransporter->close();
     conversationManager->closeAll();
     disconnect (serverTransporter, SIGNAL (dataReceived (const QByteArray &)),
@@ -191,7 +197,10 @@ void Account::close()
     {
         delete info;
     }
-
+    if (publicInfo)
+    {
+        delete publicInfo;
+    }
     if (workerThread.isRunning())
     {
         workerThread.quit();
@@ -207,6 +216,16 @@ void Account::sendMessage (const QByteArray &toSipuri,
 {
     // firstly we check the status of toSipuri
     mutex.lock();
+    if (toSipuri == info->sipuri)
+    {
+        //
+        qDebug() << "Msg Self" << toSipuri;
+        QByteArray toSendMsg = sendCatMsgSelfData (info->fetionNumber,
+                                                   info->sipuri,
+                                                   info->callId, message);
+        serverTransporter->sendData (toSendMsg);
+        return;
+    }
     Letter *letter = new Letter;
     letter->receiver = toSipuri;
     letter->datetime = QDateTime::currentDateTime();
@@ -316,7 +335,7 @@ void Account::keepAlive()
 void Account::ssiLogin()
 {
     if (info->loginNumber.isEmpty()) return;
-    step = SSI;
+//     step = SSI;
     //TODO if proxy
     QByteArray password = hashV4 (publicInfo->userId, info->password);
     QByteArray data = ssiLoginData (info->loginNumber, password);
@@ -328,6 +347,10 @@ void Account::ssiLogin()
         // TODO handle socket.error() or inform user what happened
         qDebug() << "waitForEncrypted"
                  << socket.error() << socket.errorString();
+        if (socket.error() == QAbstractSocket::HostNotFoundError)
+        {
+            //TODO emit onHostNotFound();
+        }
         if (socket.error() == QAbstractSocket::SslHandshakeFailedError or
             socket.error() == QAbstractSocket::SocketTimeoutError or
             socket.error() == QAbstractSocket::UnknownSocketError)
@@ -412,7 +435,7 @@ void Account::ssiLogin()
 void Account::systemConfig()
 {
     qDebug() << "systemConfig";
-    step = SYSCONF;
+//     step = SYSCONF;
     QByteArray body = configData (/*info->loginNumber*/);
     QTcpSocket socket (this);
     QHostInfo info = QHostInfo::fromName ("nav.fetion.com.cn");
@@ -505,7 +528,7 @@ void Account::downloadPortrait (const QByteArray &sipuri)
  **/
 void Account::sipcRegister()
 {
-    step = SIPCR;
+//     step = SIPCR;
     //TODO move to utils
     int seperator = info->systemconfig.proxyIpPort.indexOf (':');
     QByteArray ip = info->systemconfig.proxyIpPort.left (seperator);
@@ -536,7 +559,7 @@ void Account::sipcRegister()
 void Account::sipcAuthorize()
 {
     qDebug() << "sipcAuthorize";
-    step = SIPCA;
+//     step = SIPCA;
     QByteArray toSendMsg = sipcAuthorizeData
                            (info->loginNumber, info->fetionNumber,
                             publicInfo->userId, info->callId, info->response,
@@ -859,7 +882,6 @@ void Account::parseSipcAuthorize (QByteArray &data)
                 info->client.smsOnLineStatus =
                     domChild.attribute ("sms-online-status").toUtf8();
                 info->client.version = domChild.attribute ("version").toUtf8();
-                contacts.insert (info->sipuri, publicInfo);
                 emit contactChanged (info->sipuri);
             }
         }
@@ -1028,7 +1050,8 @@ void Account::ssiPic()
     int seperator;
     QByteArray delimit = "Content-Length: ";
 
-    while (not responseData.contains (delimit) or not responseData.contains ("\r\n\r\n"))
+    while (not responseData.contains (delimit) or
+           not responseData.contains ("\r\n\r\n"))
     {
         responseData.append (socket.readLine());
     }
@@ -1258,6 +1281,8 @@ void Account::activateTimer()
 
 void Account::onServerTransportError (const int se)
 {
+    qDebug() << "onServerTransportError"<< se;
+    keepAliveTimer->stop();
     switch (se)
     {
         case QAbstractSocket::ConnectionRefusedError:
@@ -1317,7 +1342,7 @@ void Account::dequeueMessages()
 
 void Account::dispatchOutbox()
 {
-//     qDebug() << "dispatchLetters";
+    // TODO: move to drafts first
     mutex.lock();
     Letter *data;
     bool empty = outbox.isEmpty();
@@ -1328,31 +1353,31 @@ void Account::dispatchOutbox()
     if (not empty)
     {
         data = outbox.takeFirst();
+        drafts.append (data);
+        data->callId = info->callId;
         sipuri = data->receiver;
         content = data->content;
-        drafts.append (data);
         toSendMsg = catMsgData (info->fetionNumber, sipuri,
                                 info->callId, content);
     }
     mutex.unlock();
     while (not empty)
     {
-        qDebug() << "==============================";
         qDebug() << "dispatchOutbox while (not empty)";
         qDebug() << "sipuri" << sipuri;
         qDebug() << "content" << QString::fromUtf8 (content);
         if (not toSendMsg.isEmpty())
         {
-
             serverTransporter->sendData (toSendMsg);
         }
         mutex.lock();
         if (not outbox.isEmpty())
         {
             data = outbox.takeFirst();
+            drafts.append (data);
+            data->callId = info->callId;
             sipuri = data->receiver;
             content = data->content;
-            drafts.append (data);
             toSendMsg = catMsgData (info->fetionNumber, sipuri,
                                     info->callId, content);
         }
@@ -1378,9 +1403,10 @@ void Account::dispatchOfflineBox()
     if (not empty)
     {
         data = offlineBox.takeFirst();
+        drafts.append (data);
+        data->callId = info->callId;
         sipuri = data->receiver;
         content = data->content;
-        drafts.append (data);
         toSendMsg = sendCatMsgPhoneData (info->fetionNumber, sipuri,
                                          info->callId, content, "", "");
     }
@@ -1400,9 +1426,10 @@ void Account::dispatchOfflineBox()
         if (not offlineBox.isEmpty())
         {
             data = offlineBox.takeFirst();
+            drafts.append (data);
+            data->callId = info->callId;
             sipuri = data->receiver;
             content = data->content;
-            drafts.append (data);
             toSendMsg = sendCatMsgPhoneData (info->fetionNumber, sipuri,
                                              info->callId, content, "", "");
         }
@@ -1414,6 +1441,41 @@ void Account::dispatchOfflineBox()
         qDebug() << "==============================";
     }
 }
+
+void Account::clearDrafts()
+{
+    qDebug() << "clearDrafts";
+    if (drafts.empty())
+    {
+        return;
+    }
+    mutex.lock();
+    if (not drafts.empty()) // double check
+    {
+        int s = drafts.size();
+        QList<int> deleted;
+        for (int i = 0; i < s; ++i)
+        {
+            if (drafts.at (i)->datetime.toTime_t() + 15 <
+                QDateTime::currentDateTime().toTime_t())
+            {
+                // TODO use notSentMessage
+//                 emit notSentMessage (drafts.at (i)->receiver,
+//                                      drafts.at (i)->datetime,
+//                                      drafts.at (i)->content);
+                emit incomeMessage (drafts.at (i)->receiver,
+                                    drafts.at (i)->datetime.toString().toUtf8(),
+                                    drafts.at (i)->content.append ("NOT SEND"));
+                delete drafts.at (i);
+                deleted << i;
+            }
+        }
+        for (int i = 0; i < deleted.size(); ++i)
+            drafts.removeAt (i);
+    }
+    mutex.unlock();
+}
+
 
 void Account::onPortraitDownloaded (const QByteArray &sipuri)
 {
@@ -1475,7 +1537,7 @@ void Account::parseReceivedData (const QByteArray &receiveData)
         else// if (event == "CatMsg")
         {
             onReceivedMessage (data);
-        }
+        } // else if (event == "SMS2Fetion") // when send to my self
     }
     else if (code == "BN")
     {
@@ -1535,7 +1597,7 @@ void Account::parseReceivedData (const QByteArray &receiveData)
     else if (code == "SIP-C/4.0")
     {
         if (data.startsWith ("SIP-C/4.0 401 Unauthoried") and
-            data.contains ("\r\nW: Digest") and step == SIPCR)
+            data.contains ("\r\nW: Digest") /*and step == SIPCR*/)
         {
             qDebug() << "parseSipcRegister";
             qDebug() << data;
@@ -1543,7 +1605,7 @@ void Account::parseReceivedData (const QByteArray &receiveData)
             parseSipcRegister (data);
         }
         else if (data.startsWith ("SIP-C/4.0 200 OK") and
-                 data.contains ("<client") and step == SIPCA)
+                 data.contains ("<client") /* and step == SIPCA*/)
         {
             parseSipcAuthorize (data);
         }
@@ -1551,6 +1613,16 @@ void Account::parseReceivedData (const QByteArray &receiveData)
                  data.contains ("A: CS address=")) // right after startChat
         {
             onStartChat (data);
+        }
+        else if (data.startsWith ("SIP-C/4.0 200 OK") and
+                 data.contains ("XI:"))
+        {
+            onSendReplay (data);
+        }
+        else if (data.startsWith ("SIP-C/4.0 280 Send SMS OK"))
+        {
+            // TODO check quota-frequency
+            onSendReplay (data);
         }
         else
         {
@@ -1583,6 +1655,10 @@ void Account::onReceivedMessage (const QByteArray &data)
     QByteArray datetime = data.mid (b + 3, e - b - 3);
     b = data.indexOf ("\r\n\r\n");
     QByteArray content = data.mid (b + 4);
+    if (fromSipuri.startsWith ("tel:"))
+    {
+        fromSipuri.remove (0, 4);
+    }
     emit incomeMessage (fromSipuri, datetime, content);
     QByteArray reply = "SIP-C/4.0 200 OK\r\n";
 //     if (fromSipuri.contains ("PG"))
@@ -1606,16 +1682,19 @@ void Account::onReceivedMessage (const QByteArray &data)
 //         reply.append ("\r\n\r\n");
 //     }
     // ?fromsiprui , callid , sequence
-    qDebug() << contacts.find (fromSipuri).value()->state;
-    if (conversationManager->isOnConversation (fromSipuri))
+    if (contacts.contains (fromSipuri))
     {
+        qDebug() << contacts.find (fromSipuri).value()->state;
+        if (conversationManager->isOnConversation (fromSipuri))
+        {
 
-        conversationManager->sendData (fromSipuri, reply);
-    }
-    else
-    {
-        qDebug() << "reply message via sipsocket";
-        serverTransporter->sendData (reply);
+            conversationManager->sendData (fromSipuri, reply);
+        }
+        else
+        {
+            qDebug() << "reply message via sipsocket";
+            serverTransporter->sendData (reply);
+        }
     }
 }
 
@@ -1903,6 +1982,38 @@ void Account::onStartChat (const QByteArray &data)
     conversationManager->sendData (sipuri, toSendMsg);
     toSendMsg = inviteBuddyData (info->fetionNumber, info->callId, sipuri);
     conversationManager->sendData (sipuri, toSendMsg);
+}
+
+void Account::onSendReplay (const QByteArray &data)
+{
+    int b, e;
+    b = data.indexOf ("I: ");
+    e = data.indexOf ("\r\n", b);
+    bool ok = false;
+    int calledId = data.mid (b + 3, e - b - 3).toInt (&ok);
+    if (not ok)
+    {
+        return;
+    }
+    mutex.lock();
+    if (not drafts.empty())
+    {
+        int s = drafts.size();
+        for (int i = 0; i < s; ++i)
+        {
+            // TODO add a timer that will check all letters in drafts,
+            // if they are not removed within in some seconds, that is,
+            // if currentDateTime is 20s greater than datetime of those letters
+            if (drafts.at (i)->callId == calledId)
+            {
+                qDebug() << "onSendReplay" << i;
+                delete drafts.at (i);
+                drafts.removeAt (i);
+                break;
+            }
+        }
+    }
+    mutex.unlock();
 }
 
 void Account::onInfo (const QByteArray &data)

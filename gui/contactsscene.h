@@ -43,9 +43,6 @@ class ContactsScene : public QGraphicsScene
 public:
     ContactsScene (QObject *parent);
     virtual ~ContactsScene();
-signals:
-    void itemLeftClicked (const QByteArray &sipuri);
-
 };
 }
 

@@ -44,7 +44,7 @@ class ContactItem : public QGraphicsTextItem
 {
     Q_OBJECT
 public:
-    enum { ContactItemType = UserType + 1 };
+    enum { ContactItemType = UserType + 5, };
     ContactItem (QGraphicsItem *parent = 0);
     ~ContactItem();
 
@@ -78,8 +78,10 @@ public slots:
     void onIncomeMessage (const QByteArray &, const QByteArray &);
 protected:
     void mouseDoubleClickEvent (QGraphicsSceneMouseEvent *event);
+    void focusInEvent (QFocusEvent *event);
     void hoverEnterEvent (QGraphicsSceneHoverEvent *event);
     void hoverLeaveEvent (QGraphicsSceneHoverEvent *event);
+    void hoverMoveEvent (QGraphicsSceneHoverEvent *event);
 private:
     QByteArray hostSipuri;
     QByteArray hostName;

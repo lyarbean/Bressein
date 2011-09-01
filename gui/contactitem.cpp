@@ -28,8 +28,8 @@ combination shall include the source code for the parts of the
 OpenSSL library used as well as that of the covered work.
 */
 
-
 #include "contactitem.h"
+
 #include <QtGui>
 #include <QApplication>
 #include <QStyleOptionGraphicsItem>
@@ -45,11 +45,10 @@ ContactItem::ContactItem (QGraphicsItem *parent)
     : QGraphicsTextItem (parent), chatView (0)
 {
     qDebug() << "new ContactItem";
-    setFlags (QGraphicsItem::ItemIsFocusable |
-              QGraphicsItem::ItemIsSelectable);
+    setFlags (QGraphicsItem::ItemIsFocusable);
     setTextInteractionFlags (Qt::TextBrowserInteraction);
     setTextWidth (boundingRect().width());
-    setCacheMode (QGraphicsItem::ItemCoordinateCache);
+    setCacheMode (QGraphicsItem::DeviceCoordinateCache);
 }
 
 ContactItem::~ContactItem()
@@ -61,13 +60,24 @@ void ContactItem::paint (QPainter *painter,
                          const QStyleOptionGraphicsItem *option,
                          QWidget *widget)
 {
-    painter->drawRect (boundingRect().adjusted (2, 2, -2, -2));
     QGraphicsTextItem::paint (painter, option, widget);
+    if (option->state.testFlag (QStyle::State_HasFocus) or
+        option->state.testFlag (QStyle::State_MouseOver) or
+        option->state.testFlag (QStyle::QStyle::State_Sunken))
+    {
+        painter->setPen (QColor (0xFFFF8F00));
+    }
+    else
+    {
+        painter->setPen (QColor (0xFF008FFF));
+    }
+    painter->drawRect (boundingRect().adjusted (1, 1, -1, -1));
+
 }
 
 QRectF ContactItem::boundingRect() const
 {
-    return QRectF (0, 0, 300, document()->size().height());
+    return  QRectF (0, 0, textWidth(), 64);
 }
 
 void ContactItem::setHostSipuri (const QByteArray &sipuri)
@@ -96,7 +106,8 @@ void ContactItem::updateContact (const ContactInfo &contactInfo)
     contact = contactInfo;
     document()->clear();
     QString iconPath = QDir::homePath().append ("/.bressein/icons/");
-    QString iconFullPath = iconPath.append (sipToFetion (sipuri)).append (".jpeg");
+    QString iconFullPath =
+        iconPath.append (sipToFetion (sipuri)).append (".jpeg");
     QImageReader reader (iconFullPath);
     QImage image (120, 120, QImage::Format_RGB32);
     if (reader.read (&image))
@@ -111,34 +122,39 @@ void ContactItem::updateContact (const ContactInfo &contactInfo)
     }
 
     QString text;
+    text.append ("<img width='48' src=\"" + imagePath +
+                 "\" style='float:left;clear:right;text-align:center;'/>");
+    text.append ("<div style='margin:0 0 1px 0;font-size:12px;color:#333;"
+                 "display:block;'>");
     if (not contact.localName.isEmpty())
     {
         text.append (QString::fromUtf8 (contact.localName));
-        text.append (" ");
     }
     else if (not contact.nickName.isEmpty())
     {
         text.append (QString::fromUtf8 (contact.nickName));
-        text.append (" ");
     }
     if (not contact.mobileno.isEmpty())
     {
+        text.append ("[");
         text.append (QString::fromUtf8 (contact.mobileno));
-        text.append (" ");
+        text.append ("]");
     }
-    text.append (QString::fromUtf8 (sipToFetion (sipuri)));
+//     text.append ("(");
+//     text.append (QString::fromUtf8 (sipToFetion (sipuri)));
+//     text.append (")");
+    text.append ("</div>");
     if (not contact.impresa.isEmpty())
     {
-        text.append ("<br/>");
+        text.append ("<div style='margin:0 0 2px 0;overflow:scroll;"
+                     "font-size:10px;color:#F80;display:block'>");
         text.append (QString::fromUtf8 (contact.impresa));
+        text.append ("</div>");
     }
     prepareGeometryChange();
     QTextCursor cursor = textCursor();
     cursor.movePosition (QTextCursor::End);
-    cursor.insertHtml ("<img width='48' src=\"" + imagePath +
-                       "\" style='float:left;'/>");
     cursor.insertHtml (text);
-    cursor.insertText ("\n");
     setTextCursor (cursor);
 }
 
@@ -203,16 +219,25 @@ void ContactItem::mouseDoubleClickEvent (QGraphicsSceneMouseEvent *event)
 //     Singleton<BresseinManager>::instance()->onChatSpawn (sipuri);
 }
 
+void ContactItem::focusInEvent (QFocusEvent *event)
+{
+    update();
+}
+
 void ContactItem::hoverEnterEvent (QGraphicsSceneHoverEvent *event)
 {
-    setOpacity (1.0);
-    QGraphicsTextItem::hoverEnterEvent (event);
+    update();
+//     QGraphicsTextItem::hoverLeaveEvent (event);
 }
 
 void ContactItem::hoverLeaveEvent (QGraphicsSceneHoverEvent *event)
 {
-    setOpacity (0.5);
-    QGraphicsTextItem::hoverLeaveEvent (event);
+    update();
+//     QGraphicsTextItem::hoverLeaveEvent (event);
+}
+void ContactItem::hoverMoveEvent (QGraphicsSceneHoverEvent *event)
+{
+    update();
 }
 
 }

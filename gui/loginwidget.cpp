@@ -53,7 +53,7 @@ LoginWidget::LoginWidget (QWidget *parent, Qt::WindowFlags f)
     commitButton->setText (tr ("Login"));
     connect (commitButton,SIGNAL (clicked ()),
              this,SLOT (onCommitButtonClicked ()));
-    connect (passwordEdit,SIGNAL (editingFinished()),
+    connect (passwordEdit,SIGNAL (returnPressed()),
              commitButton,SLOT (click()));
     connect (numberEdit,SIGNAL (selectionChanged()),messageLabel,SLOT (clear()));
     setLayout (gridLayout);

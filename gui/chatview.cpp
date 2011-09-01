@@ -93,24 +93,30 @@ void ChatView::setPortraits (const QByteArray &otherSipuri,
                              const QByteArray &mySipuri)
 {
     QString iconPath = QDir::homePath().append ("/.bressein/icons/");
-    QString other = iconPath.append (sipToFetion (otherSipuri)).append (".jpeg");
-    if (not QFile (other).open (QIODevice::ReadOnly))
+    QString otherPath = iconPath.append (sipToFetion (otherSipuri)).append (".jpeg");
+    QImageReader otherReader (otherPath);
+    QImage image (120, 120, QImage::Format_RGB32);
+    if (otherReader.read (&image))
     {
-        other = ":/images/envelop_32.png";
+        showArea->document()->addResource
+        (QTextDocument::ImageResource, QUrl (otherPortraitName), QVariant (image));
     }
-    this->otherPortraitName = ":/images/" + otherSipuri;
-    showArea->document()->addResource (QTextDocument::ImageResource,
-                                       QUrl (otherPortraitName),
-                                       QVariant (other));
-    QString mine = iconPath.append (sipToFetion (mySipuri)).append (".jpeg");
-    if (not QFile (mine).open (QIODevice::ReadOnly))
+    else
     {
-        mine = ":/images/envelop_32.png";
+        otherPortraitName = ":/images/envelop_32.png";
     }
-    this->myPortraitName = ":/images/" + mySipuri;
-    showArea->document()->addResource (QTextDocument::ImageResource,
-                                       QUrl (myPortraitName),
-                                       QVariant (mine));
+    QString myPath = iconPath.append (sipToFetion (mySipuri)).append (".jpeg");
+    QImageReader myReader (myPath);
+    QImage myImage (120, 120, QImage::Format_RGB32);
+    if (myReader.read (&myImage))
+    {
+        showArea->document()->addResource
+        (QTextDocument::ImageResource, QUrl (myPortraitName), QVariant (myImage));
+    }
+    else
+    {
+        myPortraitName = ":/images/envelop_32.png";
+    }
 }
 
 //public slots

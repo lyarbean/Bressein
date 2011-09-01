@@ -37,14 +37,16 @@ OpenSSL library used as well as that of the covered work.
 namespace Bressein
 {
 class ContactItem;
+class ContactInfo;
+class ContactsScene;
+class LoginScene;
+//TODO move contactsScene to BresseinManager
 /**
  * @brief The side Panel of Bressein.
  **/
 // There are two scenes, one is a dialog-alike loginScene
 // and the other is contactsScene that what gscene is.
-class ContactInfo;
-class ContactsScene;
-class LoginScene;
+
 class SidepanelView : public QGraphicsView
 {
     Q_OBJECT
