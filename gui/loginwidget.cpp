@@ -36,26 +36,35 @@ OpenSSL library used as well as that of the covered work.
 namespace Bressein
 {
 LoginWidget::LoginWidget (QWidget *parent, Qt::WindowFlags f)
-    : QWidget (parent,f),
+    : QWidget (parent, f),
       numberEdit (new QLineEdit (this)),
       passwordEdit (new QLineEdit (this)),
+      codeEdit (new QLineEdit (this)),
       commitButton (new QPushButton (this)),
+      verifyButton (new QPushButton (this)),
       messageLabel (new QLabel (this))
 {
     QGridLayout *gridLayout = new QGridLayout (this);
-    gridLayout->addWidget (new QLabel (tr ("Number")),0,0);
-    gridLayout->addWidget (numberEdit,0,1);
-    gridLayout->addWidget (new QLabel (tr ("Password")),1,0);
-    gridLayout->addWidget (passwordEdit,1,1);
-    gridLayout->addWidget (commitButton,2,0);
-    gridLayout->addWidget (messageLabel,2,1);
+    gridLayout->addWidget (new QLabel (tr ("Number")), 0, 0);
+    gridLayout->addWidget (numberEdit, 0, 1);
+    gridLayout->addWidget (new QLabel (tr ("Password")), 1, 0);
+    gridLayout->addWidget (passwordEdit, 1, 1);
+    gridLayout->addWidget (commitButton, 2, 0);
+    gridLayout->addWidget (messageLabel, 2, 1);
+    gridLayout->addWidget (codeEdit, 3, 0);
+    gridLayout->addWidget (verifyButton, 3, 1);
+    codeEdit->setEnabled (false);
+    verifyButton->setEnabled (false);
     passwordEdit->setEchoMode (QLineEdit::Password);
     commitButton->setText (tr ("Login"));
-    connect (commitButton,SIGNAL (clicked ()),
-             this,SLOT (onCommitButtonClicked ()));
-    connect (passwordEdit,SIGNAL (returnPressed()),
-             commitButton,SLOT (click()));
-    connect (numberEdit,SIGNAL (selectionChanged()),messageLabel,SLOT (clear()));
+    verifyButton->setText (tr ("Confirm"));
+    connect (commitButton, SIGNAL (clicked ()),
+             this, SLOT (onCommitButtonClicked ()));
+    connect (verifyButton, SIGNAL (clicked ()),
+             this, SLOT (onverifyButtonClicked()));
+    connect (passwordEdit, SIGNAL (returnPressed()),
+             commitButton, SLOT (click()));
+    connect (numberEdit, SIGNAL (selectionChanged()), messageLabel, SLOT (clear()));
     setLayout (gridLayout);
     setFixedSize (gridLayout->sizeHint());
 }
@@ -72,7 +81,25 @@ void LoginWidget::setEnable (bool ok)
     numberEdit->setEnabled (ok);
 }
 
+void LoginWidget::requestVerify (const QByteArray &data)
+{
+    QImage img = QImage::fromData (QByteArray::fromBase64 (data));
+    if (img.isNull())
+    {
+        // FIXME
+        return;
+    }
+    messageLabel->setPixmap (QPixmap::fromImage (img));
+    codeEdit->setEnabled (true);
+    verifyButton->setEnabled (true);
+    codeEdit->show();
+    verifyButton->show();
+    connect (commitButton, SIGNAL (clicked ()),
+             this, SLOT (onCommitButtonClicked ()));
+}
 
+
+// slots
 void LoginWidget::onCommitButtonClicked ()
 {
     QRegExp expression ("[1-9][0-9]*");
@@ -85,9 +112,22 @@ void LoginWidget::onCommitButtonClicked ()
         return;
     }
     setEnable (false);
-    emit commit (number,password);
+    emit commit (number, password);
 
+}
+
+void LoginWidget::onverifyButtonClicked()
+{
+    QByteArray code = codeEdit->text().toLocal8Bit();
+    if (code.isEmpty())
+    {
+        messageLabel->setText ("Please enter code!");
+    }
+    codeEdit->setEnabled (false);
+    verifyButton->setEnabled (false);
+    emit verify (code);
 }
 
 }
 #include "loginwidget.moc"
+

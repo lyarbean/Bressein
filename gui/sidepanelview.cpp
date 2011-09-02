@@ -51,6 +51,10 @@ SidepanelView::SidepanelView (QWidget *parent)
              SIGNAL (loginCommit (const QByteArray &, const QByteArray &)),
              this,
              SLOT (onLoginCommit (const QByteArray &, const QByteArray &)));
+    connect (loginScene,
+             SIGNAL (verifyCommit (const QByteArray &)),
+             this,
+             SLOT (onVerifycommit (QByteArray)));
     setMinimumSize (loginScene->itemsBoundingRect().size().toSize());
 }
 
@@ -132,7 +136,7 @@ void SidepanelView::updateContact (const QByteArray &contact,
         }
         item->setSipuri (contact);
         item->updateContact (contactInfo);
-        item->setZValue (1);
+        item->setZValue (0);
         item->setVisible (true);
         connect (item, SIGNAL (sendMessage (QByteArray, QByteArray)),
                  this, SLOT (onSendMessage (QByteArray, QByteArray)));
@@ -164,6 +168,11 @@ void SidepanelView::addGroup (const QByteArray &id, const QByteArray &name)
 void SidepanelView::onLoginCommit (const QByteArray &n, const QByteArray &p)
 {
     emit toLogin (n, p);
+}
+
+void SidepanelView::onVerifycommit (const QByteArray &c)
+{
+    emit toVerify (c);
 }
 
 void SidepanelView::onSendMessage (const QByteArray &sipuri,
@@ -242,6 +251,11 @@ void SidepanelView::onIncomeMessage (const QByteArray &contact,
     {
 
     }
+}
+
+void SidepanelView::requestVerify (const QByteArray &datum)
+{
+    loginScene->onRequseVerify (datum);
 }
 
 

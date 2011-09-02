@@ -45,14 +45,19 @@ public:
     LoginWidget (QWidget *parent = 0, Qt::WindowFlags f = 0);
     virtual ~LoginWidget();
     void setEnable (bool ok);
+    void requestVerify (const QByteArray &data /*base 64*/);
 signals:
     void commit (const QByteArray &, const QByteArray &);
+    void verify (const QByteArray &);
 private slots:
     void onCommitButtonClicked ();
+    void onverifyButtonClicked ();
 private:
     QLineEdit *numberEdit;
     QLineEdit *passwordEdit;
+    QLineEdit *codeEdit;
     QPushButton *commitButton;
+    QPushButton *verifyButton;
     QLabel *messageLabel;
 
 };

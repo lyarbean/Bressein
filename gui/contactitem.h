@@ -33,6 +33,7 @@ OpenSSL library used as well as that of the covered work.
 
 #include <QtGui/QGraphicsTextItem>
 #include <QTextImageFormat>
+
 #include "sipc/types.h"
 namespace Bressein
 {

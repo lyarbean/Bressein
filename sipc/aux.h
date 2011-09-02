@@ -67,7 +67,7 @@ extern void RSAPublicEncrypt (const QByteArray &userId,
 
 extern const QByteArray cnouce (quint16 time = 4);
 
-extern const QByteArray configData ();
+extern const QByteArray configData (QByteArray number = "13910000000");
 
 extern const QByteArray ssiLoginData (const QByteArray &number,
                                       const QByteArray &passwordhashed4,

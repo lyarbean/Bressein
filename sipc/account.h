@@ -92,7 +92,7 @@ public slots:
 
     // the sender can just call this, regardless of the state of receiver
     void sendMessage (const QByteArray &toSipuri, const QByteArray &message);
-    const ContactInfo getContactInfo (const QByteArray &sipuri);
+    void getContactInfo (const QByteArray &sipuri, ContactInfo &);
     //change states
     void setOnline ();
     void setRightback ();
@@ -119,7 +119,7 @@ private slots:
     void keepAlive();
     void ssiLogin();
     void ssiPic();
-    void ssiVerify();
+    void ssiVerify(); // TODO merged to sipcRegister
     void systemConfig();
     // uploadPortrait(/*file*/);
     void sipcRegister();

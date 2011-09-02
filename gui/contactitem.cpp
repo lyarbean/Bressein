@@ -66,12 +66,14 @@ void ContactItem::paint (QPainter *painter,
         option->state.testFlag (QStyle::QStyle::State_Sunken))
     {
         painter->setPen (QColor (0xFFFF8F00));
+        painter->drawRect (boundingRect().adjusted (2, 2, -2, -2));
     }
     else
     {
         painter->setPen (QColor (0xFF008FFF));
+        painter->drawRect (boundingRect().adjusted (0, 0, 0, 0));
     }
-    painter->drawRect (boundingRect().adjusted (1, 1, -1, -1));
+
 
 }
 
@@ -125,7 +127,7 @@ void ContactItem::updateContact (const ContactInfo &contactInfo)
     text.append ("<div style='display:inline'><img width='48' src=\"" +
                  imagePath + "\" style='float:left;clear:right;"
                  "text-align:center;'/>");
-    text.append ("<div style='margin:0 0 0 0;font-size:12px;color:#333;"
+    text.append ("<div style='margin:0 0 0 0;font-size:12px;color:#888;"
                  "padding-top:30%;'>");
     if (not contact.localName.isEmpty())
     {
@@ -138,6 +140,9 @@ void ContactItem::updateContact (const ContactInfo &contactInfo)
     else
     {
         text.append (QString::fromUtf8 (sipToFetion (sipuri)));
+        text.append ("[");
+        text.append (QString::fromUtf8 (contact.userId));
+        text.append ("]");
     }
     if (not contact.mobileno.isEmpty())
     {
@@ -145,9 +150,49 @@ void ContactItem::updateContact (const ContactInfo &contactInfo)
         text.append (QString::fromUtf8 (contact.mobileno));
         text.append ("]");
     }
-//     text.append ("(");
-//     text.append (QString::fromUtf8 (sipToFetion (sipuri)));
-//     text.append (")");
+    // TODO some descriptions some from contactInfo
+    QString stateString;
+    switch (contact.state)
+    {
+        case StateType::ONLINE:
+            stateString = tr ("online");
+            break;
+        case StateType::RIGHTBACK:
+            stateString = tr ("right back");
+            break;
+        case StateType::AWAY:
+            stateString = tr ("away");
+            break;
+        case StateType::BUSY:
+            stateString = tr ("busy");
+            break;
+        case StateType::OUTFORLUNCH:
+            stateString = tr ("out for lunch");
+            break;
+        case StateType::ONTHEPHONE:
+            stateString = tr ("on the phone");
+            break;
+        case StateType::DONOTDISTURB:
+            stateString = tr ("don't disturb");
+            break;
+        case StateType::MEETING:
+            stateString = tr ("metting");
+            break;
+//         case StateType::HIDDEN:
+//             stateString = tr("Online");
+//             break;
+        case StateType::OFFLINE:
+            stateString = tr ("offline");
+            break;
+        default:
+            break;
+    }
+    if (not stateString.isEmpty())
+    {
+        text.append ("(");
+        text.append (stateString);
+        text.append (")");
+    }
     text.append ("</div>");
     if (not contact.impresa.isEmpty())
     {
@@ -192,6 +237,7 @@ void ContactItem::activateChatView (bool ok)
     else
     {
         chatView->show();
+        chatView->raise();
     }
 }
 
@@ -233,6 +279,7 @@ void ContactItem::focusInEvent (QFocusEvent *event)
 void ContactItem::hoverEnterEvent (QGraphicsSceneHoverEvent *event)
 {
     update();
+
 //     QGraphicsTextItem::hoverLeaveEvent (event);
 }
 
@@ -243,7 +290,7 @@ void ContactItem::hoverLeaveEvent (QGraphicsSceneHoverEvent *event)
 }
 void ContactItem::hoverMoveEvent (QGraphicsSceneHoverEvent *event)
 {
-    update();
+//     update();
 }
 
 }

@@ -35,7 +35,9 @@ OpenSSL library used as well as that of the covered work.
 //#include "loginwidget.h"
 #include <QApplication>
 #include <QMenu>
+#include <QTimer>
 #include <QDir>
+
 #include <QLabel>
 
 namespace Bressein
@@ -82,7 +84,8 @@ void BresseinManager::onContactChanged (const QByteArray &contact)
 {
     // notify sidePanel to update its data
     // as sidePanel has no knowledge about Account, we pass that contact too
-    const ContactInfo contactInfo = account->getContactInfo (contact);
+    ContactInfo contactInfo;
+    account->getContactInfo (contact,contactInfo);
     sidePanel->updateContact (contact, contactInfo);
 }
 
@@ -113,11 +116,7 @@ void BresseinManager::readyShow()
 // TODO move to loginScene
 void BresseinManager::onVerificationPic (const QByteArray &data)
 {
-    qDebug() << "onVerificationPic" << data;
-    QImage img = QImage::fromData (QByteArray::fromBase64 (data));
-    QLabel *label = new QLabel (0);
-    label->setPixmap (QPixmap::fromImage (img));
-    label->show();
+    sidePanel->requestVerify (data);
 }
 
 void BresseinManager::onStateAuthorized()
@@ -131,7 +130,11 @@ void BresseinManager::onTrayActivated (QSystemTrayIcon::ActivationReason reason)
     {
         case QSystemTrayIcon::Trigger:
         case QSystemTrayIcon::DoubleClick:
-            sidePanel->show();
+            if (sidePanel->isHidden())
+            {
+                sidePanel->show();
+            }
+            sidePanel->raise();
             break;
         case QSystemTrayIcon::MiddleClick:
             //TODO
@@ -141,6 +144,12 @@ void BresseinManager::onTrayActivated (QSystemTrayIcon::ActivationReason reason)
     }
 }
 
+void BresseinManager::bye()
+{
+    account->setOffline();
+    QApplication::processEvents (QEventLoop::AllEvents);
+    QTimer::singleShot (2000, qApp, SLOT (quit()));
+}
 
 void BresseinManager::initializeTray()
 {
@@ -162,7 +171,7 @@ void BresseinManager::initializeTray()
     connect (action, SIGNAL (triggered ()), account, SLOT (setMeeting()));
     trayIconMenu->addAction (action);
     action = new QAction (tr ("quit"), tray);
-    connect (action, SIGNAL (triggered (bool)), qApp, SLOT (quit()));
+    connect (action, SIGNAL (triggered (bool)), this, SLOT (bye()));
     trayIconMenu->addAction (action);
     tray->setContextMenu (trayIconMenu);
     tray->setIcon (QIcon (":/images/envelop_64.png"));
@@ -205,6 +214,10 @@ void BresseinManager::connectSignalSlots()
              SIGNAL (toLogin (const QByteArray &, const QByteArray &)),
              this,
              SLOT (loginAs (const QByteArray &, const QByteArray &)));
+    connect (sidePanel,
+             SIGNAL (toVerify (QByteArray)),
+             account,
+             SLOT (loginVerify (const QByteArray &)));
     connect (sidePanel,
              SIGNAL (sendMessage (const QByteArray &, const QByteArray &)),
              account,

@@ -157,19 +157,31 @@ const QByteArray cnouce (quint16 time)
     return t.toUpper();
 }
 
-const QByteArray configData ()
+const QByteArray configData (QByteArray number)
 {
-    QByteArray part = "<config><user mobile-no=\"13910000000\"/>"
-                      "<client type=\"PC\" version=\"";
+    QByteArray numberString;
+    if (number.size() == 11)
+    {
+        numberString.append ("mobile-no=\"");
+    }
+    else
+    {
+        numberString.append ("sid=\"");
+    }
+    numberString.append (number);
+    QByteArray part = "<config><user ";
+    part.append (numberString);
+    part.append ("\"/><client type=\"PC\" version=\"");
     part.append (PROTOCOL_VERSION);
-    part.append ("\" platform=\"W5.1\"/><servers version=\"0\"/>"
-                 "<parameters version=\"0\"/><hints version=\"0\"/></config>");
+    part.append ("\" platform=\"W5.1\" /><servers version=\"0\" />"
+                 "<parameters version=\"0\" /><client-config version=\"0\" />"
+                 "<hints version=\"0\" /></config>");
     QByteArray data ("POST /nav/getsystemconfig.aspx HTTP/1.1\r\n");
     data.append ("User-Agent: IIC2.0/PC ");
     data.append (PROTOCOL_VERSION);
     data.append ("\r\nHost: ");
     data.append (NAVIGATION);
-    data.append ("\r\nConnection: Close\r\nCache-Control: no-cache\r\n");
+    data.append ("\r\nConnection: Keep-Alive\r\nCache-Control: no-cache\r\n");
     data.append ("Content-length: ");
     data.append (QByteArray::number (part.size()));
     data.append ("\r\n\r\n");
@@ -220,7 +232,7 @@ const QByteArray SsiPicData (const QByteArray &algorithm, const QByteArray &ssic
     data.append ("\r\nConnection: close\r\n\r\n");
     return data;
 }
-
+// FIXME
 const QByteArray ssiVerifyData (const QByteArray &number,
                                 const QByteArray &passwordhashed4,
                                 const QByteArray &id,

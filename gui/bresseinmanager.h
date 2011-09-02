@@ -72,12 +72,13 @@ public slots:
     void onGroupChanged (const QByteArray &, const QByteArray &);
 
 private slots:
-
     void readyShow();
+    \
     void onVerificationPic (const QByteArray &);
     void onWrongPassword();
     void onStateAuthorized();
     void onTrayActivated (QSystemTrayIcon::ActivationReason);
+    void bye();
 private:
     void initializeTray();
     void connectSignalSlots();

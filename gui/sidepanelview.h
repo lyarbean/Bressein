@@ -60,6 +60,7 @@ public:
 signals:
     void toLogin (const QByteArray &,
                   const QByteArray &);
+    void toVerify (const QByteArray &);
     void sendMessage (const QByteArray &sipuri,
                       const QByteArray &message);
 public slots:
@@ -68,9 +69,12 @@ public slots:
     void onIncomeMessage (const QByteArray &,
                           const QByteArray &,
                           const QByteArray &);
+    void requestVerify (const QByteArray &);
 private slots:
+    void onVerifycommit (const QByteArray &);
     void onLoginCommit (const QByteArray &,
                         const QByteArray &);
+
     void onSendMessage (const QByteArray &,
                         const QByteArray &);
     void setRenderingSystem();
