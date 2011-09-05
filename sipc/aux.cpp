@@ -190,36 +190,6 @@ const QByteArray configData (QByteArray number)
     return data;
 }
 
-const QByteArray ssiLoginData (const QByteArray &number,
-                               const QByteArray &passwordhashed4,
-                               const QByteArray passwordType)
-{
-    QByteArray numberString;
-    if (number.size() == 11)
-    {
-        numberString.append ("mobileno=");
-    }
-    else
-    {
-        numberString.append ("sid=");
-    }
-    numberString.append (number);
-    QByteArray data ("GET /ssiportal/SSIAppSignInV4.aspx?");
-    data.append (numberString);
-    data.append ("&domains=");
-    data.append (DOMAIN_URI);
-    data.append ("&v4digest-type=");
-    data.append (passwordType);
-    data.append ("&v4digest=");
-    data.append (passwordhashed4);
-    data.append ("\r\nUser-Agent: IIC2.0/pc ");
-    data.append (PROTOCOL_VERSION);
-    data.append ("\r\nHost: uid.fetion.com.cn\r\n"  // UID_URI
-                 "Cache-Control: private\r\n"
-                 "Connection: Keep-Alive\r\n\r\n");
-    return data;
-}
-
 const QByteArray SsiPicData (const QByteArray &algorithm, const QByteArray &ssic)
 {
     QByteArray data ("GET /nav/GetPicCodeV4.aspx?algorithm=");
@@ -232,23 +202,24 @@ const QByteArray SsiPicData (const QByteArray &algorithm, const QByteArray &ssic
     data.append ("\r\nConnection: close\r\n\r\n");
     return data;
 }
-// FIXME
-const QByteArray ssiVerifyData (const QByteArray &number,
-                                const QByteArray &passwordhashed4,
-                                const QByteArray &id,
-                                const QByteArray &code,
-                                const QByteArray &algorithm,
-                                const QByteArray passwordType)
+// TODO merged to ssiLoginData
+const QByteArray ssiData (const QByteArray &number,
+                          const QByteArray &passwordhashed4,
+                          const QByteArray &id,
+                          const QByteArray &code,
+                          const QByteArray &algorithm)
 {
     QByteArray numberString;
-
+    QByteArray passwordType;
     if (number.size() == 11)
     {
         numberString.append ("mobileno=");
+        passwordType = "1";
     }
     else
     {
         numberString.append ("sid=");
+        passwordType = "2";
     }
 
     numberString.append (number);
@@ -257,17 +228,20 @@ const QByteArray ssiVerifyData (const QByteArray &number,
     data.append (numberString);
     data.append ("&domains=");
     data.append (DOMAIN_URI);
-    data.append ("&pid=");
-    data.append (id);
-    data.append ("&pic=");
-    data.append (code);
-    data.append ("&algorithm=");
-    data.append (algorithm);
+    if (not code.isEmpty())
+    {
+        data.append ("&pid=");
+        data.append (id);
+        data.append ("&pic=");
+        data.append (code);
+        data.append ("&algorithm=");
+        data.append (algorithm);
+    }
     data.append ("&v4digest-type=");
     data.append (passwordType);
-    data.append ("&v4digest=");   // TODO v4digest-type
+    data.append ("&v4digest=");
     data.append (passwordhashed4);
-    data.append (" HTTP/1.1\r\n"
+    data.append ("\r\n"
                  "User-Agent: IIC2.0/pc ");
     data.append (PROTOCOL_VERSION);
     data.append ("\r\nHost: uid.fetion.com.cn\r\n"
@@ -1035,6 +1009,16 @@ const QByteArray setUserInfoV4Data (const QByteArray &fetionNumber,
 const QByteArray setUserInfoV4Data (const QByteArray &fetionNumber,
                                     int &callId, const int days)
 {
+    /** <args><userinfo><configs>
+     * <config name="sms-notify">0</config>
+     * <config name="directsms-rec">0</config> 1 if only receive sms fetion, 0 if client then phone, 2 if not to receive sms from stranger
+     * <config name="multi-client">0</config>
+     * <config name="private-presence"></config>
+     * <config name="addbuddy-app-sms">0</config>
+     * <config name="permission-request">0</config>
+     * <config name="schedule-sms-receipt">1</config> 1 for only send to fetion, 0 will fallback to phone
+     * <config name="rev-offlinefile-sms">1</config>
+     * <config name="send-offlinefile-sms">1</config> **/
     QByteArray body = "<args><userinfo><personal sms-online-status=\"";
     body.append (QByteArray::number (days));
     body.append (".00:00:00\"/></userinfo></args>");

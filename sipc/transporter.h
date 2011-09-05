@@ -51,6 +51,7 @@ public:
     virtual ~Transporter();
 public slots:
     void connectToHost (const QByteArray &ip, const quint16 port);
+    void stop ();
     void close();
     /**
      * @brief activate keepaliveTicker
@@ -65,7 +66,7 @@ signals:
     void socketError (const int);
 private slots:
     void setHost();
-    void onSocketError();
+    void onSocketError (QAbstractSocket::SocketError);
     void removeSocket();
 //     void activateKeepalive();
 //     void keepalive();

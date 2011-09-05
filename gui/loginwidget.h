@@ -59,7 +59,6 @@ private:
     QPushButton *commitButton;
     QPushButton *verifyButton;
     QLabel *messageLabel;
-
 };
 }
 #endif // LOGINWIDGET_H

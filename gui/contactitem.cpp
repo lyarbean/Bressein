@@ -79,7 +79,7 @@ void ContactItem::paint (QPainter *painter,
 
 QRectF ContactItem::boundingRect() const
 {
-    return  QRectF (0, 0, textWidth(), 64);
+    return  QRectF (0, 0, textWidth(), 56);
 }
 
 void ContactItem::setHostSipuri (const QByteArray &sipuri)
@@ -121,14 +121,13 @@ void ContactItem::updateContact (const ContactInfo &contactInfo)
     }
     else
     {
-        imagePath = ":/images/envelop_32.png";
+        imagePath = ":/images/envelop_48.png";
     }
     QString text;
-    text.append ("<div style='display:inline'><img width='48' src=\"" +
-                 imagePath + "\" style='float:left;clear:right;"
+    text.append ("<div style='display:inline;height:54;'><img width='48' src='" +
+                 imagePath + "' style='margin:0 0 0 0;float:left;clear:right;"
                  "text-align:center;'/>");
-    text.append ("<div style='margin:0 0 0 0;font-size:12px;color:#888;"
-                 "padding-top:30%;'>");
+    text.append ("<div style='margin:0 0 0 0;font-size:12px;color:#888;'>");
     if (not contact.localName.isEmpty())
     {
         text.append (QString::fromUtf8 (contact.localName));
@@ -196,8 +195,8 @@ void ContactItem::updateContact (const ContactInfo &contactInfo)
     text.append ("</div>");
     if (not contact.impresa.isEmpty())
     {
-        text.append ("<div style='margin:0 0 3px 0;overflow:scroll;"
-                     "font-size:10px;color:#F80;display:block'>");
+        text.append ("<div style='margin:0 0 auto 0;overflow:hidden;"
+                     "font-size:10px;color:#F80;display:inline'>");
         text.append (QString::fromUtf8 (contact.impresa));
         text.append ("</div>");
     }

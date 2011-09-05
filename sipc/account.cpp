@@ -55,7 +55,7 @@ Account::Account (QObject *parent) : QObject (parent)
     connect (draftsClearTimer, SIGNAL (timeout()),
              this, SLOT (clearDrafts()));
     messageTimer->start (1000);
-    draftsClearTimer->start (15000);
+
     publicInfo = new ContactInfo;
     info = new Info (this);
     serverTransporter = new Transporter (0);
@@ -114,6 +114,8 @@ void Account::setAccount (QByteArray number, QByteArray password)
     publicInfo->state = StateType::ONLINE;// online
     info->cnouce = cnouce();
     info->callId = 1;
+    connected = false;
+    groups.clear();
     //add group self
     Group *group = new Group;
     group->groupId = "-1";
@@ -166,10 +168,11 @@ void Account::login()
 
 void Account::loginVerify (const QByteArray &code)
 {
+    qDebug() << "loginVerify" << code;
     mutex.lock();
     info->verification.code = code;
     mutex.unlock();
-    QMetaObject::invokeMethod (this, "ssiVerify", Qt::QueuedConnection);
+    QMetaObject::invokeMethod (this, "ssiLogin", Qt::QueuedConnection);
 
 }
 
@@ -345,10 +348,15 @@ void Account::ssiLogin()
 //     step = SSI;
     //TODO if proxy
     QByteArray password = hashV4 (publicInfo->userId, info->password);
-    QByteArray data = ssiLoginData (info->loginNumber, password);
+    QByteArray data;
+    data = ssiData (info->loginNumber,
+                    password,
+                    info->verification.id,
+                    info->verification.code,
+                    info->verification.algorithm);
     QSslSocket socket (this);
     socket.connectToHostEncrypted (UID_URI, 443);
-    qDebug() << "ssiLogin";
+    qDebug() << "ssiLogin" << data;
     if (not socket.waitForEncrypted (5000))
     {
         // TODO handle socket.error() or inform user what happened
@@ -447,6 +455,11 @@ void Account::systemConfig()
     qDebug() << body;
     QTcpSocket socket (this);
     QHostInfo info = QHostInfo::fromName ("nav.fetion.com.cn");
+    if (info.addresses().isEmpty())
+    {
+        //FIXME
+        return;
+    }
     socket.connectToHost (info.addresses().first().toString(), 80);
     if (not socket.waitForConnected (-1))
     {
@@ -576,9 +589,9 @@ void Account::sipcAuthorize()
         ackdata.append (info->verification.algorithm);
         ackdata.append ("\",type=\"");
         ackdata.append ("GeneralPic");
-        ackdata.append ("\",response=\"");
+        ackdata.append ("\",code=\"");
         ackdata.append (info->verification.code);
-        ackdata.append (",chid=\"");
+        ackdata.append ("\",chid=\"");
         ackdata.append (info->verification.id);
         ackdata.append ("\"\r\n");
     }
@@ -722,7 +735,7 @@ void Account::parseSipcRegister (QByteArray &data)
     b = data.indexOf ("\",signature=\"");
     e = data.indexOf ("\"", b);
     info->signature = data.mid (b + 14, e - b - 14);
-    info->aeskey = QByteArray::fromHex (cnouce (8)).left (32);
+    info->aeskey = QByteArray::fromHex (cnouce (8)).leftJustified (32, 'A', true);
     // need to store?
     // generate response
     // check if emptyq
@@ -733,6 +746,7 @@ void Account::parseSipcRegister (QByteArray &data)
         RSAPublicEncrypt (publicInfo->userId, info->password,
                           info->nonce, info->aeskey, info->key,
                           info->response, ok);
+        qDebug() << "RSAPublicEncrypt";
     }
     emit sipcRegisterParsed();
 }
@@ -1301,19 +1315,29 @@ void Account::setMessageStatus (int days)
 
 void Account::setClientState (int state)
 {
-    QByteArray statetype = QByteArray::number (state);
-    QByteArray toSendMsg = setPresenceV4Data
-                           (info->fetionNumber, info->callId, statetype);
     publicInfo->state = (StateType) state;
-    serverTransporter->sendData (toSendMsg);
+    if (connected)
+    {
+        QByteArray statetype = QByteArray::number (state);
+        QByteArray toSendMsg = setPresenceV4Data
+                               (info->fetionNumber, info->callId, statetype);
+        serverTransporter->sendData (toSendMsg);
+    }
+    else
+    {
+        qDebug() << "relogin";
+        ssiLogin();
+    }
 }
 
 void Account::activateTimer()
 {
     //FIXME should the timer in this thread?
     connect (keepAliveTimer, SIGNAL (timeout()), SLOT (keepAlive()));
+    connected = true;
     contactSubscribe();
     keepAliveTimer->start (60000);
+    draftsClearTimer->start (15000);
     downloadPortrait (info->sipuri);
     emit logined ();
     // call other stuffs right here
@@ -1323,19 +1347,28 @@ void Account::activateTimer()
 void Account::onServerTransportError (const int se)
 {
     qDebug() << "onServerTransportError" << se;
-    keepAliveTimer->stop();
     switch (se)
     {
         case QAbstractSocket::ConnectionRefusedError:
+            login();
+            break;
         case QAbstractSocket::RemoteHostClosedError:
             // TODO need confirm from user
             // relogin
-            login();
+            qDebug() << "RemoteHostClosedError";
+            keepAliveTimer->stop();
+            draftsClearTimer->stop();
+            conversationManager->closeAll();
+            serverTransporter->stop();
             break;
         case QAbstractSocket::HostNotFoundError:
+            qDebug() << "HostNotFoundError";
             // TODO
-            login();
+            //login();
             //  close();
+            break;
+        case QAbstractSocket::NetworkError:
+            qDebug() << "NetworkError";
             break;
         default:
             break;
@@ -1485,7 +1518,7 @@ void Account::dispatchOfflineBox()
 
 void Account::clearDrafts()
 {
-    qDebug() << "clearDrafts";
+    qDebug() << "clearDrafts" << QDateTime::currentDateTime();
     if (drafts.empty())
     {
         return;

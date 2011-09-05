@@ -241,6 +241,7 @@ private:
     // TODO enhance to be a networking resource fetcher
     PortraitFetcher fetcher;
     Transporter *serverTransporter;
+    bool connected;
 
 };
 }

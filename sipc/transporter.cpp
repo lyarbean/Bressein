@@ -39,12 +39,13 @@ Transporter::Transporter (QObject *parent)
 {
     socket = new QTcpSocket (this);
     socket->setReadBufferSize (0);
-    socket->setSocketOption (QAbstractSocket::KeepAliveOption, 1);
+//     socket->setSocketOption (QAbstractSocket::KeepAliveOption, 1);
     socket->setSocketOption (QAbstractSocket::LowDelayOption, 1);
     writerTicker = new QTimer (this);
 //     keepaliveTicker = new QTimer (this);
     connect (socket, SIGNAL (readyRead()), this, SLOT (readData()));
-    connect (socket, SIGNAL (disconnected()), this, SLOT (onSocketError()));
+    connect (socket, SIGNAL (error (QAbstractSocket::SocketError)),
+             this, SLOT (onSocketError (QAbstractSocket::SocketError)));
     //TODO handle socket's signals
     this->moveToThread (&workerThread);
     workerThread.start();
@@ -62,6 +63,12 @@ void Transporter::connectToHost (const QByteArray &ip, const quint16 port)
     this->port = port;
     mutex.unlock();
     QMetaObject::invokeMethod (this, "setHost", Qt::QueuedConnection);
+}
+
+void Transporter::stop()
+{
+    writerTicker->stop();
+    toSendMessages.clear();
 }
 
 void Transporter::close()
@@ -108,16 +115,15 @@ void Transporter::setHost()
     writerTicker->start (1000);
 }
 
-void Transporter::onSocketError()
+void Transporter::onSocketError (QAbstractSocket::SocketError se)
 {
-    qDebug() << socket->errorString();
-    emit socketError ( (int) socket->error());
+    qDebug() << this->metaObject()->className() << "SocketError" << se;
+    emit socketError ( (int) se);
 }
 
 void Transporter::removeSocket()
 {
-    disconnect (socket, SIGNAL (readyRead()), this, SLOT (readData()));
-    disconnect (socket, SIGNAL (disconnected()), this, SLOT (onSocketError()));
+    socket->disconnect();
     qDebug() << "delete sockets";
     socket->disconnectFromHost();
     while (socket->state() not_eq QAbstractSocket::UnconnectedState)
@@ -145,6 +151,7 @@ void Transporter::writeData (const QByteArray &data)
     qDebug() << this->metaObject()->className() << "::writeData";
     qDebug() << QString::fromUtf8 (data);
     qDebug() << "=================================";
+    qDebug() << socket->state();
     if (socket->state() not_eq QAbstractSocket::ConnectedState)
     {
         qDebug() <<  "writeData::Error: socket is not connected";
@@ -228,6 +235,7 @@ void Transporter::readData()
         }
         else
         {
+            //
             return;
         }
     }

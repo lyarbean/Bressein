@@ -3,10 +3,12 @@ cmake_minimum_required(VERSION 2.6)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(QT_USE_QTSQL TRUE )
 set(QT_USE_QTXML TRUE )
-set(QT_USE_QTCORE TRUE )
+set(QT_USE_QTGUI TRUE )
 set(QT_USE_QTNETWORK TRUE )
+#set(QT_USE_QTOPENGL TRUE ) #TODO
+
 find_package(Doxygen REQUIRED)
-find_package(Qt4 REQUIRED)
+find_package(Qt4 COMPONENTS QtSql QtXml QtGui QtNetwork REQUIRED)
 
 include(${QT_USE_FILE} )
 include_directories(${QT_INCLUDES}

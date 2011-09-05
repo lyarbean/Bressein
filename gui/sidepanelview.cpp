@@ -156,8 +156,8 @@ void SidepanelView::addGroup (const QByteArray &id, const QByteArray &name)
         }
     }
     QGraphicsSimpleTextItem *item = new QGraphicsSimpleTextItem;
-    item->setFont (QFont ("Times", 14, QFont::Bold));
-    item->setPen (QPen (Qt::darkMagenta));
+    item->setFont (QFont ("Times", 18, QFont::Bold));
+    item->setPen (QPen (QColor (0x88888888)));
     item->setText (QString::fromUtf8 (name));
     item->setData (1, id);
     item->setZValue (0);

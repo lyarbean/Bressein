@@ -69,19 +69,14 @@ extern const QByteArray cnouce (quint16 time = 4);
 
 extern const QByteArray configData (QByteArray number = "13910000000");
 
-extern const QByteArray ssiLoginData (const QByteArray &number,
-                                      const QByteArray &passwordhashed4,
-                                      const QByteArray passwordType = "1");
-
 extern const QByteArray SsiPicData (const QByteArray &algorithm,
                                     const QByteArray &ssic);
 
-extern const QByteArray ssiVerifyData (const QByteArray &number,
-                                       const QByteArray &passwordhashed4,
-                                       const QByteArray &id,
-                                       const QByteArray &code,
-                                       const QByteArray &algorithm,
-                                       QByteArray passwordType = "2");
+extern const QByteArray ssiData (const QByteArray &number,
+                                 const QByteArray &passwordhashed4,
+                                 const QByteArray &id,
+                                 const QByteArray &code,
+                                 const QByteArray &algorithm);
 
 extern const QByteArray downloadPortraitData (const QByteArray &portraitName,
                                               const QByteArray &portraitPath,
