@@ -1,0 +1,18 @@
+Requirements:
+Qt (http://qt.nokia.com), version 4.7.0+ as recommended.
+OpenSsl(http://www.openssl.org/).
+CMake version 2.6.0 at least.
+
+So far we just support for GNU/Linux and BSD's;
+I didn't experience programming on windows, please get help from others if
+you need.
+
+Get source:
+git clone  git://github.com/lyarbean/Bressein.git Bressein
+# or
+git clone git://gitorious.org/bressein/bressein.git Bressein
+
+building:
+cd Bressein && mkdir build && cd build && cmake .. && make
+
+I'm sorry that I haven't had added install step in CMakeLists.txt, though I will do soon.
