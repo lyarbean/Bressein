@@ -73,7 +73,6 @@ public slots:
 
 private slots:
     void readyShow();
-    \
     void onVerificationPic (const QByteArray &);
     void onWrongPassword();
     void onStateAuthorized();

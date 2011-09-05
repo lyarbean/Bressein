@@ -74,6 +74,7 @@ void PortraitFetcher::requestPortrait (const QByteArray &sipuri)
         not this->path.isEmpty() and
         not this->ssic.isEmpty())
     {
+        qDebug() << "PortraitFetcher starts;";
         start();
     }
 }
@@ -85,7 +86,9 @@ void PortraitFetcher::run ()
     QByteArray sipuri;
     bool empty = queue.isEmpty();
     if (not empty)
+    {
         sipuri = queue.takeFirst();
+    }
     QByteArray bytes;
     QByteArray toSendMsg;
     QByteArray responseData;
@@ -100,8 +103,19 @@ void PortraitFetcher::run ()
             emit processed (sipuri);
             return;
         }
-        QString host =
-            QHostInfo::fromName (server).addresses().first().toString();
+
+        QHostInfo hostInfo = QHostInfo::fromName (server);
+        QString host;
+        if (not hostInfo.addresses().isEmpty())
+        {
+            host = hostInfo.addresses().first().toString();
+        }
+        else
+        {
+            //FIXME
+            emit processed (sipuri);
+            return;
+        }
         QTcpSocket socket;
         socket.connectToHost (host, 80);
         if (not socket.waitForConnected (5000))

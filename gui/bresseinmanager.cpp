@@ -111,6 +111,7 @@ void BresseinManager::readyShow()
     sidePanel->setupContactsScene();
     sidePanel->setNickname (nickname);
     sidePanel->setHostSipuri (sipuri);
+    sidePanel->showNormal();
 }
 
 // TODO move to loginScene
@@ -132,9 +133,13 @@ void BresseinManager::onTrayActivated (QSystemTrayIcon::ActivationReason reason)
         case QSystemTrayIcon::DoubleClick:
             if (sidePanel->isHidden())
             {
-                sidePanel->show();
+                sidePanel->showNormal();
             }
-            sidePanel->raise();
+            else
+            {
+                sidePanel->setWindowState (Qt::WindowNoState);
+                sidePanel->raise();
+            }
             break;
         case QSystemTrayIcon::MiddleClick:
             //TODO
@@ -148,7 +153,7 @@ void BresseinManager::bye()
 {
     account->setOffline();
     QApplication::processEvents (QEventLoop::AllEvents);
-    QTimer::singleShot (2000, qApp, SLOT (quit()));
+    QTimer::singleShot (1000, qApp, SLOT (quit()));
 }
 
 void BresseinManager::initializeTray()
@@ -191,9 +196,10 @@ void BresseinManager::connectSignalSlots()
     connect (account, SIGNAL (contactChanged (const QByteArray &)),
              this, SLOT (onContactChanged (const QByteArray &)),
              Qt::QueuedConnection);
-//    connect (account, SIGNAL (portraitDownloaded (const QByteArray &)),
-//              this, SLOT (onPortraitDownloaded (const QByteArray &)),
-//              Qt::QueuedConnection);
+    // TODO
+    connect (account, SIGNAL (portraitDownloaded (const QByteArray &)),
+             sidePanel, SLOT (updateContactPortrait (const QByteArray &)),
+             Qt::QueuedConnection);
     connect (account, SIGNAL (logined()), this, SLOT (readyShow()),
              Qt::QueuedConnection);
     connect (account, SIGNAL (verificationPic (const QByteArray &)),

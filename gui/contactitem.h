@@ -65,7 +65,10 @@ public:
     void setSipuri (const QByteArray &sipuri);
     void setHostName (const QByteArray &);
     const QByteArray &getSipuri () const ;
+    void updatePortrait();
+    void updateView();
     void updateContact (const ContactInfo &contactInfo);
+
 private slots:
     void setupChatView();
     void activateChatView (bool ok);

@@ -44,6 +44,7 @@ LoginWidget::LoginWidget (QWidget *parent, Qt::WindowFlags f)
       verifyButton (new QPushButton (this)),
       messageLabel (new QLabel (this))
 {
+    setBackgroundRole (QPalette::BrightText);
     QGridLayout *gridLayout = new QGridLayout (this);
     gridLayout->addWidget (new QLabel (tr ("Number")), 0, 0);
     gridLayout->addWidget (numberEdit, 0, 1);

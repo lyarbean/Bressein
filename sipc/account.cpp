@@ -534,6 +534,7 @@ void Account::systemConfig()
 void Account::downloadPortrait (const QByteArray &sipuri)
 {
     //http://hdss1fta.fetion.com.cn/HDS_S00/geturi.aspx
+    qDebug() << "downloadPortrait"<<sipuri;
     fetcher.requestPortrait (sipuri);
 }
 
@@ -678,6 +679,9 @@ void Account::parseSsiResponse (QByteArray &data)
             int b = data.indexOf ("Set-Cookie: ssic=");
             int e = data.indexOf ("; path", b);
             info->ssic = data.mid (b + 17, e - b - 17);
+            fetcher.setData (info->systemconfig.portraitServerName,
+                             info->systemconfig.portraitServerPath,
+                             info->ssic);
             QDomElement domChild =  domRoot.firstChildElement ("user");
 
             if (domChild.hasAttribute ("uri") and
@@ -696,7 +700,7 @@ void Account::parseSsiResponse (QByteArray &data)
             else
             {
                 qDebug() << "fail to pass ssi response";
-                login();
+                ssiLogin();
                 return;
             }
             domChild = domChild.firstChildElement ("credentials");
@@ -802,9 +806,6 @@ void Account::parseServerConfig (QByteArray &data)
                     info->systemconfig.serverNamePath.mid (a + 2, b - a - 2);
                 info->systemconfig.portraitServerPath =
                     info->systemconfig.serverNamePath.mid (b, c - b);
-                fetcher.setData (info->systemconfig.portraitServerName,
-                                 info->systemconfig.portraitServerPath,
-                                 info->ssic);
             }
         }
         domRoot = domRoot.nextSiblingElement ("parameters");

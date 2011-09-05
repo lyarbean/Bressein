@@ -56,6 +56,7 @@ public:
     void setHostSipuri (const QByteArray &);
     void setNickname (const QByteArray &);
     void updateContact (const QByteArray &, const ContactInfo &);
+
     void addGroup (const QByteArray &,const QByteArray &);
 signals:
     void toLogin (const QByteArray &,
@@ -64,6 +65,7 @@ signals:
     void sendMessage (const QByteArray &sipuri,
                       const QByteArray &message);
 public slots:
+    void updateContactPortrait (const QByteArray &);
     void setupContactsScene();
     void activateLogin (bool ok);
     void onIncomeMessage (const QByteArray &,

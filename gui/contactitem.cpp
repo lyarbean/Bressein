@@ -53,7 +53,7 @@ ContactItem::ContactItem (QGraphicsItem *parent)
 
 ContactItem::~ContactItem()
 {
-
+    closeChatView();
 }
 
 void ContactItem::paint (QPainter *painter,
@@ -90,6 +90,7 @@ void ContactItem::setHostSipuri (const QByteArray &sipuri)
 void ContactItem::setSipuri (const QByteArray &sipuri)
 {
     this->sipuri = sipuri;
+    updatePortrait();
 }
 
 void ContactItem::setHostName (const QByteArray &name)
@@ -102,19 +103,16 @@ const QByteArray &ContactItem::getSipuri() const
 {
     return sipuri;
 }
-// FIXME
-void ContactItem::updateContact (const ContactInfo &contactInfo)
+
+void ContactItem::updatePortrait()
 {
-    // TODO assignment
-    contact = contactInfo;
-    document()->clear();
-    QString iconPath = QDir::homePath().append ("/.bressein/icons/");
-    QString iconFullPath =
-        iconPath.append (sipToFetion (sipuri)).append (".jpeg");
-    QImageReader reader (iconFullPath);
+    QString iconPath = QDir::homePath().append ("/.bressein/icons/").
+                       append (sipToFetion (sipuri)).append (".jpeg");
+    QImageReader reader (iconPath);
     QImage image (120, 120, QImage::Format_RGB32);
     if (reader.read (&image))
     {
+        imagePath = iconPath;
         document()->addResource (QTextDocument::ImageResource,
                                  QUrl (imagePath),
                                  QVariant (image));
@@ -123,9 +121,15 @@ void ContactItem::updateContact (const ContactInfo &contactInfo)
     {
         imagePath = ":/images/envelop_48.png";
     }
+    updateView();
+}
+
+void ContactItem::updateView()
+{
+    document()->clear();
     QString text;
-    text.append ("<div style='display:inline;height:54;'><img width='48' src='" +
-                 imagePath + "' style='margin:0 0 0 0;float:left;clear:right;"
+    text.append ("<div style='display:inline;height:54;'><img width='48' src='"
+                 + imagePath + "' style='margin:0 0 0 0;float:left;clear:right;"
                  "text-align:center;'/>");
     text.append ("<div style='margin:0 0 0 0;font-size:12px;color:#888;'>");
     if (not contact.localName.isEmpty())
@@ -177,9 +181,9 @@ void ContactItem::updateContact (const ContactInfo &contactInfo)
         case StateType::MEETING:
             stateString = tr ("metting");
             break;
-//         case StateType::HIDDEN:
-//             stateString = tr("Online");
-//             break;
+            //         case StateType::HIDDEN:
+            //             stateString = tr("Online");
+            //             break;
         case StateType::OFFLINE:
             stateString = tr ("offline");
             break;
@@ -195,7 +199,7 @@ void ContactItem::updateContact (const ContactInfo &contactInfo)
     text.append ("</div>");
     if (not contact.impresa.isEmpty())
     {
-        text.append ("<div style='margin:0 0 auto 0;overflow:hidden;"
+        text.append ("<div style='margin:0 0 0 1px;overflow:hidden;"
                      "font-size:10px;color:#F80;display:inline'>");
         text.append (QString::fromUtf8 (contact.impresa));
         text.append ("</div>");
@@ -206,6 +210,15 @@ void ContactItem::updateContact (const ContactInfo &contactInfo)
     cursor.movePosition (QTextCursor::End);
     cursor.insertHtml (text);
     setTextCursor (cursor);
+    update();
+
+}
+
+void ContactItem::updateContact (const ContactInfo &contactInfo)
+{
+    // TODO assignment
+    contact = contactInfo;
+    updateView();
 }
 
 void ContactItem::setupChatView()

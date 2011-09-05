@@ -44,7 +44,6 @@ SidepanelView::SidepanelView (QWidget *parent)
     , contactsScene (new ContactsScene (this))
 
 {
-    setAlignment (Qt::AlignLeft | Qt::AlignTop);
     setRenderingSystem();
     setScene (loginScene);
     connect (loginScene,
@@ -199,12 +198,38 @@ void SidepanelView::setRenderingSystem()
 //     // software rendering
 //     viewport = new QWidget;
 //     setViewport (viewport);
-    setRenderHints (QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+    setAlignment (Qt::AlignLeft | Qt::AlignTop);
+    setWindowFlags (Qt::Window);
+    setMaximumWidth (600);
+    setContentsMargins (0,0,0,0);
+    setBackgroundRole (QPalette::BrightText);
+    setForegroundRole (QPalette::NoRole);
+    setRenderHints (QPainter::Antialiasing |
+                    QPainter::SmoothPixmapTransform|
+                    QPainter::HighQualityAntialiasing);
     setCacheMode (QGraphicsView::CacheNone);
     setViewportUpdateMode (QGraphicsView::FullViewportUpdate);
     setDragMode (QGraphicsView::ScrollHandDrag);
 
 }
+
+void SidepanelView::updateContactPortrait (const QByteArray &contact)
+{
+    if (not itemList.isEmpty())
+    {
+        int itemlists = itemList.size();
+        for (int i = 0; i < itemlists; i++)
+        {
+            if (itemList.at (i)->getSipuri() == contact)
+            {
+                // update this
+                itemList.at (i)->updatePortrait();
+                break;
+            }
+        }
+    }
+}
+
 
 void SidepanelView::setupContactsScene()
 {
