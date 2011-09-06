@@ -43,6 +43,8 @@ class ContactsScene : public QGraphicsScene
 public:
     ContactsScene (QObject *parent);
     virtual ~ContactsScene();
+protected:
+    void contextMenuEvent (QGraphicsSceneContextMenuEvent *event);
 };
 }
 

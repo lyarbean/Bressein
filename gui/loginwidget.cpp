@@ -65,7 +65,8 @@ LoginWidget::LoginWidget (QWidget *parent, Qt::WindowFlags f)
              this, SLOT (onverifyButtonClicked()));
     connect (passwordEdit, SIGNAL (returnPressed()),
              commitButton, SLOT (click()));
-    connect (numberEdit, SIGNAL (selectionChanged()), messageLabel, SLOT (clear()));
+    connect (numberEdit, SIGNAL (selectionChanged()),
+             messageLabel, SLOT (clear()));
     setLayout (gridLayout);
     setFixedSize (gridLayout->sizeHint());
 }

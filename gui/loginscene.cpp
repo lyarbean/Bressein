@@ -40,8 +40,10 @@ LoginScene::LoginScene (QObject *parent) : QGraphicsScene (parent),
 {
     addSimpleText (tr ("Welcome to Bressein"));
     addWidget (loginWidget);
-    connect (loginWidget, SIGNAL (commit (const QByteArray &,const QByteArray &)),
-             this, SLOT (onLoginCommit (const QByteArray &,const QByteArray &)));
+    connect (loginWidget,
+             SIGNAL (commit (const QByteArray &,const QByteArray &)),
+             this,
+             SLOT (onLoginCommit (const QByteArray &,const QByteArray &)));
     connect (loginWidget, SIGNAL (verify (const QByteArray &)),
              this, SLOT (onVerifyCommit (const QByteArray &)));
 //     addPixmap (QPixmap (":/images/envelop_64.png"))

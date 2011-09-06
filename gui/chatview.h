@@ -37,10 +37,7 @@ class QDateTime;
 
 namespace Bressein
 {
-//TODO move parts to QGraphicsWidget in order to gain more functionalities
-//TODO use kopete-style chat dialog rather than that of MSN, QQ or fetion;
 //TODO provide Edit Tools
-//TODO use shared data to save heap
 class TextWidget;
 
 class ChatView : public QGraphicsView

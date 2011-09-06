@@ -357,7 +357,7 @@ void Account::ssiLogin()
     QSslSocket socket (this);
     socket.connectToHostEncrypted (UID_URI, 443);
     qDebug() << "ssiLogin" << data;
-    if (not socket.waitForEncrypted (5000))
+    if (not socket.waitForEncrypted (8000))
     {
         // TODO handle socket.error() or inform user what happened
         qDebug() << "waitForEncrypted"
@@ -1699,6 +1699,21 @@ void Account::parseReceivedData (const QByteArray &receiveData)
             // TODO check quota-frequency
             onSendReplay (data);
         }
+        else if (data.contains ("<results><presence><basic"))
+        {
+            //TODO wrap as a function
+            int b = data.indexOf ("value=\"");
+            int e = data.indexOf ("\"/",b);
+            QByteArray v = data.mid (b + 7, e - b - 7);
+            bool ok;
+            int value = v.toInt (&ok);
+            if (ok)
+            {
+                publicInfo->state = (StateType) value;
+                emit contactChanged (info->sipuri);
+            }
+            qDebug() << "XXXXXXXXX" << value << ok << v;
+        }
         else
         {
             qDebug() << QString::fromUtf8 (data);
@@ -1860,6 +1875,10 @@ void Account::onBNPresenceV4 (const QByteArray &data)
                 {
                     contactInfo->state =
                         (StateType) child.attribute ("b").toInt();
+                }
+                else if (sipuri not_eq info->sipuri)
+                {
+                    contactInfo->state = StateType::OFFLINE;
                 }
                 if (not sipuri.isEmpty())
                 {

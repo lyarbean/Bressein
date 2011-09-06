@@ -35,6 +35,8 @@ OpenSSL library used as well as that of the covered work.
 
 namespace Bressein
 {
+// TODO
+// a database operator
 class StoreMan : public QObject
 {
 

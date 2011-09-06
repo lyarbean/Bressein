@@ -124,6 +124,7 @@ void ContactItem::updatePortrait()
     updateView();
 }
 
+// TODO make style sheet configurable
 void ContactItem::updateView()
 {
     document()->clear();
@@ -181,14 +182,20 @@ void ContactItem::updateView()
         case StateType::MEETING:
             stateString = tr ("metting");
             break;
-            //         case StateType::HIDDEN:
-            //             stateString = tr("Online");
-            //             break;
+        case StateType::HIDDEN:
+            stateString = tr ("hidden");
+            break;
         case StateType::OFFLINE:
             stateString = tr ("offline");
             break;
         default:
+            stateString = QString::number (contact.state);
             break;
+    }
+    if (not contact.devicetype.isEmpty())
+    {
+        stateString.append ("-");
+        stateString.append (contact.devicetype);
     }
     if (not stateString.isEmpty())
     {
@@ -282,6 +289,13 @@ void ContactItem::mouseDoubleClickEvent (QGraphicsSceneMouseEvent *event)
     activateChatView (true);
 //     Singleton<BresseinManager>::instance()->onChatSpawn (sipuri);
 }
+
+void ContactItem::contextMenuEvent (QGraphicsSceneContextMenuEvent *event)
+{
+    QGraphicsTextItem::contextMenuEvent (event);
+    //TODO add menu with actions: remove, query, move to group ...
+}
+
 
 void ContactItem::focusInEvent (QFocusEvent *event)
 {

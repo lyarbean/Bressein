@@ -57,7 +57,6 @@ public:
                   const QByteArray &);
     const QByteArray plainText() const;
 protected:
-//     virtual QSizeF sizeHint (Qt::SizeHint which, const QSizeF &constraint = QSizeF()) const;
     void paint (QPainter *painter,
                 const QStyleOptionGraphicsItem *option,
                 QWidget *widget = 0);

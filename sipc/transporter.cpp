@@ -39,10 +39,9 @@ Transporter::Transporter (QObject *parent)
 {
     socket = new QTcpSocket (this);
     socket->setReadBufferSize (0);
-//     socket->setSocketOption (QAbstractSocket::KeepAliveOption, 1);
+    socket->setSocketOption (QAbstractSocket::KeepAliveOption, 1);
     socket->setSocketOption (QAbstractSocket::LowDelayOption, 1);
     writerTicker = new QTimer (this);
-//     keepaliveTicker = new QTimer (this);
     connect (socket, SIGNAL (readyRead()), this, SLOT (readData()));
     connect (socket, SIGNAL (error (QAbstractSocket::SocketError)),
              this, SLOT (onSocketError (QAbstractSocket::SocketError)));
@@ -75,8 +74,6 @@ void Transporter::close()
 {
     writerTicker->stop();
     writerTicker->deleteLater();
-//     keepaliveTicker->stop();
-//     keepaliveTicker->deleteLater();
     QMetaObject::invokeMethod (this, "removeSocket", Qt::QueuedConnection);
     if (workerThread.isRunning())
     {
@@ -86,11 +83,6 @@ void Transporter::close()
     //FIXME is this correct?
     this->deleteLater();
 }
-
-// void Transporter::toKeepalive()
-// {
-//     QMetaObject::invokeMethod (this, "activateKeepalive", Qt::QueuedConnection);
-// }
 
 void Transporter::sendData (const QByteArray &data)
 {
@@ -132,18 +124,6 @@ void Transporter::removeSocket()
     socket->deleteLater();
 }
 
-// void Transporter::activateKeepalive()
-// {
-//     //FIXME
-//     connect (keepaliveTicker, SIGNAL (timeout()), this, SLOT (keepalive()));
-//     keepaliveTicker->start (60000);
-// }
-//
-// void Transporter::keepalive()
-// {
-// //FIXME
-// }
-
 void Transporter::writeData (const QByteArray &data)
 {
     if (data.isEmpty()) return;
@@ -155,9 +135,6 @@ void Transporter::writeData (const QByteArray &data)
     if (socket->state() not_eq QAbstractSocket::ConnectedState)
     {
         qDebug() <<  "writeData::Error: socket is not connected";
-        // TODO handle this,
-        // ask parent to remove this instance
-        // failed to write data
         return;
     }
     int length = 0;

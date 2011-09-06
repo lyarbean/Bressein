@@ -82,6 +82,7 @@ public slots:
     void onIncomeMessage (const QByteArray &, const QByteArray &);
 protected:
     void mouseDoubleClickEvent (QGraphicsSceneMouseEvent *event);
+    void contextMenuEvent (QGraphicsSceneContextMenuEvent *event);
     void focusInEvent (QFocusEvent *event);
     void hoverEnterEvent (QGraphicsSceneHoverEvent *event);
     void hoverLeaveEvent (QGraphicsSceneHoverEvent *event);

@@ -40,21 +40,13 @@ class QMenu;
 namespace Bressein
 {
 class Account;
-//class LoginWidget;
 class ChatView;
+class ContactInfo;
 class SidepanelView;
 /**
- * @brief BresseinManager takes control of Account and Views and as a postal
- * who deliver message back and forth for them.
+ * @brief BresseinManager a message deliver
+ *
  **/
-// initialize Account and connect signals to slots
-
-// initialize login dialog, connect to login slot,
-// which may call setAccount from Account and delete this dialog
-
-// when login successfully, initialize sidePanelView with data from Account.
-// connect signals to slots that may request BresseinManager to spawn a chatView
-
 
 class BresseinManager : public QObject
 {
@@ -66,30 +58,34 @@ public:
 
 signals:
 
-public slots:
+private slots:
     void loginAs (const QByteArray &, const QByteArray &);
     void onContactChanged (const QByteArray &);
     void onGroupChanged (const QByteArray &, const QByteArray &);
-
-private slots:
     void readyShow();
     void onVerificationPic (const QByteArray &);
     void onWrongPassword();
     void onStateAuthorized();
     void onTrayActivated (QSystemTrayIcon::ActivationReason);
+    void onIncomeMessage (const QByteArray &,
+                          const QByteArray &,
+                          const QByteArray &);
+
     void bye();
 private:
-    void initializeTray();
     void connectSignalSlots();
+    void initializeTray();
+    void initializePortrait();
+    void showOnlineState (const QByteArray &, const ContactInfo *);
 private:
     Account *account;
-//   LoginWidget *loginDialog;
     SidepanelView *sidePanel;
     QSystemTrayIcon *tray;
     QMenu *trayIconMenu;
-    QImage myPortrait;
-    QByteArray myPortraitName;
-
+    QByteArray mySipc;
+    QByteArray myPortrait;
+    QByteArray bresseinIcon;
+    QMap<QByteArray, QByteArray> portraitMap;
     //TODO it should be better to store QTextImageFormats here, but ...
 //     QMap<QByteArray, QTextImageFormat> images;
 };

@@ -244,7 +244,7 @@ void SidepanelView::setupContactsScene()
 
     setScene (contactsScene);
     resizeScene();
-    setMinimumSize (contactsScene->itemsBoundingRect().width() *3, 300);
+    setMinimumSize (contactsScene->itemsBoundingRect().width() *3, 500);
     viewport()->resize (contactsScene->width(), contactsScene->height());
 
 }
@@ -345,8 +345,15 @@ void SidepanelView::resizeEvent (QResizeEvent *event)
 void SidepanelView::closeEvent (QCloseEvent *event)
 {
     // TODO
-    event->ignore();
-    hide();
+    if (scene() == contactsScene)
+    {
+        event->ignore();
+        hide();
+    }
+    else
+    {
+        // TODO  ask for confirm to close
+    }
 //     QWidget::closeEvent (event);
 }
 

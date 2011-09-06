@@ -45,5 +45,11 @@ ContactsScene::~ContactsScene()
 
 }
 
+void ContactsScene::contextMenuEvent (QGraphicsSceneContextMenuEvent *event)
+{
+    QGraphicsScene::contextMenuEvent (event);
+    // add some functionalities here
+}
+
 }
 #include "contactsscene.moc"

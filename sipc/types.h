@@ -92,9 +92,6 @@ struct ContactInfo
     // o: group id, p: identity
     // r; relationStatus, u: sipuri
 
-    // this is determinant
-//     QByteArray sipuri;     //sipuri like 'sip:sId@fetion.com.cn'
-    // a socket for its  conversation, close the socket if conversion ends.
     // struct that will be display in contact item
     QByteArray userId;
     QByteArray localName;
