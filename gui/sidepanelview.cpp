@@ -296,7 +296,6 @@ void SidepanelView::resizeScene()
     qDebug() << "resizeScene called";
     qreal height = 0;
     qreal subHeight = 0;
-    quint16 s = itemList.size();
     QList<QGraphicsSimpleTextItem *>::iterator it = groups.begin();
     while (it not_eq groups.end())
     {

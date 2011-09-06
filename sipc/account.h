@@ -57,9 +57,6 @@ public:
     virtual ~Account();
     virtual bool operator== (const Account &other);
     void setAccount (QByteArray number, QByteArray password);
-    // returns the list of contacts, not including info
-    const QList<QByteArray> &getContacts() const;
-    //
     void getFetion (QByteArray &out) const;
     void getNickname (QByteArray &name) const;
 signals:

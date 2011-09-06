@@ -139,13 +139,6 @@ void Account::getNickname (QByteArray &name) const
     name = publicInfo->nickName;
 }
 
-
-const QList<QByteArray>  &Account::getContacts() const
-{
-    QList<QByteArray> contactlist = contacts.keys();
-    return contactlist;
-}
-
 void Account::getContactInfo (const QByteArray &sipuri,
                               ContactInfo &contactInfo)
 {
