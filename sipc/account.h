@@ -74,6 +74,7 @@ signals:
     void notSentMessage (const QByteArray &,
                          const QDateTime &,
                          const QByteArray &);
+    void contactStateChanged (const QByteArray & , int);
     //private use
     void ssiResponseParsed();
     void serverConfigParsed();

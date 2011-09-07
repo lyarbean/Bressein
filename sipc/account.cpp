@@ -992,6 +992,7 @@ void Account::parseSipcAuthorize (QByteArray &data)
                     if (ok)
                     {
                         ContactInfo *contact = new ContactInfo;
+                        contact->state = StateType::HIDDEN;
                         contact->userId =
                             domGrand.attribute ("i").toUtf8();
                         // get fetionNumber from userId
@@ -1858,8 +1859,12 @@ void Account::onBNPresenceV4 (const QByteArray &data)
                 }
                 if (not child.isNull() and child.hasAttribute ("b"))
                 {
-                    contactInfo->state =
-                        (StateType) child.attribute ("b").toInt();
+                    if (contactInfo->state not_eq child.attribute ("b").toInt())
+                    {
+                        int state = child.attribute ("b").toInt();
+                        contactInfo->state = (StateType) state;
+                        emit contactStateChanged (sipuri, state);
+                    }
                 }
                 else if (sipuri not_eq info->sipuri)
                 {

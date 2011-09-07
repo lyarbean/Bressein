@@ -166,11 +166,6 @@ void BresseinManager::onContactChanged (const QByteArray &contact)
         ContactInfo *contactInfo = new ContactInfo;
         contacts.insert (contact, contactInfo);
     }
-    else
-    {
-        // TODO call this only when contact list prepared.
-        showOnlineState (contact);
-    }
     account->getContactInfo (contact, *contacts.value (contact));
     // refine updateContact
     sidePanel->updateContact (contact, contacts.value (contact));
@@ -343,10 +338,13 @@ void BresseinManager::connectSignalSlots()
              Qt::QueuedConnection);
     connect (account, SIGNAL (sipcAuthorizeParsed()),
              this, SLOT (onStateAuthorized()), Qt::QueuedConnection);
+    connect (account, SIGNAL (contactStateChanged (const QByteArray &, int)),
+             this, SLOT (showOnlineState (const QByteArray &, int)), Qt::QueuedConnection);
     connect (sidePanel,
              SIGNAL (toLogin (const QByteArray &, const QByteArray &)),
              this,
              SLOT (loginAs (const QByteArray &, const QByteArray &)));
+
     connect (sidePanel,
              SIGNAL (toVerify (QByteArray)),
              account,
@@ -369,13 +367,14 @@ void BresseinManager::initializePortrait()
     }
 }
 
-void BresseinManager::showOnlineState (const QByteArray &contact)
+void BresseinManager::showOnlineState (const QByteArray &contact, int state)
 {
     QDBusInterface notify ("org.freedesktop.Notifications",
                            "/org/freedesktop/Notifications",
                            "org.freedesktop.Notifications");
     QVariantMap hints;
     hints.insert ("category", QString ("presence.offline"));
+    mutex.lock();
     ContactInfo *contactInfo = contacts.value (contact);
     QVariantList args;
     args << qAppName(); //app_name
@@ -393,7 +392,7 @@ void BresseinManager::showOnlineState (const QByteArray &contact)
     {
         args << QString::fromUtf8 (contactInfo->mobileno);
     }
-    switch (contactInfo->state)
+    switch (state)
     {
         case StateType::ONLINE:
             args << tr ("online");
@@ -432,6 +431,7 @@ void BresseinManager::showOnlineState (const QByteArray &contact)
     args << QStringList(); // actions
     args << hints;
     args << int (1500);// timeout
+    mutex.unlock();
     QDBusMessage call =
         notify.callWithArgumentList (QDBus::NoBlock, "Notify", args);
 }

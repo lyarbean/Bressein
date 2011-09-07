@@ -33,6 +33,7 @@ OpenSSL library used as well as that of the covered work.
 
 #include "sipc/types.h"
 #include <QtCore/QObject>
+#include <QMutex>
 #include <QMap>
 #include <QTextImageFormat>
 #include <QSystemTrayIcon>
@@ -70,12 +71,13 @@ private slots:
     void onIncomeMessage (const QByteArray &,
                           const QByteArray &,
                           const QByteArray &);
+    void showOnlineState (const QByteArray &, int);
     void bye();
 private:
     void connectSignalSlots();
     void initializeTray();
     void initializePortrait();
-    void showOnlineState (const QByteArray &);
+
     void notify();
 private:
     Account *account;
@@ -87,6 +89,7 @@ private:
     QByteArray bresseinIcon;
     QMap<QByteArray, QByteArray> portraitMap;
     Contacts contacts;
+    QMutex mutex;
     //TODO it should be better to store QTextImageFormats here, but ...
 //     QMap<QByteArray, QTextImageFormat> images;
 };
