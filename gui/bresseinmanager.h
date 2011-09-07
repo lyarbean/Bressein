@@ -32,7 +32,7 @@ OpenSSL library used as well as that of the covered work.
 #define BRESSEINMANAGER_H
 
 #include "sipc/types.h"
-#include <QtCore/QObject>
+#include <QObject>
 #include <QMutex>
 #include <QMap>
 #include <QTextImageFormat>
@@ -62,6 +62,7 @@ signals:
 private slots:
     void loginAs (const QByteArray &, const QByteArray &);
     void onContactChanged (const QByteArray &);
+    void onPortraitDownloaded (const QByteArray &);
     void onGroupChanged (const QByteArray &, const QByteArray &);
     void readyShow();
     void onVerificationPic (const QByteArray &);
@@ -71,14 +72,17 @@ private slots:
     void onIncomeMessage (const QByteArray &,
                           const QByteArray &,
                           const QByteArray &);
+    void onNotSentMessage (const QByteArray &,
+                           const QDateTime &,
+                           const QByteArray &);
     void showOnlineState (const QByteArray &, int);
     void bye();
 private:
     void connectSignalSlots();
     void initializeTray();
     void initializePortrait();
-
-    void notify();
+    void dbusNotify (const QString &summary,
+                     const QString &text);
 private:
     Account *account;
     SidepanelView *sidePanel;

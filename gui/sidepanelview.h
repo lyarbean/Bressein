@@ -31,8 +31,7 @@ OpenSSL library used as well as that of the covered work.
 #ifndef BRESSEINVIEW_H
 #define BRESSEINVIEW_H
 
-#include <QtGui/QGraphicsView>
-#include <QtGui/QGraphicsWidget>
+#include <QGraphicsView>
 
 namespace Bressein
 {
@@ -64,7 +63,7 @@ signals:
     void sendMessage (const QByteArray &sipuri,
                       const QByteArray &message);
 public slots:
-    void updateContactPortrait (const QByteArray &);
+    void updateContactPortrait (const QByteArray &, const QByteArray &);
     void setupContactsScene();
     void activateLogin (bool ok);
     void onIncomeMessage (const QByteArray &,

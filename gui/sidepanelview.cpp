@@ -29,13 +29,12 @@ OpenSSL library used as well as that of the covered work.
 */
 
 #include "sidepanelview.h"
-#include "singleton.h"
 #include "sipc/account.h"
 #include "loginscene.h"
 #include "contactsscene.h"
 #include "contactitem.h"
 #include "chatview.h"
-
+#include <QGraphicsWidget>
 namespace Bressein
 {
 SidepanelView::SidepanelView (QWidget *parent)
@@ -88,7 +87,7 @@ void SidepanelView::updateContact (const QByteArray &contact,
             {
                 // update this
                 itemList.at (i)->updateContact (contactInfo);
-                // FIXME need resorting soetimes
+                // FIXME need resorting sometimes
                 resizeScene();
                 updated = true;
                 break;
@@ -213,7 +212,8 @@ void SidepanelView::setRenderingSystem()
 
 }
 
-void SidepanelView::updateContactPortrait (const QByteArray &contact)
+void SidepanelView::updateContactPortrait (const QByteArray &contact,
+                                           const QByteArray &portrait)
 {
     if (not itemList.isEmpty())
     {
@@ -223,7 +223,7 @@ void SidepanelView::updateContactPortrait (const QByteArray &contact)
             if (itemList.at (i)->getSipuri() == contact)
             {
                 // update this
-                itemList.at (i)->updatePortrait();
+                itemList.at (i)->updatePortrait (portrait);
                 break;
             }
         }

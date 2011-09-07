@@ -31,7 +31,7 @@ OpenSSL library used as well as that of the covered work.
 #ifndef TEXTWIDGET_H
 #define TEXTWIDGET_H
 
-#include <QtGui/QGraphicsTextItem>
+#include <QGraphicsTextItem>
 #include <QTextImageFormat>
 namespace Bressein
 {

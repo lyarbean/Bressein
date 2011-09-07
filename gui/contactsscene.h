@@ -32,7 +32,7 @@ OpenSSL library used as well as that of the covered work.
 #ifndef CONTACTSSCENE_H
 #define CONTACTSSCENE_H
 
-#include <QtGui>
+#include <QGraphicsScene>
 
 namespace Bressein
 {

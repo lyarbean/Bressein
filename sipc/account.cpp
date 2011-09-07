@@ -1507,7 +1507,6 @@ void Account::dispatchOfflineBox()
 
 void Account::clearDrafts()
 {
-    qDebug() << "clearDrafts" << QDateTime::currentDateTime();
     if (drafts.empty())
     {
         return;
@@ -1523,12 +1522,9 @@ void Account::clearDrafts()
                 QDateTime::currentDateTime().toTime_t())
             {
                 // TODO use notSentMessage
-//                 emit notSentMessage (drafts.at (i)->receiver,
-//                                      drafts.at (i)->datetime,
-//                                      drafts.at (i)->content);
-                emit incomeMessage (drafts.at (i)->receiver,
-                                    drafts.at (i)->datetime.toString().toUtf8(),
-                                    drafts.at (i)->content.append ("NOT SEND"));
+                emit notSentMessage (drafts.at (i)->receiver,
+                                     drafts.at (i)->datetime,
+                                     drafts.at (i)->content);
                 delete drafts.at (i);
                 deleted << i;
             }

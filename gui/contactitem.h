@@ -31,7 +31,7 @@ OpenSSL library used as well as that of the covered work.
 #ifndef CONTACTITEM_H
 #define CONTACTITEM_H
 
-#include <QtGui/QGraphicsTextItem>
+#include <QGraphicsTextItem>
 #include <QTextImageFormat>
 
 #include "sipc/types.h"
@@ -65,7 +65,7 @@ public:
     void setSipuri (const QByteArray &sipuri);
     void setHostName (const QByteArray &);
     const QByteArray &getSipuri () const ;
-    void updatePortrait();
+    void updatePortrait (const QByteArray &);
     void updateView();
     void updateContact (ContactInfo *contactInfo);
 

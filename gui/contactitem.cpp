@@ -90,7 +90,6 @@ void ContactItem::setHostSipuri (const QByteArray &sipuri)
 void ContactItem::setSipuri (const QByteArray &sipuri)
 {
     this->sipuri = sipuri;
-    updatePortrait();
 }
 
 void ContactItem::setHostName (const QByteArray &name)
@@ -104,23 +103,9 @@ const QByteArray &ContactItem::getSipuri() const
     return sipuri;
 }
 
-void ContactItem::updatePortrait()
+void ContactItem::updatePortrait (const QByteArray &portrait)
 {
-    QString iconPath = QDir::homePath().append ("/.bressein/icons/").
-                       append (sipToFetion (sipuri)).append (".jpeg");
-    QImageReader reader (iconPath);
-    QImage image (120, 120, QImage::Format_RGB32);
-    if (reader.read (&image))
-    {
-        imagePath = iconPath;
-        document()->addResource (QTextDocument::ImageResource,
-                                 QUrl (imagePath),
-                                 QVariant (image));
-    }
-    else
-    {
-        imagePath = ":/images/envelop_48.png";
-    }
+    imagePath = portrait;
     updateView();
 }
 
@@ -227,7 +212,6 @@ void ContactItem::updateView()
 
 void ContactItem::updateContact (ContactInfo *contactInfo)
 {
-    // TODO assignment
     this->contactInfo = contactInfo;
     updateView();
 }
@@ -237,7 +221,7 @@ void ContactItem::setupChatView()
     chatView = new ChatView;
     connect (chatView, SIGNAL (sendMessage (QByteArray)),
              this, SLOT (onSendMessage (QByteArray)));
-    // should query for info, such as hostName
+    chatView->setPortraits (sipuri, hostSipuri);
     if (contactInfo)
     {
         QByteArray otherName = contactInfo->localName;
@@ -247,7 +231,6 @@ void ContactItem::setupChatView()
             chatView->setNames (otherName, hostName);
         }
     }
-    chatView->setPortraits (sipuri, hostSipuri);
 }
 
 void ContactItem::activateChatView (bool ok)
