@@ -137,7 +137,9 @@ private slots:
     void contactSubscribe();// SIP_EVENT_PRESENCE
 
     // SIP_EVENT_CATMESSAGE
+    // merged to sendMessage
     // void sendMessageMyself();// SIP_EVENT_SENDCATMESSAGE
+    // will merged to sendMessage with indicator
     // void sendMessagePhone SIP_EVENT_SENDCATMESSAGE
 
     void inviteFriend (const QByteArray &sipuri);

@@ -49,7 +49,7 @@ int main (int argc, char **argv)
         app.installTranslator (&translator);
     }
     QTextCodec::setCodecForTr (QTextCodec::codecForName ("utf8"));
-    Singleton<Bressein::BresseinManager>::instance()->initialize();
+    Bressein::BresseinManager bressein;
     return app.exec();
 }
 

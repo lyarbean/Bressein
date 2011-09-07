@@ -31,6 +31,7 @@ OpenSSL library used as well as that of the covered work.
 #ifndef BRESSEINMANAGER_H
 #define BRESSEINMANAGER_H
 
+#include "sipc/types.h"
 #include <QtCore/QObject>
 #include <QMap>
 #include <QTextImageFormat>
@@ -41,7 +42,6 @@ namespace Bressein
 {
 class Account;
 class ChatView;
-class ContactInfo;
 class SidepanelView;
 /**
  * @brief BresseinManager a message deliver
@@ -70,13 +70,13 @@ private slots:
     void onIncomeMessage (const QByteArray &,
                           const QByteArray &,
                           const QByteArray &);
-
     void bye();
 private:
     void connectSignalSlots();
     void initializeTray();
     void initializePortrait();
-    void showOnlineState (const QByteArray &, const ContactInfo *);
+    void showOnlineState (const QByteArray &);
+    void notify();
 private:
     Account *account;
     SidepanelView *sidePanel;
@@ -86,6 +86,7 @@ private:
     QByteArray myPortrait;
     QByteArray bresseinIcon;
     QMap<QByteArray, QByteArray> portraitMap;
+    Contacts contacts;
     //TODO it should be better to store QTextImageFormats here, but ...
 //     QMap<QByteArray, QTextImageFormat> images;
 };

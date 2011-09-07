@@ -42,7 +42,7 @@ OpenSSL library used as well as that of the covered work.
 namespace Bressein
 {
 ContactItem::ContactItem (QGraphicsItem *parent)
-    : QGraphicsTextItem (parent), chatView (0)
+    : QGraphicsTextItem (parent), chatView (0), contactInfo (0)
 {
     qDebug() << "new ContactItem";
     setFlags (QGraphicsItem::ItemIsFocusable);
@@ -127,36 +127,40 @@ void ContactItem::updatePortrait()
 // TODO make style sheet configurable
 void ContactItem::updateView()
 {
+    if (not contactInfo)
+    {
+        return;
+    }
     document()->clear();
     QString text;
     text.append ("<div style='display:inline;height:54;'><img width='48' src='"
                  + imagePath + "' style='margin:0 0 0 0;float:left;clear:right;"
                  "text-align:center;'/>");
     text.append ("<div style='margin:0 0 0 0;font-size:12px;color:#888;'>");
-    if (not contact.localName.isEmpty())
+    if (not contactInfo->localName.isEmpty())
     {
-        text.append (QString::fromUtf8 (contact.localName));
+        text.append (QString::fromUtf8 (contactInfo->localName));
     }
-    else if (not contact.nickName.isEmpty())
+    else if (not contactInfo->nickName.isEmpty())
     {
-        text.append (QString::fromUtf8 (contact.nickName));
+        text.append (QString::fromUtf8 (contactInfo->nickName));
     }
     else
     {
         text.append (QString::fromUtf8 (sipToFetion (sipuri)));
         text.append ("[");
-        text.append (QString::fromUtf8 (contact.userId));
+        text.append (QString::fromUtf8 (contactInfo->userId));
         text.append ("]");
     }
-    if (not contact.mobileno.isEmpty())
+    if (not contactInfo->mobileno.isEmpty())
     {
         text.append ("[");
-        text.append (QString::fromUtf8 (contact.mobileno));
+        text.append (QString::fromUtf8 (contactInfo->mobileno));
         text.append ("]");
     }
     // TODO some descriptions some from contactInfo
     QString stateString;
-    switch (contact.state)
+    switch (contactInfo->state)
     {
         case StateType::ONLINE:
             stateString = tr ("online");
@@ -189,13 +193,13 @@ void ContactItem::updateView()
             stateString = tr ("offline");
             break;
         default:
-            stateString = QString::number (contact.state);
+            stateString = QString::number (contactInfo->state);
             break;
     }
-    if (not contact.devicetype.isEmpty())
+    if (not contactInfo->devicetype.isEmpty())
     {
         stateString.append ("-");
-        stateString.append (contact.devicetype);
+        stateString.append (contactInfo->devicetype);
     }
     if (not stateString.isEmpty())
     {
@@ -204,11 +208,11 @@ void ContactItem::updateView()
         text.append (")");
     }
     text.append ("</div>");
-    if (not contact.impresa.isEmpty())
+    if (not contactInfo->impresa.isEmpty())
     {
         text.append ("<div style='margin:0 0 0 1px;overflow:hidden;"
                      "font-size:10px;color:#F80;display:inline'>");
-        text.append (QString::fromUtf8 (contact.impresa));
+        text.append (QString::fromUtf8 (contactInfo->impresa));
         text.append ("</div>");
     }
     text.append ("</div>");
@@ -221,10 +225,10 @@ void ContactItem::updateView()
 
 }
 
-void ContactItem::updateContact (const ContactInfo &contactInfo)
+void ContactItem::updateContact (ContactInfo *contactInfo)
 {
     // TODO assignment
-    contact = contactInfo;
+    this->contactInfo = contactInfo;
     updateView();
 }
 
@@ -234,12 +238,15 @@ void ContactItem::setupChatView()
     connect (chatView, SIGNAL (sendMessage (QByteArray)),
              this, SLOT (onSendMessage (QByteArray)));
     // should query for info, such as hostName
-    QByteArray otherName = contact.localName;
-    if (otherName.isEmpty())
+    if (contactInfo)
     {
-        otherName = contact.nickName;
+        QByteArray otherName = contactInfo->localName;
+        if (otherName.isEmpty())
+        {
+            otherName = contactInfo->nickName;
+            chatView->setNames (otherName, hostName);
+        }
     }
-    chatView->setNames (otherName, hostName);
     chatView->setPortraits (sipuri, hostSipuri);
 }
 

@@ -55,8 +55,7 @@ public:
     virtual ~SidepanelView();
     void setHostSipuri (const QByteArray &);
     void setNickname (const QByteArray &);
-    void updateContact (const QByteArray &, const ContactInfo &);
-
+    void updateContact (const QByteArray &, ContactInfo *);
     void addGroup (const QByteArray &,const QByteArray &);
 signals:
     void toLogin (const QByteArray &,

@@ -44,7 +44,7 @@ OpenSSL library used as well as that of the covered work.
 #include <QTimer>
 #include <QDir>
 #include <QLabel>
-
+/**
 struct iiibiiay
 {
     int width;
@@ -73,15 +73,16 @@ const QDBusArgument &operator >> (const QDBusArgument &a,  iiibiiay &i)
     a.endStructure();
     return a;
 }
-
+**/
 namespace Bressein
 {
-BresseinManager::BresseinManager (QObject *parent) : QObject (parent),
-    account (new Account),
-    // loginDialog (new LoginWidget),
-    sidePanel (new SidepanelView),
-    tray (new QSystemTrayIcon (sidePanel)),
-    trayIconMenu (new QMenu (sidePanel))
+BresseinManager::BresseinManager (QObject *parent)
+    : QObject (parent),
+      account (new Account),
+      // loginDialog (new LoginWidget),
+      sidePanel (new SidepanelView),
+      tray (new QSystemTrayIcon (sidePanel)),
+      trayIconMenu (new QMenu (sidePanel))
 {
     connectSignalSlots();
     bresseinIcon = QDir::homePath().append ("/.bressein/icons/").
@@ -93,12 +94,10 @@ BresseinManager::BresseinManager (QObject *parent) : QObject (parent),
     }
     initializeTray();
     sidePanel->show();
-
     QDBusInterface notify ("org.freedesktop.Notifications",
                            "/org/freedesktop/Notifications",
                            "org.freedesktop.Notifications");
     QVariantMap hints;
-
     hints.insert ("category", QString ("presence"));
     QVariantList args;
     args << qAppName(); //app_name
@@ -108,17 +107,13 @@ BresseinManager::BresseinManager (QObject *parent) : QObject (parent),
     args << QString (tr ("Welcome"));  // body
     args << QStringList(); // actions
     args << hints;
-    args << int (3000);// timeout
+    args << int (1000);// timeout
     QDBusMessage call =
         notify.callWithArgumentList (QDBus::NoBlock, "Notify", args);
 }
 
 BresseinManager::~BresseinManager()
 {
-    sidePanel->disconnect();
-    sidePanel->close();
-    account->disconnect();
-    account->close();
 }
 
 //TODO initialize database
@@ -136,7 +131,22 @@ void BresseinManager::loginAs (const QByteArray &number,
     }
     account->setAccount (number, password);
     account->login();
-    // loginDialog->setMessage (tr ("Connecting... "));
+    QDBusInterface notify ("org.freedesktop.Notifications",
+                           "/org/freedesktop/Notifications",
+                           "org.freedesktop.Notifications");
+    QVariantMap hints;
+    hints.insert ("category", QString ("presence.offline"));
+    QVariantList args;
+    args << qAppName(); //app_name
+    args << uint (0);
+    args << QString (bresseinIcon); //app_icon
+    args << QString ("Bressein"); //summary
+    args << QString (tr ("Login as ") + number); // body
+    args << QStringList(); // actions
+    args << hints;
+    args << int (5000);// timeout
+    QDBusMessage call =
+        notify.callWithArgumentList (QDBus::NoBlock, "Notify", args);
 }
 
 void BresseinManager::onContactChanged (const QByteArray &contact)
@@ -151,13 +161,19 @@ void BresseinManager::onContactChanged (const QByteArray &contact)
         portrait = bresseinIcon;
     }
     portraitMap.insert (contact, portrait);
-
-    ContactInfo contactInfo;
-    account->getContactInfo (contact, contactInfo);
+    if (not contacts.contains (contact))
+    {
+        ContactInfo *contactInfo = new ContactInfo;
+        contacts.insert (contact, contactInfo);
+    }
+    else
+    {
+        // TODO call this only when contact list prepared.
+        showOnlineState (contact);
+    }
+    account->getContactInfo (contact, *contacts.value (contact));
     // refine updateContact
-    sidePanel->updateContact (contact, contactInfo);
-    // TODO call this only when contact list prepared.
-    showOnlineState (contact, &contactInfo);
+    sidePanel->updateContact (contact, contacts.value (contact));
 }
 
 void BresseinManager::onGroupChanged (const QByteArray &id,
@@ -204,11 +220,12 @@ void BresseinManager::onTrayActivated (QSystemTrayIcon::ActivationReason reason)
         case QSystemTrayIcon::DoubleClick:
             if (sidePanel->isHidden())
             {
-                sidePanel->showNormal();
+                sidePanel->show();
             }
             else
             {
                 sidePanel->setWindowState (Qt::WindowNoState);
+                sidePanel->showNormal();
                 sidePanel->raise();
             }
             break;
@@ -221,7 +238,8 @@ void BresseinManager::onTrayActivated (QSystemTrayIcon::ActivationReason reason)
 }
 
 void BresseinManager::onIncomeMessage (const QByteArray &contact,
-                                       const QByteArray &date, const QByteArray &content)
+                                       const QByteArray &date,
+                                       const QByteArray &content)
 {
     sidePanel->onIncomeMessage (contact, date, content);
 
@@ -343,7 +361,7 @@ void BresseinManager::connectSignalSlots()
 void BresseinManager::initializePortrait()
 {
     myPortrait = QDir::homePath().append ("/.bressein/icons/").
-                 append (mySipc).append (".jpeg").toLocal8Bit();;
+                 append (mySipc).append (".jpeg").toLocal8Bit();
 
     if (not QDir::root().exists (myPortrait))
     {
@@ -351,14 +369,14 @@ void BresseinManager::initializePortrait()
     }
 }
 
-void BresseinManager::showOnlineState (const QByteArray &contact,
-                                       const ContactInfo *contactInfo)
+void BresseinManager::showOnlineState (const QByteArray &contact)
 {
     QDBusInterface notify ("org.freedesktop.Notifications",
                            "/org/freedesktop/Notifications",
                            "org.freedesktop.Notifications");
     QVariantMap hints;
     hints.insert ("category", QString ("presence.offline"));
+    ContactInfo *contactInfo = contacts.value (contact);
     QVariantList args;
     args << qAppName(); //app_name
     args << uint (0);
@@ -413,7 +431,7 @@ void BresseinManager::showOnlineState (const QByteArray &contact,
     }
     args << QStringList(); // actions
     args << hints;
-    args << int (3000);// timeout
+    args << int (1500);// timeout
     QDBusMessage call =
         notify.callWithArgumentList (QDBus::NoBlock, "Notify", args);
 }

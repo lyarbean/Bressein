@@ -67,7 +67,7 @@ public:
     const QByteArray &getSipuri () const ;
     void updatePortrait();
     void updateView();
-    void updateContact (const ContactInfo &contactInfo);
+    void updateContact (ContactInfo *contactInfo);
 
 private slots:
     void setupChatView();
@@ -91,7 +91,7 @@ private:
     QByteArray hostSipuri;
     QByteArray hostName;
     QByteArray sipuri;
-    ContactInfo contact;
+    ContactInfo *contactInfo;
     QString imagePath;
     ChatView *chatView;
 };

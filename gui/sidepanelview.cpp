@@ -75,7 +75,7 @@ void SidepanelView::setNickname (const QByteArray &nickname)
 }
 
 void SidepanelView::updateContact (const QByteArray &contact,
-                                   const ContactInfo &contactInfo)
+                                   ContactInfo *contactInfo)
 {
     qDebug() << "SidepanelView::updateContact" << contact;
     bool updated = false;
@@ -88,7 +88,7 @@ void SidepanelView::updateContact (const QByteArray &contact,
             {
                 // update this
                 itemList.at (i)->updateContact (contactInfo);
-                // FIXME need resorting sometimes
+                // FIXME need resorting soetimes
                 resizeScene();
                 updated = true;
                 break;
@@ -99,7 +99,7 @@ void SidepanelView::updateContact (const QByteArray &contact,
     {
         ContactItem *item;
         QGraphicsSimpleTextItem *groupItem = 0;
-        QByteArray groupId = contactInfo.groupId;
+        QByteArray groupId = contactInfo->groupId;
         // one may have multi-groups, like, 1;0;2
         // we take the first group id
         QList<QByteArray> ids = groupId.split (';');

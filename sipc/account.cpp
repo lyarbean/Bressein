@@ -31,7 +31,6 @@ OpenSSL library used as well as that of the covered work.
 #include <QSslSocket>
 #include <QDomDocument>
 #include <QHostInfo>
-
 #include <QTimer>
 #include <QFuture>
 #include "accountinfo.h"
@@ -1201,8 +1200,6 @@ void Account::contactInfo (const QByteArray &userId)
     QByteArray toSendMsg = contactInfoData
                            (info->fetionNumber, userId, info->callId);
     serverTransporter->sendData (toSendMsg);
-    //TODO handle responseData
-    // carrier-region
 }
 
 void Account::contactInfo (const QByteArray &Number, bool mobile)
@@ -1210,8 +1207,6 @@ void Account::contactInfo (const QByteArray &Number, bool mobile)
     QByteArray toSendMsg = contactInfoData
                            (info->fetionNumber, Number, info->callId, mobile);
     serverTransporter->sendData (toSendMsg);
-    //TODO handle responseData
-    // carrier-region
 }
 
 
@@ -1227,7 +1222,6 @@ void Account::addBuddy (
                                            info->callId, buddyLists, localName,
                                            desc, phraseId);
     serverTransporter->sendData (toSendMsg);
-    // TODO handle responseData
 }
 
 void Account::deleteBuddy (const QByteArray &userId)
@@ -1705,7 +1699,6 @@ void Account::parseReceivedData (const QByteArray &receiveData)
                 publicInfo->state = (StateType) value;
                 emit contactChanged (info->sipuri);
             }
-            qDebug() << "XXXXXXXXX" << value << ok << v;
         }
         else
         {
@@ -1767,7 +1760,6 @@ void Account::onReceivedMessage (const QByteArray &data)
     // ?fromsiprui , callid , sequence
     if (contacts.contains (fromSipuri))
     {
-        qDebug() << contacts.find (fromSipuri).value()->state;
         if (conversationManager->isOnConversation (fromSipuri))
         {
 
