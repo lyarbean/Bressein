@@ -60,8 +60,8 @@ protected:
 private slots:
     void adjustSize();
 private:
-    QByteArray otherPortraitName;// a resource path
-    QByteArray myPortraitName;// a resource path
+    QString otherPortraitName;// a resource path
+    QString myPortraitName;// a resource path
     QByteArray otherName; // literal name
     QByteArray myName;
     QGraphicsScene *gscene;

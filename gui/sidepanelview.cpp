@@ -206,7 +206,7 @@ void SidepanelView::setRenderingSystem()
     setRenderHints (QPainter::Antialiasing |
                     QPainter::SmoothPixmapTransform|
                     QPainter::HighQualityAntialiasing);
-    setCacheMode (QGraphicsView::CacheNone);
+    setCacheMode (QGraphicsView::CacheBackground);
     setViewportUpdateMode (QGraphicsView::FullViewportUpdate);
     setDragMode (QGraphicsView::ScrollHandDrag);
 

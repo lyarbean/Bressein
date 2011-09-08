@@ -44,7 +44,6 @@ namespace Bressein
 ContactItem::ContactItem (QGraphicsItem *parent)
     : QGraphicsTextItem (parent), chatView (0), contactInfo (0)
 {
-    qDebug() << "new ContactItem";
     setFlags (QGraphicsItem::ItemIsFocusable);
     setTextInteractionFlags (Qt::TextBrowserInteraction);
     setTextWidth (boundingRect().width());
@@ -275,9 +274,10 @@ void ContactItem::closeChatView()
 
 void ContactItem::mouseDoubleClickEvent (QGraphicsSceneMouseEvent *event)
 {
-    // should not call directly, just for convenience
-    activateChatView (true);
-//     Singleton<BresseinManager>::instance()->onChatSpawn (sipuri);
+    if (event->button() == Qt::LeftButton)
+    {
+        activateChatView (true);
+    }
 }
 
 void ContactItem::contextMenuEvent (QGraphicsSceneContextMenuEvent *event)

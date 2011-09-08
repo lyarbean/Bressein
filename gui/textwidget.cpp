@@ -47,7 +47,7 @@ namespace Bressein
 TextWidget::TextWidget (QGraphicsItem *parent)
     : QGraphicsTextItem (parent)
 {
-//     setFlags (QGraphicsItem::ItemIsSelectable);
+// never setCacheMode here, as view will do this
     setTextInteractionFlags (Qt::TextSelectableByMouse);
     document()->setDefaultStyleSheet (QSTYLESHEET);
 }
