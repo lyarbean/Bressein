@@ -27,21 +27,23 @@ work. Corresponding Source for a non-source form of such a
 combination shall include the source code for the parts of the
 OpenSSL library used as well as that of the covered work.
 */
+#include "accountinfo.h"
+#include "aux.h"
+#include "transporter.h"
 
 #include <QSslSocket>
 #include <QDomDocument>
 #include <QHostInfo>
 #include <QTimer>
 #include <QFuture>
-#include "accountinfo.h"
-#include "aux.h"
-#include "transporter.h"
+
 // N.B. all data through socket are utf-8 encoded
 // N.B. we call buddyList contacts
 namespace Bressein
 {
 Account::Account (QObject *parent) : QObject (parent)
 {
+    systemConfigFetched = false;
     keepAliveTimer = new QTimer (this);
     messageTimer = new QTimer (this);
     draftsClearTimer = new QTimer (this);
@@ -114,6 +116,7 @@ void Account::setAccount (QByteArray number, QByteArray password)
     info->cnouce = cnouce();
     info->callId = 1;
     connected = false;
+    keepAliveAcked = true;
     groups.clear();
     //add group self
     Group *group = new Group;
@@ -326,12 +329,21 @@ void Account::setOffline()
 /**---------------**/
 void Account::keepAlive()
 {
+    if (not keepAliveAcked)
+    {
+        // TODO
+        // suppose connection is die
+        connected = false;
+        serverTransporter->stop();
+        return;
+    }
     QByteArray toSendMsg = keepAliveData (info->fetionNumber, info->callId);
     serverTransporter->sendData (toSendMsg);
     //send to all conversationa via conversationManager
     // FIXME not that keepAliveData
     QByteArray chatK = chatKeepAliveData (info->fetionNumber, info->callId);
     conversationManager->sendToAll (chatK);
+    keepAliveAcked = false;
 }
 
 void Account::ssiLogin()
@@ -526,7 +538,7 @@ void Account::systemConfig()
 void Account::downloadPortrait (const QByteArray &sipuri)
 {
     //http://hdss1fta.fetion.com.cn/HDS_S00/geturi.aspx
-    qDebug() << "downloadPortrait"<<sipuri;
+    qDebug() << "downloadPortrait" << sipuri;
     fetcher.requestPortrait (sipuri);
 }
 
@@ -628,7 +640,7 @@ void Account::parseSsiResponse (QByteArray &data)
     }
     domDoc.normalize();
     QDomElement domRoot = domDoc.documentElement();
-
+    // TODO HTTP/1.1 500 Internal Server Error
     if (domRoot.tagName() == "results")
     {
         if (domRoot.isNull() or not domRoot.hasAttribute ("status-code"))
@@ -821,6 +833,7 @@ void Account::parseServerConfig (QByteArray &data)
         }
         //when finish, start sip-c
         qDebug() << "serverConfigParsed";
+        systemConfigFetched = true;
         emit serverConfigParsed();
     }
 }
@@ -1304,6 +1317,7 @@ void Account::setMessageStatus (int days)
 
 void Account::setClientState (int state)
 {
+
     publicInfo->state = (StateType) state;
     if (connected)
     {
@@ -1311,6 +1325,10 @@ void Account::setClientState (int state)
         QByteArray toSendMsg = setPresenceV4Data
                                (info->fetionNumber, info->callId, statetype);
         serverTransporter->sendData (toSendMsg);
+    }
+    else  if (not systemConfigFetched)
+    {
+        systemConfig();
     }
     else
     {
@@ -1674,6 +1692,11 @@ void Account::parseReceivedData (const QByteArray &receiveData)
             onStartChat (data);
         }
         else if (data.startsWith ("SIP-C/4.0 200 OK") and
+                 data.contains ("X:") and data.contains ("<results><credentials kernel"))
+        {
+            keepAliveAcked = true;
+        }
+        else if (data.startsWith ("SIP-C/4.0 200 OK") and
                  data.contains ("XI:"))
         {
             onSendReplay (data);
@@ -1682,12 +1705,16 @@ void Account::parseReceivedData (const QByteArray &receiveData)
         {
             // TODO check quota-frequency
             onSendReplay (data);
+            int b = data.indexOf ("F: ");
+            int e = data.indexOf ("\r\n", b);
+            QByteArray sipuri = data.mid (b + 3, e - b - 3);
+            conversationManager->removeConversation (sipuri);
         }
         else if (data.contains ("<results><presence><basic"))
         {
             //TODO wrap as a function
             int b = data.indexOf ("value=\"");
-            int e = data.indexOf ("\"/",b);
+            int e = data.indexOf ("\"/", b);
             QByteArray v = data.mid (b + 7, e - b - 7);
             bool ok;
             int value = v.toInt (&ok);
@@ -1696,6 +1723,10 @@ void Account::parseReceivedData (const QByteArray &receiveData)
                 publicInfo->state = (StateType) value;
                 emit contactChanged (info->sipuri);
             }
+        }
+        else if (data.startsWith ("SIP-C/4.0 500 RegisterFailed"))
+        {
+            systemConfig();
         }
         else
         {

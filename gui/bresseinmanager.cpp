@@ -33,7 +33,7 @@ OpenSSL library used as well as that of the covered work.
 #include "sipc/aux.h"
 #include "chatview.h"
 #include "sidepanelview.h"
-//#include "loginwidget.h"
+#include "contactsscene.h"
 
 #include <QApplication>
 #include <QDBusConnectionInterface>
@@ -81,6 +81,7 @@ BresseinManager::BresseinManager (QObject *parent)
       account (new Account),
       // loginDialog (new LoginWidget),
       sidePanel (new SidepanelView),
+      contactsScene (new ContactsScene (this)),
       tray (new QSystemTrayIcon (sidePanel)),
       trayIconMenu (new QMenu (sidePanel))
 {
@@ -157,7 +158,7 @@ void BresseinManager::onContactChanged (const QByteArray &contact)
         contacts.insert (contact, contactInfo);
     }
     account->getContactInfo (contact, *contacts.value (contact));
-    sidePanel->updateContact (contact, contacts.value (contact));
+    contactsScene->updateContact (contact, contacts.value (contact));
     if (not portraitMap.contains (contact))
     {
         onPortraitDownloaded (contact);
@@ -172,11 +173,11 @@ void BresseinManager::onPortraitDownloaded (const QByteArray &contact)
     if (QDir::root().exists (portrait))
     {
         portraitMap.insert (contact, portrait);
-        sidePanel->updateContactPortrait (contact, portrait);
+        contactsScene->updateContactPortrait (contact, portrait);
     }
     else
     {
-        sidePanel->updateContactPortrait (contact, bresseinIcon);
+        contactsScene->updateContactPortrait (contact, bresseinIcon);
     }
 }
 
@@ -204,7 +205,7 @@ void BresseinManager::dbusNotify (const QString &summary,
 void BresseinManager::onGroupChanged (const QByteArray &id,
                                       const QByteArray &name)
 {
-    sidePanel->addGroup (id, name);
+    contactsScene->addGroup (id, name);
 }
 
 void BresseinManager::onWrongPassword()
@@ -220,7 +221,8 @@ void BresseinManager::readyShow()
     initializePortrait();
     QByteArray nickname;
     account->getNickname (nickname);
-    sidePanel->setupContactsScene();
+    sidePanel->setScene (contactsScene);
+    sidePanel->ensureVisible (0, 0,contactsScene->width(),600);
     sidePanel->setNickname (nickname);
     sidePanel->setHostSipuri (mySipc);
     sidePanel->showNormal();
@@ -266,7 +268,7 @@ void BresseinManager::onIncomeMessage (const QByteArray &contact,
                                        const QByteArray &date,
                                        const QByteArray &content)
 {
-    sidePanel->onIncomeMessage (contact, date, content);
+    contactsScene->onIncomeMessage (contact, date, content);
 
     QDBusInterface notify ("org.freedesktop.Notifications",
                            "/org/freedesktop/Notifications",
@@ -278,11 +280,15 @@ void BresseinManager::onIncomeMessage (const QByteArray &contact,
     args << uint (0);
     args << QString (portraitMap.value (contact)); //app_icon
     args << QString (tr ("You have message.")); //summary
-    args << QString::fromUtf8 (contact + "\n" + date + "\n" + content);  // body
+    // TODO make a prefer name for contact
+    args << QString::fromUtf8 (contacts.value (contact)->localName +
+                               contacts.value (contact)->nickName + "\n" +
+                               date + "\n" + content); // body
     args << QStringList(); // actions
     args << hints;
     args << int (3000);// timeout
-    QDBusMessage call = notify.callWithArgumentList (QDBus::NoBlock, "Notify", args);
+    QDBusMessage call =
+        notify.callWithArgumentList (QDBus::NoBlock, "Notify", args);
 }
 
 void BresseinManager::onNotSentMessage (const QByteArray &sipuri,
@@ -380,7 +386,8 @@ void BresseinManager::connectSignalSlots()
     connect (account, SIGNAL (contactStateChanged (const QByteArray &, int)),
              this, SLOT (showOnlineState (const QByteArray &, int)),
              Qt::QueuedConnection);
-    connect (account, SIGNAL (notSentMessage (QByteArray, QDateTime, QByteArray)),
+    connect (account,
+             SIGNAL (notSentMessage (QByteArray, QDateTime, QByteArray)),
              this, SLOT (onNotSentMessage (QByteArray,QDateTime,QByteArray)),
              Qt::QueuedConnection);
     connect (sidePanel,
@@ -391,7 +398,7 @@ void BresseinManager::connectSignalSlots()
              SIGNAL (toVerify (QByteArray)),
              account,
              SLOT (loginVerify (const QByteArray &)));
-    connect (sidePanel,
+    connect (contactsScene,
              SIGNAL (sendMessage (const QByteArray &, const QByteArray &)),
              account,
              SLOT (sendMessage (const QByteArray &, const QByteArray &)),

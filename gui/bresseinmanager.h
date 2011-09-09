@@ -44,6 +44,7 @@ namespace Bressein
 class Account;
 class ChatView;
 class SidepanelView;
+class ContactsScene;
 /**
  * @brief BresseinManager a message deliver
  *
@@ -86,6 +87,7 @@ private:
 private:
     Account *account;
     SidepanelView *sidePanel;
+    ContactsScene *contactsScene;
     QSystemTrayIcon *tray;
     QMenu *trayIconMenu;
     QByteArray mySipc;

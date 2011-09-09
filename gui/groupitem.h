@@ -33,25 +33,36 @@ OpenSSL library used as well as that of the covered work.
 
 #include <QGraphicsTextItem>
 
-namespace Bressein {
+namespace Bressein
+{
 class GroupItem : public QGraphicsTextItem
 {
     Q_OBJECT
 public:
-    enum { GroupItemType = UserType + 6, };
-    GroupItem (QGraphicsItem* parent = 0, QGraphicsScene* scene = 0);
-    ~GroupItem();
-    virtual QRectF boundingRect() const;
+    enum { Type = UserType + 1};
     int type() const
     {
-        return GroupItemType;
+        return Type;
     }
-
+    GroupItem (QGraphicsTextItem *parent = 0, QGraphicsScene *scene = 0);
+    ~GroupItem();
+    virtual QRectF boundingRect() const;
+    void setGroupName (const QByteArray &name)
+    {
+        groupName = name;
+    }
+    void setText();
+    bool isShowChildItems() const
+    {
+        return showChildItems;
+    }
 protected:
-    virtual void mouseDoubleClickEvent (QGraphicsSceneMouseEvent* event);
-    virtual void contextMenuEvent (QGraphicsSceneContextMenuEvent* event);
-
+    virtual void mouseDoubleClickEvent (QGraphicsSceneMouseEvent *event);
+    virtual void contextMenuEvent (QGraphicsSceneContextMenuEvent *event);
+    void paint (QPainter *, const QStyleOptionGraphicsItem *, QWidget *);
 private:
+    bool showChildItems;
+    QByteArray groupName;
 };
 }
 #endif // GROUPITEM_H

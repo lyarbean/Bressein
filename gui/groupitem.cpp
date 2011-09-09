@@ -29,16 +29,24 @@ OpenSSL library used as well as that of the covered work.
 */
 
 #include "groupitem.h"
-namespace Bressein {
-GroupItem::GroupItem (QGraphicsItem* parent, QGraphicsScene* scene) : QGraphicsTextItem (parent, scene)
+#include "contactsscene.h"
+#include <QPainter>
+#include <QStyle>
+#include <QStyleOptionGraphicsItem>
+#include <QTextDocument>
+#include <QTextCursor>
+namespace Bressein
 {
-
+GroupItem::GroupItem (QGraphicsTextItem *parent, QGraphicsScene *scene)
+    : QGraphicsTextItem (parent, scene), showChildItems (true)
+{
+//     setFlags (QGraphicsItem::ItemIsFocusable);
+    setCacheMode (QGraphicsItem::DeviceCoordinateCache);
 }
 
 
 GroupItem::~GroupItem()
 {
-
 }
 
 QRectF GroupItem::boundingRect() const
@@ -46,15 +54,61 @@ QRectF GroupItem::boundingRect() const
     return QGraphicsTextItem::boundingRect();
 }
 
-
-void GroupItem::mouseDoubleClickEvent (QGraphicsSceneMouseEvent* event)
+void GroupItem::setText()
 {
-    QGraphicsTextItem::mouseDoubleClickEvent (event);
+    document()->clear();
+    prepareGeometryChange();
+    QTextCursor cursor = textCursor();
+    cursor.movePosition (QTextCursor::End);
+    // TODO add style sheet
+    QString html = "<div id='GroupItem'>" +
+                   QString::fromUtf8 (groupName) + "</div>";
+    if (not showChildItems)
+    {
+        html.append ("<span id='itemCount'>" +
+                     QString::number (childItems().size()) + "</span>");
+    }
+    cursor.insertHtml (html);
+    setTextCursor (cursor);
 }
 
-void GroupItem::contextMenuEvent (QGraphicsSceneContextMenuEvent* event)
+void GroupItem::mouseDoubleClickEvent (QGraphicsSceneMouseEvent *event)
+{
+    foreach (QGraphicsItem *item, childItems())
+    {
+        item->setVisible (not item->isVisible());
+    }
+    showChildItems = not showChildItems;
+    setText();
+    if (scene())
+    {
+        ContactsScene *contactsScene = static_cast<ContactsScene *> (scene());
+        if (contactsScene)
+        {
+            contactsScene->resizeScene();
+        }
+    }
+}
+
+void GroupItem::contextMenuEvent (QGraphicsSceneContextMenuEvent *event)
 {
     QGraphicsTextItem::contextMenuEvent (event);
+}
+
+void GroupItem::paint (QPainter *painter,
+                       const QStyleOptionGraphicsItem *option,
+                       QWidget *widget)
+{
+    painter->setRenderHints (QPainter::RenderHint (0x07));
+    QGraphicsTextItem::paint (painter, option, widget);
+    QPen pen;  // creates a default pen
+    pen.setStyle (Qt::SolidLine);
+    pen.setCapStyle (Qt::RoundCap);
+    pen.setWidth (2);
+    pen.setBrush (QColor::fromRgba (0xFF008FFF));
+    painter->setPen (pen);
+    QRectF rect = boundingRect().adjusted (0,0,-1,-1);
+    painter->drawLine (rect.bottomLeft(),rect.bottomRight());
 }
 
 }

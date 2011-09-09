@@ -38,6 +38,7 @@ namespace Bressein
 class ContactItem;
 class ContactInfo;
 class ContactsScene;
+class GroupItem;
 class LoginScene;
 //TODO move contactsScene to BresseinManager
 /**
@@ -54,7 +55,6 @@ public:
     virtual ~SidepanelView();
     void setHostSipuri (const QByteArray &);
     void setNickname (const QByteArray &);
-    void updateContact (const QByteArray &, ContactInfo *);
     void addGroup (const QByteArray &,const QByteArray &);
 signals:
     void toLogin (const QByteArray &,
@@ -63,12 +63,7 @@ signals:
     void sendMessage (const QByteArray &sipuri,
                       const QByteArray &message);
 public slots:
-    void updateContactPortrait (const QByteArray &, const QByteArray &);
-    void setupContactsScene();
     void activateLogin (bool ok);
-    void onIncomeMessage (const QByteArray &,
-                          const QByteArray &,
-                          const QByteArray &);
     void requestVerify (const QByteArray &);
 private slots:
     void onVerifycommit (const QByteArray &);
@@ -79,17 +74,13 @@ private slots:
                         const QByteArray &);
     void setRenderingSystem();
     void setupSceneItems();
-    void resizeScene();
 protected:
-    void resizeEvent (QResizeEvent *event);
     void closeEvent (QCloseEvent *event);
+    void resizeEvent (QResizeEvent *event);
 private:
     QByteArray myNickname;
     QByteArray hostSipuri;
     LoginScene *loginScene;
-    ContactsScene *contactsScene;
-    QList<ContactItem *> itemList;
-    QList<QGraphicsSimpleTextItem *> groups;
 };
 }
 #endif // BRESSEINVIEW_H

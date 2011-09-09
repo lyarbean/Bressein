@@ -34,15 +34,15 @@ OpenSSL library used as well as that of the covered work.
 #include "contactsscene.h"
 #include "contactitem.h"
 #include "chatview.h"
+#include "groupitem.h"
 #include <QGraphicsWidget>
 namespace Bressein
 {
 SidepanelView::SidepanelView (QWidget *parent)
     : QGraphicsView (parent)
     , loginScene (new LoginScene (this))
-    , contactsScene (new ContactsScene (this))
-
 {
+    setWindowTitle ("Bressein");
     setRenderingSystem();
     setScene (loginScene);
     connect (loginScene,
@@ -59,8 +59,6 @@ SidepanelView::SidepanelView (QWidget *parent)
 SidepanelView::~SidepanelView()
 {
     loginScene->deleteLater();
-    contactsScene->deleteLater();
-    itemList.clear();
 }
 
 void SidepanelView::setHostSipuri (const QByteArray &sipuri)
@@ -71,96 +69,6 @@ void SidepanelView::setHostSipuri (const QByteArray &sipuri)
 void SidepanelView::setNickname (const QByteArray &nickname)
 {
     myNickname = nickname;
-}
-
-void SidepanelView::updateContact (const QByteArray &contact,
-                                   ContactInfo *contactInfo)
-{
-    qDebug() << "SidepanelView::updateContact" << contact;
-    bool updated = false;
-    if (not itemList.isEmpty())
-    {
-        int itemlists = itemList.size();
-        for (int i = 0; i < itemlists; i++)
-        {
-            if (itemList.at (i)->getSipuri() == contact)
-            {
-                // update this
-                itemList.at (i)->updateContact (contactInfo);
-                // FIXME need resorting sometimes
-                resizeScene();
-                updated = true;
-                break;
-            }
-        }
-    }
-    if (not updated)
-    {
-        ContactItem *item;
-        QGraphicsSimpleTextItem *groupItem = 0;
-        QByteArray groupId = contactInfo->groupId;
-        // one may have multi-groups, like, 1;0;2
-        // we take the first group id
-        QList<QByteArray> ids = groupId.split (';');
-        if (not ids.isEmpty())
-        {
-            groupId = ids.first();
-        }
-        if (groupId.isEmpty())
-        {
-            groupId = "0";
-        }
-        if (not groups.isEmpty())
-        {
-            foreach (QGraphicsSimpleTextItem *it, groups)
-            {
-                if (it->data (1).toByteArray() == groupId)
-                {
-                    groupItem = it;
-                    break;
-                }
-            }
-        }
-        if (groupItem)
-        {
-            item = new ContactItem (groupItem);
-            item->setParentItem (groupItem);
-        }
-        else // should not been called, just in case
-        {
-            qDebug() << "XXXXXXXXXXXXX groupId" << groupId;
-            item = new ContactItem (groups.first());
-            item->setParentItem (groups.first());
-        }
-        item->setSipuri (contact);
-        item->updateContact (contactInfo);
-        item->setZValue (0);
-        item->setVisible (true);
-        connect (item, SIGNAL (sendMessage (QByteArray, QByteArray)),
-                 this, SLOT (onSendMessage (QByteArray, QByteArray)));
-        itemList.append (item);
-        //TODO adjust size
-    }
-}
-
-void SidepanelView::addGroup (const QByteArray &id, const QByteArray &name)
-{
-    foreach (QGraphicsSimpleTextItem *it, groups)
-    {
-        if (it->data (1).toByteArray() == id)
-        {
-            it->setText (QString::fromUtf8 (name));
-            return;
-        }
-    }
-    QGraphicsSimpleTextItem *item = new QGraphicsSimpleTextItem;
-    item->setFont (QFont ("Times", 18, QFont::Bold));
-    item->setPen (QPen (QColor (0x88888888)));
-    item->setText (QString::fromUtf8 (name));
-    item->setData (1, id);
-    item->setZValue (0);
-    groups.append (item);
-    contactsScene->addItem (item);
 }
 
 void SidepanelView::onLoginCommit (const QByteArray &n, const QByteArray &p)
@@ -203,80 +111,19 @@ void SidepanelView::setRenderingSystem()
     setContentsMargins (0,0,0,0);
     setBackgroundRole (QPalette::BrightText);
     setForegroundRole (QPalette::NoRole);
-    setRenderHints (QPainter::Antialiasing |
-                    QPainter::SmoothPixmapTransform|
-                    QPainter::HighQualityAntialiasing);
-    setCacheMode (QGraphicsView::CacheBackground);
+    setRenderHints ( (QPainter::RenderHints) 0x07);
+    setCacheMode (QGraphicsView::CacheNone);
     setViewportUpdateMode (QGraphicsView::FullViewportUpdate);
     setDragMode (QGraphicsView::ScrollHandDrag);
 
 }
 
-void SidepanelView::updateContactPortrait (const QByteArray &contact,
-                                           const QByteArray &portrait)
-{
-    if (not itemList.isEmpty())
-    {
-        int itemlists = itemList.size();
-        for (int i = 0; i < itemlists; i++)
-        {
-            if (itemList.at (i)->getSipuri() == contact)
-            {
-                // update this
-                itemList.at (i)->updatePortrait (portrait);
-                break;
-            }
-        }
-    }
-}
-
-
-void SidepanelView::setupContactsScene()
-{
-    // indirectly pass through
-
-    int itemlists = itemList.size();
-    for (int i = 0; i < itemlists; i++)
-    {
-        itemList.at (i)->setHostSipuri (hostSipuri);
-        itemList.at (i)->setHostName (myNickname);
-    }
-
-    setScene (contactsScene);
-    resizeScene();
-    setMinimumSize (contactsScene->itemsBoundingRect().width() *3, 500);
-    viewport()->resize (contactsScene->width(), contactsScene->height());
-
-}
 
 void SidepanelView::activateLogin (bool ok)
 {
     loginScene->setEnable (ok);
 }
 
-void SidepanelView::onIncomeMessage (const QByteArray &contact,
-                                     const QByteArray &datetime,
-                                     const QByteArray &content)
-{
-    ContactItem *item;
-    int itemlists = itemList.size();
-    for (int i = 0; i < itemlists; i++)
-    {
-        if (itemList.at (i)->getSipuri() == contact)
-        {
-            item = itemList.at (i);
-            break;
-        }
-    }
-    if (item)
-    {
-        item->onIncomeMessage (datetime, content);
-    }
-    else // TODO if contact is from stranger
-    {
-
-    }
-}
 
 void SidepanelView::requestVerify (const QByteArray &datum)
 {
@@ -290,61 +137,10 @@ void SidepanelView::setupSceneItems()
     //
 }
 
-void SidepanelView::resizeScene()
-{
-    //FIXME
-    qDebug() << "resizeScene called";
-    qreal height = 0;
-    qreal subHeight = 0;
-    QList<QGraphicsSimpleTextItem *>::iterator it = groups.begin();
-    while (it not_eq groups.end())
-    {
-
-        (*it)->setPos (0, height);
-        height += (*it)->boundingRect().height();
-        // update positions of it's childItems
-        if (not (*it)->childItems().isEmpty())
-        {
-            subHeight = (*it)->boundingRect().height();
-            foreach (ContactItem *item, itemList)
-            {
-                if (item->parentItem() == (*it))
-                {
-                    item->setPos (5, subHeight);
-                    subHeight += item->boundingRect().height() +3;
-                }
-            }
-
-        }
-        height += (*it)->childrenBoundingRect().height();
-        ++it;
-    }
-    if (height > 600)
-    {
-        contactsScene->setSceneRect (0, 0, contactsScene->width(), height);
-    }
-}
-
-
-void SidepanelView::resizeEvent (QResizeEvent *event)
-{
-
-    QGraphicsView::resizeEvent (event);
-    int w = event->size().width();
-    if (w)
-    {
-        foreach (ContactItem *item, itemList)
-        {
-            item->setTextWidth (w - 10);
-            item->update();
-        }
-    }
-}
-
 void SidepanelView::closeEvent (QCloseEvent *event)
 {
     // TODO
-    if (scene() == contactsScene)
+    if (scene() and scene() not_eq loginScene)
     {
         event->ignore();
         hide();
@@ -355,6 +151,19 @@ void SidepanelView::closeEvent (QCloseEvent *event)
     }
 //     QWidget::closeEvent (event);
 }
+void SidepanelView::resizeEvent (QResizeEvent *event)
+{
+    QGraphicsView::resizeEvent (event);
+    if (scene() and scene() not_eq loginScene)
+    {
+        ContactsScene *contactsScene = static_cast<ContactsScene *> (scene());
+        if (contactsScene)
+        {
+            contactsScene->setWidth (event->size().width());
+        }
+    }
+}
+
 
 }
 #include "sidepanelview.moc"

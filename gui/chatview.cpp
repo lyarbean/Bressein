@@ -67,7 +67,7 @@ ChatView::ChatView (QWidget *parent) :
     inputArea->setEditable();
     inputArea->setFocus();
     inputArea->setToolTip
-        (tr ("Input your message here and press Ctrl+Enter to send"));
+    (tr ("Input your message here and press Ctrl+Enter to send"));
     setScene (gscene);
     adjustSize();
     viewport()->setAutoFillBackground (0);
@@ -93,12 +93,12 @@ void ChatView::setPortraits (const QByteArray &otherSipuri,
 {
     QString iconPath = QDir::homePath().append ("/.bressein/icons/");
     otherPortraitName = iconPath.append (sipToFetion (otherSipuri)).append (".jpeg");
-    if (not QDir::root().exists(otherPortraitName))
+    if (not QDir::root().exists (otherPortraitName))
     {
         otherPortraitName = ":/images/envelop_32.png";
     }
     myPortraitName = iconPath.append (sipToFetion (mySipuri)).append (".jpeg");
-    if (not QDir::root().exists(myPortraitName))
+    if (not QDir::root().exists (myPortraitName))
     {
         myPortraitName = ":/images/envelop_32.png";
     }
@@ -139,7 +139,8 @@ void ChatView::keyReleaseEvent (QKeyEvent *event)
             else
             {
                 showArea->addText (myName, QDateTime::currentDateTime().
-                toString().toUtf8(), text, myPortraitName.toLocal8Bit());            self = true;
+                                   toString().toUtf8(), text, myPortraitName.toLocal8Bit());
+                self = true;
             }
             inputArea->document()->clear();
             emit sendMessage (text);

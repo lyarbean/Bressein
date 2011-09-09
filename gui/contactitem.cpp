@@ -30,21 +30,22 @@ OpenSSL library used as well as that of the covered work.
 
 #include "contactitem.h"
 
-#include <QtGui>
-#include <QApplication>
-#include <QStyleOptionGraphicsItem>
-#include <QGraphicsSceneMouseEvent>
 // #include "sipc/account.h"
 #include "sipc/aux.h"
 #include "chatview.h"
 #include "singleton.h"
 #include "bresseinmanager.h"
+
+#include <QApplication>
+#include <QStyleOptionGraphicsItem>
+#include <QGraphicsSceneMouseEvent>
+#include <QTextDocument>
+#include <QTextCursor>
 namespace Bressein
 {
-ContactItem::ContactItem (QGraphicsItem *parent)
-    : QGraphicsTextItem (parent), chatView (0), contactInfo (0)
+ContactItem::ContactItem (QGraphicsItem *parent, QGraphicsScene *scene)
+    : QGraphicsTextItem (parent,scene), contactInfo (0), chatView (0)
 {
-    setFlags (QGraphicsItem::ItemIsFocusable);
     setTextInteractionFlags (Qt::TextBrowserInteraction);
     setTextWidth (boundingRect().width());
     setCacheMode (QGraphicsItem::DeviceCoordinateCache);
@@ -59,26 +60,45 @@ void ContactItem::paint (QPainter *painter,
                          const QStyleOptionGraphicsItem *option,
                          QWidget *widget)
 {
+    painter->setRenderHints (QPainter::RenderHint (0x07));
     QGraphicsTextItem::paint (painter, option, widget);
-    if (option->state.testFlag (QStyle::State_HasFocus) or
-        option->state.testFlag (QStyle::State_MouseOver) or
-        option->state.testFlag (QStyle::QStyle::State_Sunken))
+    QPen pen;  // creates a default pen
+    pen.setStyle (Qt::SolidLine);
+    pen.setCapStyle (Qt::RoundCap);
+    pen.setJoinStyle (Qt::RoundJoin);
+    if (option->state.testFlag (QStyle::State_HasFocus))
     {
-        painter->setPen (QColor (0xFFFF8F00));
-        painter->drawRect (boundingRect().adjusted (2, 2, -2, -2));
+        pen.setWidth (3);
+        pen.setBrush (QColor::fromRgba (0xFF008FFF));
+        painter->setPen (pen);
+        painter->drawRect (boundingRect().adjusted (1, 1, -1, -1));
     }
-    else
+    if (option->state.testFlag (QStyle::State_Sunken))
     {
-        painter->setPen (QColor (0xFF008FFF));
-        painter->drawRect (boundingRect().adjusted (0, 0, 0, 0));
+        pen.setWidth (3);
+        pen.setBrush (Qt::darkCyan);
+        painter->setPen (pen);
+        painter->drawRoundedRect (boundingRect().adjusted (1, 1, -1, -1), 2, 2);
     }
-
-
+    if (option->state == QStyle::State_Enabled)
+    {
+        pen.setWidth (2);
+        pen.setBrush (QColor::fromRgba (0xFFFF8F00));
+        painter->setPen (pen);
+        painter->drawRoundedRect (boundingRect().adjusted (1, 1, -1, -1), 1, 1);
+    }
+    if (option->state.testFlag (QStyle::State_MouseOver))
+    {
+        pen.setWidth (2);
+        pen.setBrush (QColor::fromRgba (0xFF008FFF));
+        painter->setPen (pen);
+        painter->drawRoundedRect (boundingRect().adjusted (1, 1, -1, -1), 1, 1);
+    }
 }
 
 QRectF ContactItem::boundingRect() const
 {
-    return  QRectF (0, 0, textWidth(), 56);
+    return  QRectF (0, 0, textWidth(),56);
 }
 
 void ContactItem::setHostSipuri (const QByteArray &sipuri)
@@ -206,7 +226,6 @@ void ContactItem::updateView()
     cursor.insertHtml (text);
     setTextCursor (cursor);
     update();
-
 }
 
 void ContactItem::updateContact (ContactInfo *contactInfo)

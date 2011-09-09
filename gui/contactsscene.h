@@ -36,13 +36,27 @@ OpenSSL library used as well as that of the covered work.
 
 namespace Bressein
 {
-//TODO
+class ContactInfo;
+class GroupItem;
 class ContactsScene : public QGraphicsScene
 {
     Q_OBJECT
 public:
     ContactsScene (QObject *parent);
     virtual ~ContactsScene();
+signals:
+    void sendMessage (const QByteArray &, const QByteArray &);
+public slots:
+    void addGroup (const QByteArray &,const QByteArray &);
+    void updateContact (const QByteArray &, ContactInfo *);
+    void updateContactPortrait (const QByteArray &, const QByteArray &);
+    void resizeScene ();
+    void setWidth (int);
+    void onIncomeMessage (const QByteArray &,
+                          const QByteArray &,
+                          const QByteArray &);
+private slots:
+    void onSendMessage (const QByteArray &, const QByteArray &);
 protected:
     void contextMenuEvent (QGraphicsSceneContextMenuEvent *event);
 };

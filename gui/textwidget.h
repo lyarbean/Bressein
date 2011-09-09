@@ -41,13 +41,14 @@ class TextWidget : public QGraphicsTextItem
 {
     Q_OBJECT
 public:
-    enum { TextWidgetType = UserType + 2 };
-    TextWidget (QGraphicsItem *parent = 0);
-    ~TextWidget();
+    enum { Type = UserType + 2 };
     int type () const
     {
-        return TextWidgetType;
+        return Type;
     }
+    TextWidget (QGraphicsTextItem *parent = 0);
+    ~TextWidget();
+
     void setEditable();
     void addText (const QByteArray &,
                   const QByteArray &,

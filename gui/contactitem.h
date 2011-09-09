@@ -44,22 +44,17 @@ class ContactItem : public QGraphicsTextItem
 {
     Q_OBJECT
 public:
-    enum { ContactItemType = UserType + 5, };
-    ContactItem (QGraphicsItem *parent = 0);
-    ~ContactItem();
-
+    enum { Type = UserType + 3 };
     int type () const
     {
-        return ContactItemType;
+        return Type;
     }
-    void paint (QPainter *painter,
-                const QStyleOptionGraphicsItem *option,
-                QWidget *widget = 0);
+    ContactItem (QGraphicsItem *parent = 0, QGraphicsScene *scene = 0);
+    ~ContactItem();
+
     QRectF boundingRect() const;
 //     virtual void hoverEnterEvent(QGraphicsSceneHoverEvent *event);
 //     virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent *event);
-//     ContactItem();
-//     virtual ~ContactItem();
     void setHostSipuri (const QByteArray &sipuri);
     void setSipuri (const QByteArray &sipuri);
     void setHostName (const QByteArray &);
@@ -80,6 +75,9 @@ public slots:
     void onSendMessage (const QByteArray &);
     void onIncomeMessage (const QByteArray &, const QByteArray &);
 protected:
+    void paint (QPainter *painter,
+                const QStyleOptionGraphicsItem *option,
+                QWidget *widget = 0);
     void mouseDoubleClickEvent (QGraphicsSceneMouseEvent *event);
     void contextMenuEvent (QGraphicsSceneContextMenuEvent *event);
     void focusInEvent (QFocusEvent *event);
@@ -90,8 +88,8 @@ private:
     QByteArray hostSipuri;
     QByteArray hostName;
     QByteArray sipuri;
-    ContactInfo *contactInfo;
     QString imagePath;
+    ContactInfo *contactInfo;
     ChatView *chatView;
 };
 }

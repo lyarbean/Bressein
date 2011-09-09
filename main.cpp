@@ -40,6 +40,8 @@ int main (int argc, char **argv)
 {
     QApplication app (argc, argv);
     app.setWindowIcon(QIcon(":/images/envelop_64.png"));
+    app.setApplicationName("Bressein");
+    app.setApplicationVersion("alpha");
     QString locale = QLocale::system().name();
     QTranslator translator;
 

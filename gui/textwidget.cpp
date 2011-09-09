@@ -44,7 +44,7 @@ const QString  QSTYLESHEET =
     #mainbody {width:90%;margin:0 0 0 48;text-align:left;}";
 namespace Bressein
 {
-TextWidget::TextWidget (QGraphicsItem *parent)
+TextWidget::TextWidget (QGraphicsTextItem *parent)
     : QGraphicsTextItem (parent)
 {
 // never setCacheMode here, as view will do this
@@ -85,7 +85,7 @@ void TextWidget::addText (const QByteArray &from,
     html.append ("</span>");
     html.append ("</div>");//heder
     html.append ("<div id='Mainbody'>");//body
-    html.append (QString::fromUtf8 (content).replace ("\n","<br/>"));
+    html.append (QString::fromUtf8 (content).replace ("\n", "<br/>"));
     html.append ("</div>");//body
     html.append ("</div>");//container
     cursor.insertHtml ("<img  width='48' src=\"" + image + "\" />");
@@ -106,7 +106,7 @@ void TextWidget::addText (const QByteArray &datetime,
     html.append (QString::fromUtf8 (datetime));
     html.append ("</span>");//heder
     html.append ("<div id='Mainbody'>");//body
-    html.append (QString::fromUtf8 (content).replace ("\n","<br/>"));
+    html.append (QString::fromUtf8 (content).replace ("\n", "<br/>"));
     html.append ("</div>");//body
     html.append ("</div>");//container
     cursor.insertHtml (html);
@@ -131,8 +131,27 @@ void TextWidget::paint (QPainter *painter,
                         const QStyleOptionGraphicsItem *option,
                         QWidget *widget)
 {
-    painter->drawRect (boundingRect());
+
     QGraphicsTextItem::paint (painter, option, widget);
+    QPen pen;
+    pen.setStyle (Qt::SolidLine);
+    pen.setCapStyle (Qt::RoundCap);
+    pen.setJoinStyle (Qt::RoundJoin);
+    pen.setWidth (2);
+    if (option->state == QStyle::State_Enabled)
+    {
+        pen.setBrush (QColor::fromRgba (0xFFFF8F00));
+    }
+    else if (option->state.testFlag (QStyle::State_Sunken))
+    {
+        pen.setBrush (QColor::fromRgba (0xFF007FDF));
+    }
+    else if (option->state.testFlag (QStyle::State_HasFocus))
+    {
+        pen.setBrush (QColor::fromRgba (0xFF00CFFF));
+    }
+    painter->setPen (pen);
+    painter->drawRect (boundingRect().adjusted (1, 1, -1, -1));
 }
 
 
