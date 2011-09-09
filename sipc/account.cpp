@@ -228,26 +228,28 @@ void Account::sendMessage (const QByteArray &toSipuri,
                                                    info->sipuri,
                                                    info->callId, message);
         serverTransporter->sendData (toSendMsg);
-        return;
-    }
-    Letter *letter = new Letter;
-    letter->receiver = toSipuri;
-    letter->datetime = QDateTime::currentDateTime();
-    letter->content = message;
-    if (contacts.find (toSipuri).value()->state < StateType::HIDDEN)
-    {
-        qDebug() << "append to offlineBox" << (int) contacts.find (toSipuri).value()->state;
-        offlineBox.append (letter);
     }
     else
     {
-        if (not conversationManager->isOnConversation (toSipuri))
+        Letter *letter = new Letter;
+        letter->receiver = toSipuri;
+        letter->datetime = QDateTime::currentDateTime();
+        letter->content = message;
+        if (contacts.find (toSipuri).value()->state < StateType::HIDDEN)
         {
-            QMetaObject::invokeMethod (this, "inviteFriend",
-                                       Qt::QueuedConnection,
-                                       Q_ARG (QByteArray, toSipuri));
+            qDebug() << "append to offlineBox" << (int) contacts.find (toSipuri).value()->state;
+            offlineBox.append (letter);
         }
-        outbox.append (letter);
+        else
+        {
+            if (not conversationManager->isOnConversation (toSipuri))
+            {
+                QMetaObject::invokeMethod (this, "inviteFriend",
+                                           Qt::QueuedConnection,
+                                           Q_ARG (QByteArray, toSipuri));
+            }
+            outbox.append (letter);
+        }
     }
     mutex.unlock();
 }

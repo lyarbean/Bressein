@@ -40,6 +40,7 @@ ContactsScene::ContactsScene (QObject *parent) : QGraphicsScene (parent)
 {
     setSceneRect (0, 0, itemsBoundingRect().width(), itemsBoundingRect().height());
     setItemIndexMethod (QGraphicsScene::BspTreeIndex);
+    setSortCacheEnabled (false);
 }
 
 ContactsScene::~ContactsScene()
@@ -61,7 +62,6 @@ void ContactsScene::addGroup (const QByteArray &id, const QByteArray &name)
         }
     }
     groupItem = new GroupItem (0, this);
-    addItem (groupItem);
     groupItem->setGroupName (name);
     groupItem->setData (1, id);
     groupItem->setZValue (0);
@@ -73,89 +73,56 @@ void ContactsScene::addGroup (const QByteArray &id, const QByteArray &name)
 void ContactsScene::updateContact (const QByteArray &contact,
                                    ContactInfo *contactInfo)
 {
-    bool updated = false;
+    if (items().isEmpty())
+    {
+        return;
+    }
     ContactItem *item = 0;
     GroupItem *groupItem = 0;
-    if (not items().isEmpty())
+    QByteArray groupId = contactInfo->groupId;
+    // one may have multi-groups, like, 1;0;2
+    // we take the first group id
+    if (groupId.isEmpty())
     {
-        qDebug() << "contactsscene has items";
-        foreach (QGraphicsItem *gitem, items())
-        {
-            groupItem = qgraphicsitem_cast<GroupItem *> (gitem);
-            qDebug() << "groupItem" << groupItem;
-            if (groupItem)
-            {
-                foreach (QGraphicsItem *citem, groupItem->childItems())
-                {
-                    item = qgraphicsitem_cast<ContactItem *> (citem);
-                    if (item and item->getSipuri() == contact)
-                    {
-                        // update this
-                        item->updateContact (contactInfo);
-                        // FIXME need resorting sometimes
-                        resizeScene();
-                        updated = true;
-                        qDebug() << "cast OK!!!";
-                        // call resizeScene ?
-                        return;
-                    }
-
-                }
-                groupItem = 0;
-            }
-            else
-            {
-                qDebug() << "Failed to cast!!!";
-            }
-        }
+        groupId = "0";
     }
-    if (not updated)
+    else if (groupId.contains (';'))
     {
-        groupItem = 0;
-        item = 0;
-        QByteArray groupId = contactInfo->groupId;
-        // one may have multi-groups, like, 1;0;2
-        // we take the first group id
-        if (groupId.isEmpty())
+        QList<QByteArray> ids = groupId.split (';');
+        groupId = ids.first();
+    }
+    foreach (QGraphicsItem *gitem, items())
+    {
+        groupItem = qgraphicsitem_cast<GroupItem *> (gitem);
+        if (groupItem and groupItem->data (1).toByteArray() == groupId)
         {
-            groupId = "0";
-        }
-        else if (groupId.contains (';'))
-        {
-            QList<QByteArray> ids = groupId.split (';');
-            groupId = ids.first();
-        }
-        if (not items().isEmpty())
-        {
-            foreach (QGraphicsItem *gitem, items())
+            foreach (QGraphicsItem *citem, groupItem->childItems())
             {
-                groupItem = qgraphicsitem_cast<GroupItem *> (gitem);
-                if (groupItem and groupItem->data (1).toByteArray() == groupId)
+                item = qgraphicsitem_cast<ContactItem *> (citem);
+                if (item and item->getSipuri() == contact)
                 {
                     // found
-                    item = new ContactItem (groupItem, this);
-                    item->setSipuri (contact);
+                    // update this
                     item->updateContact (contactInfo);
-                    item->setZValue (1);
-                    item->setVisible (true);
-                    connect (item, SIGNAL (sendMessage (QByteArray, QByteArray)),
-                             this, SLOT (onSendMessage (QByteArray, QByteArray)));
-                    qDebug() << "New contactItem added!";
-                    break;
+                    resizeScene();
+                    qDebug() << "contactInfo updated!";
+                    return;
                 }
-                qDebug() << "##Cast failed" << groupItem;
             }
-        }
-        if (not groupItem)
-        {
-            //  item = new ContactItem (items().first());
-            //  item->setParentItem (items().first());
-            qDebug() << "##groupId" << groupId;
+            // if not found
+            item = new ContactItem (groupItem, this);
+            item->setSipuri (contact);
+            item->updateContact (contactInfo);
+            item->setZValue (1);
+            item->setVisible (true);
+            connect (item, SIGNAL (sendMessage (QByteArray, QByteArray)),
+                     this, SLOT (onSendMessage (QByteArray, QByteArray)));
+            qDebug() << "New contactItem added!";
+            resizeScene();
             return;
         }
-
+        groupItem = 0;
     }
-    resizeScene();
 }
 
 void ContactsScene::updateContactPortrait (const QByteArray &contact,
@@ -223,13 +190,14 @@ void ContactsScene::resizeScene()
                         if (contactItem and contactItem->isVisible())
                         {
                             contactItem->setPos (5, subHeight);
-                            subHeight += contactItem->boundingRect().height() + 3;
+                            subHeight += contactItem->boundingRect().height();
+                            subHeight += 3;
                             contactItem = 0;
                         }
                         ++subIndex;
                     }
                     subIndex = 0;
-                    height += groupItem->childrenBoundingRect().height();
+                    height += groupItem->childrenBoundingRect().height() + 3;
                 }
             }
             groupItem = 0;
@@ -242,7 +210,7 @@ void ContactsScene::setWidth (int w)
 {
     ContactItem *item = 0;
     GroupItem *groupItem = 0;
-    if (w and not items().isEmpty())
+    if (w > 250 and not items().isEmpty())
     {
         foreach (QGraphicsItem *gitem, items())
         {
@@ -257,7 +225,6 @@ void ContactsScene::setWidth (int w)
                         item->setTextWidth (w - 10);
                         item->update();
                         item = 0;
-                        qDebug() << "resizeEvent::";
                     }
                 }
                 groupItem = 0;

@@ -32,7 +32,7 @@ OpenSSL library used as well as that of the covered work.
 #define GROUPITEM_H
 
 #include <QGraphicsTextItem>
-
+#include <QPen>
 namespace Bressein
 {
 class GroupItem : public QGraphicsTextItem
@@ -47,10 +47,7 @@ public:
     GroupItem (QGraphicsTextItem *parent = 0, QGraphicsScene *scene = 0);
     ~GroupItem();
     virtual QRectF boundingRect() const;
-    void setGroupName (const QByteArray &name)
-    {
-        groupName = name;
-    }
+    void setGroupName (const QByteArray &name);
     void setText();
     bool isShowChildItems() const
     {
@@ -63,6 +60,7 @@ protected:
 private:
     bool showChildItems;
     QByteArray groupName;
+    QPen pen;
 };
 }
 #endif // GROUPITEM_H

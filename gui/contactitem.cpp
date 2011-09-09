@@ -47,7 +47,6 @@ ContactItem::ContactItem (QGraphicsItem *parent, QGraphicsScene *scene)
     : QGraphicsTextItem (parent,scene), contactInfo (0), chatView (0)
 {
     setTextInteractionFlags (Qt::TextBrowserInteraction);
-    setTextWidth (boundingRect().width());
     setCacheMode (QGraphicsItem::DeviceCoordinateCache);
 }
 
@@ -60,7 +59,7 @@ void ContactItem::paint (QPainter *painter,
                          const QStyleOptionGraphicsItem *option,
                          QWidget *widget)
 {
-    painter->setRenderHints (QPainter::RenderHint (0x07));
+    painter->setRenderHints (QPainter::RenderHints (0xF));
     QGraphicsTextItem::paint (painter, option, widget);
     QPen pen;  // creates a default pen
     pen.setStyle (Qt::SolidLine);
@@ -325,7 +324,7 @@ void ContactItem::hoverLeaveEvent (QGraphicsSceneHoverEvent *event)
 }
 void ContactItem::hoverMoveEvent (QGraphicsSceneHoverEvent *event)
 {
-//     update();
+    update();
 }
 
 }

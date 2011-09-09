@@ -30,11 +30,14 @@ OpenSSL library used as well as that of the covered work.
 
 
 #include "portraitfetcher.h"
+#include "aux.h"
+
 #include <QHostInfo>
 #include <QTcpSocket>
 #include <QFile>
 #include <QDir>
-#include "aux.h"
+#include <QDebug>
+
 namespace Bressein
 {
 PortraitFetcher::PortraitFetcher (QObject *parent) : QThread (parent)

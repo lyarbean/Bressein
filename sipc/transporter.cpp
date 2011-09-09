@@ -30,7 +30,7 @@ OpenSSL library used as well as that of the covered work.
 
 #include "transporter.h"
 #include <QTimer>
-
+#include <QDebug>
 namespace Bressein
 {
 

@@ -54,21 +54,16 @@ SidepanelView::SidepanelView (QWidget *parent)
              this,
              SLOT (onVerifycommit (QByteArray)));
     setMinimumSize (loginScene->itemsBoundingRect().size().toSize());
+    QLinearGradient linearGrad (QPointF (-100, 0), QPointF (700, 0));
+    linearGrad.setColorAt (0, Qt::black);
+    linearGrad.setColorAt (1, Qt::red);
+    linearGrad.setSpread (QGradient::ReflectSpread);
+    setBackgroundBrush (linearGrad);
 }
 
 SidepanelView::~SidepanelView()
 {
     loginScene->deleteLater();
-}
-
-void SidepanelView::setHostSipuri (const QByteArray &sipuri)
-{
-    hostSipuri = sipuri;
-}
-
-void SidepanelView::setNickname (const QByteArray &nickname)
-{
-    myNickname = nickname;
 }
 
 void SidepanelView::onLoginCommit (const QByteArray &n, const QByteArray &p)
@@ -81,38 +76,17 @@ void SidepanelView::onVerifycommit (const QByteArray &c)
     emit toVerify (c);
 }
 
-void SidepanelView::onSendMessage (const QByteArray &sipuri,
-                                   const QByteArray &message)
-{
-    emit sendMessage (sipuri, message);
-}
-
-
 //TODO onContactRemoved
 void SidepanelView::setRenderingSystem()
 {
-//     QWidget *viewport = 0;
-//
-// //     #ifndef QT_NO_OPENGL
-// //         QGLWidget *glw = new QGLWidget(QGLFormat(QGL::SampleBuffers));
-// //         if (Colors::noScreenSync)
-// //             glw->format().setSwapInterval(0);
-// //         glw->setAutoFillBackground(false);!@#
-// //         viewport = glw;
-// //         setCacheMode(QGraphicsView::CacheNone);
-// //
-// //     #endif
-//     // software rendering
-//     viewport = new QWidget;
-//     setViewport (viewport);
     setAlignment (Qt::AlignLeft | Qt::AlignTop);
     setWindowFlags (Qt::Window);
     setMaximumWidth (600);
     setContentsMargins (0,0,0,0);
     setBackgroundRole (QPalette::BrightText);
     setForegroundRole (QPalette::NoRole);
-    setRenderHints ( (QPainter::RenderHints) 0x07);
-    setCacheMode (QGraphicsView::CacheNone);
+    setRenderHints (QPainter::RenderHints (0xF));
+    setCacheMode (QGraphicsView::CacheBackground);
     setViewportUpdateMode (QGraphicsView::FullViewportUpdate);
     setDragMode (QGraphicsView::ScrollHandDrag);
 
@@ -149,11 +123,15 @@ void SidepanelView::closeEvent (QCloseEvent *event)
     {
         // TODO  ask for confirm to close
     }
-//     QWidget::closeEvent (event);
 }
 void SidepanelView::resizeEvent (QResizeEvent *event)
 {
     QGraphicsView::resizeEvent (event);
+    if (event->oldSize().width() == event->size().width())
+    {
+        return;
+    }
+    //FIXME if fail to cast?
     if (scene() and scene() not_eq loginScene)
     {
         ContactsScene *contactsScene = static_cast<ContactsScene *> (scene());

@@ -6,22 +6,27 @@ set(QT_USE_QTXML TRUE )
 set(QT_USE_QTGUI TRUE )
 set(QT_USE_QTNETWORK TRUE )
 set(QT_USE_QTDBUS TRUE )
-#set(QT_USE_QTOPENGL TRUE ) #TODO
+# set(QT_USE_QTOPENGL TRUE )
 
 find_package(Doxygen REQUIRED)
 find_package(Qt4 COMPONENTS QtSql QtXml QtGui QtNetwork REQUIRED)
 
 include(${QT_USE_FILE} )
 include_directories(${QT_INCLUDES}
-     ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+                    ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+
+if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
+    add_definitions (-DQT_NO_DEBUG_OUTPUT)
+else (${CMAKE_BUILD_TYPE} STREQUAL "Release")
+endif(${CMAKE_BUILD_TYPE} STREQUAL "Release")
 
 add_definitions(-std=c++0x -Wall)
 
-QT4_ADD_RESOURCES(RC_SRCS gui/images.qrc )
+qt4_add_resources(RC_SRCS gui/images.qrc )
 add_subdirectory(sipc)
 set(GUI_SRCS gui/groupitem.cpp gui/loginscene.cpp gui/loginwidget.cpp
- gui/bresseinmanager.cpp gui/textwidget.cpp gui/chatview.cpp
- gui/sidepanelview.cpp gui/contactsscene.cpp gui/contactitem.cpp)
+    gui/bresseinmanager.cpp gui/textwidget.cpp gui/chatview.cpp
+    gui/sidepanelview.cpp gui/contactsscene.cpp gui/contactitem.cpp)
 set(SRCS main.cpp ${GUI_SRCS})
 qt4_automoc(${SRCS})
 

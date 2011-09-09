@@ -30,6 +30,8 @@ OpenSSL library used as well as that of the covered work.
 
 #include "chatview.h"
 #include "textwidget.h"
+#include <sipc/aux.h>
+
 #include <QGraphicsLinearLayout>
 #include <QGraphicsTextItem>
 #include <QTextDocument>
@@ -41,7 +43,8 @@ OpenSSL library used as well as that of the covered work.
 #include <QDir>
 #include <QDateTime>
 #include <QKeyEvent>
-#include <sipc/aux.h>
+#include <QIcon>
+
 #include <QDebug>
 namespace Bressein
 {
@@ -54,12 +57,13 @@ ChatView::ChatView (QWidget *parent) :
 {
     setBackgroundBrush (Qt::NoBrush);
     setAlignment (Qt::AlignLeft | Qt::AlignTop);
-    setRenderHints (QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+    setRenderHints (QPainter::RenderHints (0xF));
     setCacheMode (QGraphicsView::CacheBackground);
     setViewportUpdateMode (QGraphicsView::FullViewportUpdate);
     setDragMode (QGraphicsView::NoDrag);
     setFocusPolicy (Qt::StrongFocus);
     setMinimumSize (300, 300);
+    setWindowTitle (tr ("Bressein"));
     gscene->addItem (inputArea);
     gscene->addItem (showArea);
     gscene->setActivePanel (inputArea);
@@ -84,7 +88,7 @@ void ChatView::setNames (const QByteArray &otherName,
 {
     this->otherName = otherName;
     this->myName = myName;
-    setWindowTitle (tr ("Chatting with ").
+    setWindowTitle (tr ("Bressein: chatting with ").
                     append (QString::fromUtf8 (otherName)));
 }
 
@@ -102,6 +106,7 @@ void ChatView::setPortraits (const QByteArray &otherSipuri,
     {
         myPortraitName = ":/images/envelop_32.png";
     }
+    setWindowIcon (QIcon (otherPortraitName));
 }
 
 //public slots

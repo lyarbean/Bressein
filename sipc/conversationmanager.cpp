@@ -33,6 +33,7 @@ OpenSSL library used as well as that of the covered work.
 
 #include <QTcpSocket>
 #include <QTimer>
+#include <QDebug>
 
 namespace Bressein
 {

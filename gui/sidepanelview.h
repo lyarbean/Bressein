@@ -53,9 +53,6 @@ class SidepanelView : public QGraphicsView
 public:
     SidepanelView (QWidget *parent = 0);
     virtual ~SidepanelView();
-    void setHostSipuri (const QByteArray &);
-    void setNickname (const QByteArray &);
-    void addGroup (const QByteArray &,const QByteArray &);
 signals:
     void toLogin (const QByteArray &,
                   const QByteArray &);
@@ -69,17 +66,12 @@ private slots:
     void onVerifycommit (const QByteArray &);
     void onLoginCommit (const QByteArray &,
                         const QByteArray &);
-
-    void onSendMessage (const QByteArray &,
-                        const QByteArray &);
     void setRenderingSystem();
     void setupSceneItems();
 protected:
     void closeEvent (QCloseEvent *event);
     void resizeEvent (QResizeEvent *event);
 private:
-    QByteArray myNickname;
-    QByteArray hostSipuri;
     LoginScene *loginScene;
 };
 }

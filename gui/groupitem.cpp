@@ -37,11 +37,17 @@ OpenSSL library used as well as that of the covered work.
 #include <QTextCursor>
 namespace Bressein
 {
+const QString GSTYLE ="#GroupItem{color:white;font-size:18px;}\
+        #itemCount{color:gray;font-size:18px;}";
 GroupItem::GroupItem (QGraphicsTextItem *parent, QGraphicsScene *scene)
     : QGraphicsTextItem (parent, scene), showChildItems (true)
 {
-//     setFlags (QGraphicsItem::ItemIsFocusable);
     setCacheMode (QGraphicsItem::DeviceCoordinateCache);
+    pen.setStyle (Qt::SolidLine);
+    pen.setCapStyle (Qt::RoundCap);
+    pen.setWidth (4);
+    pen.setBrush (QColor::fromRgba (0xFF008FFF));
+    document()->setDefaultStyleSheet (GSTYLE);
 }
 
 
@@ -52,6 +58,12 @@ GroupItem::~GroupItem()
 QRectF GroupItem::boundingRect() const
 {
     return QGraphicsTextItem::boundingRect();
+}
+
+void GroupItem::setGroupName (const QByteArray &name)
+{
+    groupName = name;
+    setText();
 }
 
 void GroupItem::setText()
@@ -65,8 +77,8 @@ void GroupItem::setText()
                    QString::fromUtf8 (groupName) + "</div>";
     if (not showChildItems)
     {
-        html.append ("<span id='itemCount'>" +
-                     QString::number (childItems().size()) + "</span>");
+        html.append ("<span id='itemCount'> (" +
+                     QString::number (childItems().size()) + ")</span>");
     }
     cursor.insertHtml (html);
     setTextCursor (cursor);
@@ -99,16 +111,11 @@ void GroupItem::paint (QPainter *painter,
                        const QStyleOptionGraphicsItem *option,
                        QWidget *widget)
 {
-    painter->setRenderHints (QPainter::RenderHint (0x07));
-    QGraphicsTextItem::paint (painter, option, widget);
-    QPen pen;  // creates a default pen
-    pen.setStyle (Qt::SolidLine);
-    pen.setCapStyle (Qt::RoundCap);
-    pen.setWidth (2);
-    pen.setBrush (QColor::fromRgba (0xFF008FFF));
+    QRectF rect = boundingRect().adjusted (0, 0, 0, -4);
+    painter->setRenderHints (QPainter::RenderHints (0xF));
     painter->setPen (pen);
-    QRectF rect = boundingRect().adjusted (0,0,-1,-1);
-    painter->drawLine (rect.bottomLeft(),rect.bottomRight());
+    painter->drawLine (rect.bottomLeft(), rect.bottomRight());
+    QGraphicsTextItem::paint (painter, option, widget);
 }
 
 }

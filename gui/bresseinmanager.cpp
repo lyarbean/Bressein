@@ -39,7 +39,6 @@ OpenSSL library used as well as that of the covered work.
 #include <QDBusConnectionInterface>
 #include <QDBusInterface>
 #include <QDBusMetaType>
-#include <QBuffer>
 #include <QMenu>
 #include <QTimer>
 #include <QDir>
@@ -82,8 +81,8 @@ BresseinManager::BresseinManager (QObject *parent)
       // loginDialog (new LoginWidget),
       sidePanel (new SidepanelView),
       contactsScene (new ContactsScene (this)),
-      tray (new QSystemTrayIcon (sidePanel)),
-      trayIconMenu (new QMenu (sidePanel))
+      tray (new QSystemTrayIcon (this)),
+      trayIconMenu (new QMenu (0))
 {
     connectSignalSlots();
     bresseinIcon = QDir::homePath().append ("/.bressein/icons/").
@@ -222,9 +221,7 @@ void BresseinManager::readyShow()
     QByteArray nickname;
     account->getNickname (nickname);
     sidePanel->setScene (contactsScene);
-    sidePanel->ensureVisible (0, 0,contactsScene->width(),600);
-    sidePanel->setNickname (nickname);
-    sidePanel->setHostSipuri (mySipc);
+    sidePanel->resize (contactsScene->width(),600);
     sidePanel->showNormal();
 }
 
@@ -244,6 +241,7 @@ void BresseinManager::onTrayActivated (QSystemTrayIcon::ActivationReason reason)
     switch (reason)
     {
         case QSystemTrayIcon::Trigger:
+            break;
         case QSystemTrayIcon::DoubleClick:
             if (sidePanel->isHidden())
             {
