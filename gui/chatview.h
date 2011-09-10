@@ -32,8 +32,6 @@ OpenSSL library used as well as that of the covered work.
 #define CHATVIEW_H
 
 #include <QGraphicsView>
-class QGraphicsTextItem;
-class QDateTime;
 
 namespace Bressein
 {

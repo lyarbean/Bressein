@@ -32,11 +32,10 @@ OpenSSL library used as well as that of the covered work.
 #define TEXTWIDGET_H
 
 #include <QGraphicsTextItem>
-#include <QTextImageFormat>
+
 namespace Bressein
 {
 
-// TextWidget is a QGraphicsWidget with a QGraphicsTextItem inside
 class TextWidget : public QGraphicsTextItem
 {
     Q_OBJECT

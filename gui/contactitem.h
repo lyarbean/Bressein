@@ -30,12 +30,12 @@ OpenSSL library used as well as that of the covered work.
 
 #ifndef CONTACTITEM_H
 #define CONTACTITEM_H
-#include "sipc/types.h"
 
 #include <QGraphicsTextItem>
 
 namespace Bressein
 {
+class ContactInfo;
 class ChatView;
 /**
 shows portrait and local name or nick name or mobile / fetion number

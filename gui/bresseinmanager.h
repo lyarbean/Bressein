@@ -35,7 +35,7 @@ OpenSSL library used as well as that of the covered work.
 #include <QObject>
 #include <QMutex>
 #include <QMap>
-#include <QTextImageFormat>
+#include <QDateTime>
 #include <QSystemTrayIcon>
 
 class QMenu;
@@ -96,8 +96,6 @@ private:
     QMap<QByteArray, QByteArray> portraitMap;
     Contacts contacts;
     QMutex mutex;
-    //TODO it should be better to store QTextImageFormats here, but ...
-//     QMap<QByteArray, QTextImageFormat> images;
 };
 
 }

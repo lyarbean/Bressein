@@ -30,9 +30,9 @@ OpenSSL library used as well as that of the covered work.
 
 #ifndef BRESSIEN_TYPES_H
 #define BRESSIEN_TYPES_H
-#include <QDebug>
-class QByteArray;
-class QTcpSocket;
+
+#include <QByteArray>
+#include <QMap>
 namespace Bressein
 {
 // from levin's openfetion

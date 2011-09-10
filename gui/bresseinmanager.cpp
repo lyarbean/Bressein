@@ -85,31 +85,9 @@ BresseinManager::BresseinManager (QObject *parent)
       trayIconMenu (new QMenu (0))
 {
     connectSignalSlots();
-    bresseinIcon = QDir::homePath().append ("/.bressein/icons/").
-                   append ("bressein.png").toLocal8Bit();
-    if (not QDir::root().exists (bresseinIcon))
-    {
-        QImage image (":/images/envelop_48.png");
-        image.save (bresseinIcon, "png");
-    }
+    initialize();
     initializeTray();
     sidePanel->show();
-    QDBusInterface notify ("org.freedesktop.Notifications",
-                           "/org/freedesktop/Notifications",
-                           "org.freedesktop.Notifications");
-    QVariantMap hints;
-    hints.insert ("category", QString ("presence"));
-    QVariantList args;
-    args << qAppName(); //app_name
-    args << uint (0);
-    args << QString (bresseinIcon); //app_icon
-    args << QString ("Bressein"); //summary
-    args << QString (tr ("Welcome"));  // body
-    args << QStringList(); // actions
-    args << hints;
-    args << int (1000);// timeout
-    QDBusMessage call =
-        notify.callWithArgumentList (QDBus::NoBlock, "Notify", args);
 }
 
 BresseinManager::~BresseinManager()
@@ -119,6 +97,13 @@ BresseinManager::~BresseinManager()
 //TODO initialize database
 void BresseinManager::initialize()
 {
+    bresseinIcon = QDir::homePath().append ("/.bressein/icons/").
+                   append ("bressein.png").toLocal8Bit();
+    if (not QDir::root().exists (bresseinIcon))
+    {
+        QImage image (":/images/envelop_48.png");
+        image.save (bresseinIcon, "png");
+    }
 }
 
 // public slots:

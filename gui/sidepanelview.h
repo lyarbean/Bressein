@@ -40,7 +40,6 @@ class ContactInfo;
 class ContactsScene;
 class GroupItem;
 class LoginScene;
-//TODO move contactsScene to BresseinManager
 /**
  * @brief The side Panel of Bressein.
  **/

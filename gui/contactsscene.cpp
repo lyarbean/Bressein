@@ -32,7 +32,9 @@ OpenSSL library used as well as that of the covered work.
 #include "contactsscene.h"
 #include "contactitem.h"
 #include "groupitem.h"
+#include "sipc/types.h"
 
+#include <QDebug>
 #include <QResizeEvent>
 namespace Bressein
 {
