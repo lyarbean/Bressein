@@ -85,7 +85,6 @@ public slots:
     void login();
     // This will be connect to a dialog and call there
     void loginVerify (const QByteArray &code);   //only called when verification required
-    void close();
 
     // the sender can just call this, regardless of the state of receiver
     void sendMessage (const QByteArray &toSipuri, const QByteArray &message);
@@ -116,7 +115,6 @@ private slots:
     void keepAlive();
     void ssiLogin();
     void ssiPic();
-    void ssiVerify(); // TODO merged to sipcRegister
     void systemConfig();
     // uploadPortrait(/*file*/);
     void sipcRegister();
@@ -175,11 +173,8 @@ private slots:
     void parseServerConfig (QByteArray &data);
     void parseSipcRegister (QByteArray &data);
     void parseSipcAuthorize (QByteArray &data);
-//         void parseSsiVerifyResponse (QByteArray &data);
-
 
     void onReceivedMessage (const QByteArray &data);
-    //
     void onBNPresenceV4 (const QByteArray &data);
     void onBNConversation (const QByteArray &data);
     void onBNSyncUserInfoV4 (const QByteArray &data);
@@ -196,10 +191,8 @@ private slots:
     // some functions that helps above on's
     void parsePGGroupMembers (const QByteArray &data);
 
-
 private:
-//     STEP step;
-    ContactInfo *publicInfo; //
+    ContactInfo *publicInfo; // inserted in contacts, never delete it directly
     // the PIMPL
     class  Info;
     typedef Info *InfoAccess;
@@ -207,17 +200,21 @@ private:
     // the thread that provides event loop
     QThread workerThread;
     QMutex mutex;
+
     QTimer *keepAliveTimer;
     QTimer *messageTimer;
     QTimer *draftsClearTimer;
+
     Contacts contacts;
-    QList<Group *> groups;
+    Groups groups;
     // groups
     //pggroups
-    // All sip-c transactions are handle through this socket
-    QTcpSocket *sipcSocket;
-    //TODO replaced with conversation manager
+
+    QNetworkProxy proxy;
+    PortraitFetcher fetcher;
+    Transporter *serverTransporter;
     ConversationManager *conversationManager;
+
     QList<QByteArray> inbox;
     // a letter
     // receiver date content
@@ -230,16 +227,11 @@ private:
     };
     QList<Letter *> outbox;
     QList<Letter *> offlineBox;
-    // if one is to send, we move it to drafts first,
-    // and then if it is sent successfully, then we delete it.
-    QList<Letter *> drafts;
-// FIXME if two are to invite.
+    QList<Letter *> drafts; // being processed
+    // FIXME if two are to invite.
     QByteArray toInvite;
     // TODO make use of proxy
-    QNetworkProxy proxy;
-    // TODO enhance to be a networking resource fetcher
-    PortraitFetcher fetcher;
-    Transporter *serverTransporter;
+
     bool systemConfigFetched;
     bool connected;
     bool keepAliveAcked;
