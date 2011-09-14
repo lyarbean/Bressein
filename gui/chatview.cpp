@@ -29,9 +29,12 @@ OpenSSL library used as well as that of the covered work.
 */
 
 #include "chatview.h"
-#include "textwidget.h"
+#include "textitem.h"
 #include <sipc/aux.h>
 
+
+#include <QApplication>
+#include <QDesktopWidget>
 #include <QGraphicsLinearLayout>
 #include <QGraphicsTextItem>
 #include <QTextDocument>
@@ -51,8 +54,8 @@ namespace Bressein
 ChatView::ChatView (QWidget *parent) :
     QGraphicsView (parent),
     gscene (new QGraphicsScene (this)),
-    showArea (new TextWidget),
-    inputArea (new TextWidget),
+    showArea (new TextItem),
+    inputArea (new TextItem),
     self (false) // FIXME what is the first message from
 {
     setBackgroundBrush (Qt::NoBrush);
@@ -63,6 +66,9 @@ ChatView::ChatView (QWidget *parent) :
     setDragMode (QGraphicsView::NoDrag);
     setFocusPolicy (Qt::StrongFocus);
     setMinimumSize (300, 300);
+    setGeometry (qApp->activeWindow()->pos().x() - 150,
+                 qApp->activeWindow()->pos().y() + 150,
+                 width(), height());
     setWindowTitle (tr ("Bressein"));
     gscene->addItem (inputArea);
     gscene->addItem (showArea);
@@ -73,7 +79,6 @@ ChatView::ChatView (QWidget *parent) :
     inputArea->setToolTip
     (tr ("Input your message here and press Ctrl+Enter to send"));
     setScene (gscene);
-    adjustSize();
     viewport()->setAutoFillBackground (0);
     connect (inputArea->document(), SIGNAL (contentsChanged()),
              this, SLOT (adjustSize()));
@@ -90,6 +95,7 @@ void ChatView::setNames (const QByteArray &otherName,
     this->myName = myName;
     setWindowTitle (tr ("Bressein: chatting with ").
                     append (QString::fromUtf8 (otherName)));
+    adjustSize();
 }
 
 void ChatView::setPortraits (const QByteArray &otherSipuri,

@@ -28,45 +28,38 @@ combination shall include the source code for the parts of the
 OpenSSL library used as well as that of the covered work.
 */
 
-#ifndef CHATVIEW_H
-#define CHATVIEW_H
+#ifndef TEXTITEM_H
+#define TEXTITEM_H
 
-#include <QGraphicsView>
+#include <QGraphicsTextItem>
 
 namespace Bressein
 {
-//TODO provide Edit Tools
-class TextItem;
 
-class ChatView : public QGraphicsView
+class TextItem : public QGraphicsTextItem
 {
     Q_OBJECT
 public:
-    ChatView (QWidget *parent = 0);
-    virtual ~ChatView();
-    void setNames (const QByteArray &, const QByteArray &);
-    void setPortraits (const QByteArray &,
-                       const QByteArray &);
-public slots:
-    void incomeMessage (const QByteArray &, const QByteArray &);
-signals:
-    void sendMessage (const QByteArray &);
+    enum { Type = UserType + 2 };
+    int type () const
+    {
+        return Type;
+    }
+    TextItem (QGraphicsTextItem *parent = 0);
+    ~TextItem();
+
+    void setEditable();
+    void addText (const QByteArray &,
+                  const QByteArray &,
+                  const QByteArray &,
+                  const QByteArray &);
+    void addText (const QByteArray &,
+                  const QByteArray &);
+    const QByteArray plainText() const;
 protected:
-    void keyReleaseEvent (QKeyEvent *event);
-    void resizeEvent (QResizeEvent *event);
-    void closeEvent (QCloseEvent *event);
-private slots:
-    void adjustSize();
-private:
-    QString otherPortraitName;// a resource path
-    QString myPortraitName;// a resource path
-    QByteArray otherName; // literal name
-    QByteArray myName;
-    QGraphicsScene *gscene;
-    TextItem *showArea;
-    TextItem *inputArea;
-    bool self;
+    void paint (QPainter *painter,
+                const QStyleOptionGraphicsItem *option,
+                QWidget *widget = 0);
 };
 }
-
-#endif // CHATVIEW_H
+#endif // TEXTITEM_H

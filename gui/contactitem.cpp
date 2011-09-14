@@ -36,7 +36,6 @@ OpenSSL library used as well as that of the covered work.
 #include "singleton.h"
 #include "bresseinmanager.h"
 
-#include <QApplication>
 #include <QStyleOptionGraphicsItem>
 #include <QGraphicsSceneMouseEvent>
 #include <QTextDocument>
@@ -44,7 +43,7 @@ OpenSSL library used as well as that of the covered work.
 namespace Bressein
 {
 ContactItem::ContactItem (QGraphicsItem *parent, QGraphicsScene *scene)
-    : QGraphicsTextItem (parent,scene), contactInfo (0), chatView (0)
+    : QGraphicsTextItem (parent, scene), contactInfo (0), chatView (0)
 {
     setTextInteractionFlags (Qt::TextBrowserInteraction);
     setCacheMode (QGraphicsItem::DeviceCoordinateCache);
@@ -97,7 +96,7 @@ void ContactItem::paint (QPainter *painter,
 
 QRectF ContactItem::boundingRect() const
 {
-    return  QRectF (0, 0, textWidth(),56);
+    return  QRectF (0, 0, textWidth(), 56);
 }
 
 void ContactItem::setHostSipuri (const QByteArray &sipuri)
@@ -241,13 +240,20 @@ void ContactItem::setupChatView()
     chatView->setPortraits (sipuri, hostSipuri);
     if (contactInfo)
     {
-        QByteArray otherName = contactInfo->localName;
-        if (otherName.isEmpty())
+        if (not contactInfo->localName.isEmpty())
         {
-            otherName = contactInfo->nickName;
-            chatView->setNames (otherName, hostName);
+            chatView->setNames (contactInfo->localName, hostName);
+        }
+        else if (not contactInfo->nickName.isEmpty())
+        {
+            chatView->setNames (contactInfo->nickName, hostName);
+        }
+        else
+        {
+            chatView->setNames (contactInfo->userId, hostName);
         }
     }
+    chatView->show();
 }
 
 void ContactItem::activateChatView (bool ok)
