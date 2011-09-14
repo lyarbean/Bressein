@@ -146,7 +146,7 @@ void RSAPublicEncrypt (const QByteArray &userId,
 /**
  * @brief generates a random string in hex with length of 8*time
  **/
-const QByteArray cnouce (quint16 time)
+const QByteArray cnonce (quint16 time)
 {
     QByteArray t;
     qsrand (QDateTime::currentDateTime().toTime_t());

@@ -121,9 +121,9 @@ private slots:
     void sipcAuthorize();
     // sipc events
     //SIP_EVENT_CONVERSATION ?
-    void contactInfo (const QByteArray &userId);
+    void getContactInfo (const QByteArray &userId);
     // To overload correctly, pass one more argument to distinct
-    void contactInfo (const QByteArray &Number, bool mobile);
+    void getContactInfo (const QByteArray &Number, bool mobile);
     //SIP_EVENT_GETCONTACTINFO or by number
     //pg_group_update_group_info
     //void groupInfo;// SIP_EVENT_GETCONTACTINFO

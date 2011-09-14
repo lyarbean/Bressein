@@ -240,7 +240,7 @@ void BresseinManager::onTrayActivated (QSystemTrayIcon::ActivationReason reason)
             else
             {
                 sidePanel->setWindowState (Qt::WindowNoState);
-                sidePanel->showNormal();
+                sidePanel->activateWindow();
                 sidePanel->raise();
             }
             break;

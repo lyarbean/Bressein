@@ -91,8 +91,7 @@ struct ContactInfo
     // i: userId,  n:local name
     // o: group id, p: identity
     // r; relationStatus, u: sipuri
-
-    // struct that will be display in contact item
+    ContactInfo () {};
     QByteArray userId;
     QByteArray localName;
     QByteArray groupId;  //TODO use group name
@@ -108,14 +107,11 @@ struct ContactInfo
     QByteArray country;    //user's country's simplified form,like CN
     QByteArray province;   //user's province's simplified form,like bj
     QByteArray city;       //user's city's code ,like 10 for beijing
-    // other stuffs
     QByteArray scoreLevel;        //user's score level,unused now
     QByteArray serviceStatus;     //basic service status
     QByteArray carrierStatus;
     QByteArray carrier;
     QByteArray gender;   //gender '1' for male '2' for female,'0' for private
-    QByteArray imageChanged; //whether user's portrait has changed
-    // int dirty;   //whether the contact read from the server is latest
 };
 
 typedef QMap<QByteArray, ContactInfo *> Contacts; // <sipuri, info>

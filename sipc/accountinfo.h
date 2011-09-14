@@ -49,7 +49,7 @@ struct Account::Info
     QByteArray pgGroupCallId_;    // callid for get group list request
     QByteArray groupInfoCallId;   // callid for get group info request
     // some temporary used variables
-    QByteArray cnouce; // CN's value
+    QByteArray cnonce; // CN's value
     QByteArray ssic;         //cookie string
     QByteArray credential;
     // the followings are got immediately after sipc'd successfully

@@ -153,7 +153,7 @@ void Account::setAccount (QByteArray number, QByteArray password)
     info->password = password;
     publicInfo->state = StateType::ONLINE;// online
     publicInfo->groupId = "-1";
-    info->cnouce = cnouce();
+    info->cnonce = cnonce();
     info->callId = 1;
     connected = false;
     keepAliveAcked = true;
@@ -559,7 +559,7 @@ void Account::sipcRegister()
     toSendMsg.append ("F: ").append (info->fetionNumber).append ("\r\n");
     toSendMsg.append ("I: ").append (QByteArray::number (info->callId++));
     toSendMsg.append ("\r\nQ: 2 R\r\nCN: ");
-    toSendMsg.append (info->cnouce).append ("\r\nCL: type=\"pc\" ,version=\"");
+    toSendMsg.append (info->cnonce).append ("\r\nCL: type=\"pc\" ,version=\"");
     toSendMsg.append (PROTOCOL_VERSION + "\"\r\n\r\n");
     serverTransporter->sendData (toSendMsg);
 }
@@ -737,7 +737,7 @@ void Account::parseSipcRegister (QByteArray &data)
     b = data.indexOf ("\",signature=\"");
     e = data.indexOf ("\"", b);
     info->signature = data.mid (b + 14, e - b - 14);
-    info->aeskey = QByteArray::fromHex (cnouce (8)).leftJustified (32, 'A', true);
+    info->aeskey = QByteArray::fromHex (cnonce (8)).leftJustified (32, 'A', true);
     // need to store?
     // generate response
     // check if emptyq
@@ -1014,7 +1014,6 @@ void Account::parseSipcAuthorize (QByteArray &data)
                             domGrand.attribute ("r").toUtf8();
                         QByteArray sipuri = domGrand.attribute ("u").toUtf8();
                         contacts.insert (sipuri, contact);
-                        downloadPortrait (sipuri);
                         emit contactChanged (sipuri);
                     }
                     domGrand = domGrand.nextSiblingElement ("b");
@@ -1152,14 +1151,14 @@ void Account::ssiPic()
     qDebug() << responseData;
 }
 
-void Account::contactInfo (const QByteArray &userId)
+void Account::getContactInfo (const QByteArray &userId)
 {
     QByteArray toSendMsg = contactInfoData
                            (info->fetionNumber, userId, info->callId);
     serverTransporter->sendData (toSendMsg);
 }
 
-void Account::contactInfo (const QByteArray &Number, bool mobile)
+void Account::getContactInfo (const QByteArray &Number, bool mobile)
 {
     QByteArray toSendMsg = contactInfoData
                            (info->fetionNumber, Number, info->callId, mobile);
@@ -1491,7 +1490,7 @@ void Account::onPortraitDownloaded (const QByteArray &sipuri)
     emit portraitDownloaded (sipuri);
 }
 
-void Account::parseReceivedData (const QByteArray &receiveData)
+void Account::parseReceivedData (const QByteArray &in)
 {
     //TODO wrap as parseData;
     // case 1
@@ -1530,9 +1529,12 @@ void Account::parseReceivedData (const QByteArray &receiveData)
      *   D: Sat, 03 Aug 2011 07:49:48 GMT
      *   XI: 783E4B86FF5ACA6FBE0B1A28B20C6A848
      */
-    QByteArray data = receiveData;
-    int space = data.indexOf (" ");
-    QByteArray code = data.left (space);
+    // TODO code or query type should be in field of Q:
+    QByteArray data = in;
+    int b = data.indexOf ("Q:");
+    int e = data.indexOf ("\r\n",b);
+    b = data.lastIndexOf (" ",e);
+    QByteArray code = data.mid (b+1,e-b-1);
     qDebug() << "parseReceivedData code" << code;
     if (code == "M")
     {
@@ -1550,6 +1552,7 @@ void Account::parseReceivedData (const QByteArray &receiveData)
     }
     else if (code == "BN")
     {
+        // BN, /event
         int b = data.indexOf ("N: ");
         int e = data.indexOf ("\r\n", b);
         QByteArray event = data.mid (b + 3, e - b - 3);
@@ -1603,20 +1606,18 @@ void Account::parseReceivedData (const QByteArray &receiveData)
     {
         qDebug() << data << "[Not handled]";
     }
-    else if (code == "SIP-C/4.0")
+    else if (code == "R")
     {
         if (data.startsWith ("SIP-C/4.0 401 Unauthoried") and
             data.contains ("\r\nW: Digest") /*and step == SIPCR*/)
         {
-            qDebug() << "parseSipcRegister";
-            qDebug() << data;
+            //R, W, NULL
             parseSipcRegister (data);
         }
         else if (data.startsWith ("SIP-C/4.0 200 OK") and
                  data.contains ("<client") /* and step == SIPCA*/)
         {
-            qDebug() << "parseSipcAuthorize";
-            qDebug() << data;
+            // R, X, /results/client
             parseSipcAuthorize (data);
         }
         else if (data.startsWith ("SIP-C/4.0 200 OK") and
@@ -1791,7 +1792,7 @@ void Account::onBNPresenceV4 (const QByteArray &data)
                     {
                         contactInfo = contacts.value (sipuri);
                     }
-                    downloadPortrait (sipuri);
+
                     contactInfo->userId = userId;
                     contactInfo->mobileno = child.attribute ("m").toUtf8();
                     contactInfo->nickName = child.attribute ("n").toUtf8();
@@ -1800,11 +1801,16 @@ void Account::onBNPresenceV4 (const QByteArray &data)
                     // FIXME not to downloadPortrait if there is one up to date;
                     // p is the portraitCrc
                     //  contactInfo->imageChanged = child.attribute("p").toUtf8();
+                    if (not child.attribute ("p").isEmpty())
+                    {
+                        downloadPortrait (sipuri);
+                    }
                     contactInfo->carrier = child.attribute ("c").toUtf8();
                     contactInfo->carrierStatus =
                         child.attribute ("cs").toUtf8();
                     contactInfo->serviceStatus =
                         child.attribute ("s").toUtf8();
+                    getContactInfo (contactInfo->userId);
                 }
                 else if (not contactInfo) // get contactif by userId
                 {
