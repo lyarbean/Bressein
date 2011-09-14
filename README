@@ -1,8 +1,6 @@
-This is Bressein, a fetion client, written in Qt framework, inspired by Openfetion.
+This is Bressein, a fetion client written in Qt framework, analogous to Openfetion, developed on GNU/Linux.
 
-Openfetion (see https://ofetion.googlecode.com/hg/ for detail) is a GTK based
-fetion client.
-
+Openfetion (see https://ofetion.googlecode.com/hg/ for detail) is a GTK based fetion client.
 Bressein is inspired by Levin's Openfetion, but completely written in Qt (http://qt.nokia.com/).
 
 Bressein is distributed under the terms of the GNU Lesser General Public License.
