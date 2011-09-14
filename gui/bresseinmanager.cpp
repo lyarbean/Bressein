@@ -36,6 +36,7 @@ OpenSSL library used as well as that of the covered work.
 #include "contactsscene.h"
 
 #include <QApplication>
+#include <QDesktopWidget>
 #include <QDBusConnectionInterface>
 #include <QDBusInterface>
 #include <QDBusMetaType>
@@ -92,6 +93,10 @@ BresseinManager::BresseinManager (QObject *parent)
 
 BresseinManager::~BresseinManager()
 {
+    if (account)
+    {
+        delete account;
+    }
 }
 
 //TODO initialize database
