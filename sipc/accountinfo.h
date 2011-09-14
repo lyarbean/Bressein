@@ -107,7 +107,6 @@ struct Account::Info
     } systemconfig;
 
     QList<QByteArray> phrases;
-
 protected:
     Account *_p;
 };

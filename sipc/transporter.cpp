@@ -67,12 +67,14 @@ void Transporter::connectToHost (const QByteArray &ip, const quint16 port)
 void Transporter::stop()
 {
     writerTicker->stop();
+    writerTicker->disconnect();
     toSendMessages.clear();
 }
 
 void Transporter::close()
 {
     writerTicker->stop();
+    writerTicker->disconnect();
     writerTicker->deleteLater();
     QMetaObject::invokeMethod (this, "removeSocket", Qt::QueuedConnection);
     if (workerThread.isRunning())

@@ -120,12 +120,7 @@ struct ContactInfo
 
 typedef QMap<QByteArray, ContactInfo *> Contacts; // <sipuri, info>
 
-struct Group
-{
-    QByteArray groupname; // current buddy list name
-    QByteArray groupId;          // current buddy list Id
-//         QByteArray dirty;
-};
+typedef QMap<QByteArray, QByteArray>  Groups; // <id, name>
 //TODO
 // pggroupmember
 // pggroup
