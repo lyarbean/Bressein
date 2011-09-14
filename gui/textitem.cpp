@@ -35,7 +35,7 @@ OpenSSL library used as well as that of the covered work.
 #include <QStyle>
 #include <QStyleOptionGraphicsItem>
 #include <QDebug>
-#include <QDir>
+
 const QString  QSTYLESHEET =
     "*{font:18pt Tahoma;color:#FF8F00;margin:0 0 0 0;text-align:left;}\
     #Container {width:100%;margin:0 0 0 0;}\
