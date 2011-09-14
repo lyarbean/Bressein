@@ -25,7 +25,7 @@ add_definitions(-std=c++0x -Wall)
 qt4_add_resources(RC_SRCS gui/images.qrc )
 add_subdirectory(sipc)
 set(GUI_SRCS gui/groupitem.cpp gui/loginscene.cpp gui/loginwidget.cpp
-    gui/bresseinmanager.cpp gui/textwidget.cpp gui/chatview.cpp
+    gui/bresseinmanager.cpp gui/textitem.cpp gui/chatview.cpp
     gui/sidepanelview.cpp gui/contactsscene.cpp gui/contactitem.cpp)
 set(SRCS main.cpp ${GUI_SRCS})
 qt4_automoc(${SRCS})
