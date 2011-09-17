@@ -52,8 +52,6 @@ Account::Account (QObject *parent) : QObject (parent)
              this, SLOT (dispatchOutbox()));
     connect (messageTimer, SIGNAL (timeout()),
              this, SLOT (dispatchOfflineBox()));
-    connect (draftsClearTimer, SIGNAL (timeout()),
-             this, SLOT (clearDrafts()));
     messageTimer->start (1000);
 
     publicInfo = new ContactInfo;
@@ -159,9 +157,9 @@ void Account::setAccount (QByteArray number, QByteArray password)
     keepAliveAcked = true;
     groups.clear();
     //add group self
-    groups.insert ("-1","Myself");
+    groups.insert ("-1", "Myself");
     emit groupChanged ("-1", "Myself");
-    groups.insert ("0","Untitled");
+    groups.insert ("0", "Untitled");
     emit groupChanged ("0", "Untitled");
 
 }
@@ -322,24 +320,25 @@ void Account::setOffline()
 /**---------------**/
 void Account::keepAlive()
 {
+    if (not connected)
+    {
+        return;
+    }
     if (not keepAliveAcked)
     {
         // TODO
-        // suppose connection is die
         qDebug() << "networking is broken";
-        connected = false;
-        keepAliveTimer->stop();
-        keepAliveAcked = true;// pre-condition to keepAlive
-        serverTransporter->stop();
-        return;
+        suspend();
     }
-    QByteArray toSendMsg = keepAliveData (info->fetionNumber, info->callId);
-    serverTransporter->sendData (toSendMsg);
-    //send to all conversationa via conversationManager
-    // FIXME not that keepAliveData
-    QByteArray chatK = chatKeepAliveData (info->fetionNumber, info->callId);
-    conversationManager->sendToAll (chatK);
-    keepAliveAcked = false;
+    else
+    {
+        qDebug() << QDateTime::currentDateTime();
+        keepAliveAcked = false;
+        QByteArray toSendMsg = keepAliveData (info->fetionNumber, info->callId);
+        serverTransporter->sendData (toSendMsg);
+        QByteArray chatK = chatKeepAliveData (info->fetionNumber, info->callId);
+        conversationManager->sendToAll (chatK);
+    }
 }
 
 void Account::ssiLogin()
@@ -370,7 +369,7 @@ void Account::ssiLogin()
             socket.error() == QAbstractSocket::UnknownSocketError)
         {
             socket.close();
-            ssiLogin();
+            QTimer::singleShot (0, this, SLOT (ssiLogin()));
         }
         // emit login failed
         return;
@@ -532,7 +531,6 @@ void Account::systemConfig()
 void Account::downloadPortrait (const QByteArray &sipuri)
 {
     //http://hdss1fta.fetion.com.cn/HDS_S00/geturi.aspx
-    qDebug() << "downloadPortrait" << sipuri;
     fetcher.requestPortrait (sipuri);
 }
 
@@ -630,6 +628,7 @@ void Account::parseSsiResponse (QByteArray &data)
         qDebug() << "=========================";
         qDebug() << "ssiLogin" << data;
         qDebug() << "=========================";
+        QTimer::singleShot (0, this, SLOT (ssiLogin()));
         return;
     }
     domDoc.normalize();
@@ -970,7 +969,7 @@ void Account::parseSipcAuthorize (QByteArray &data)
                 {
                     id = domGrand.attribute ("id").toUtf8();
                     name = domGrand.attribute ("name").toUtf8();
-                    groups.insert (id,name);
+                    groups.insert (id, name);
                     emit groupChanged (id, name);
                     domGrand = domGrand.nextSiblingElement ("buddy-list");
                 }
@@ -1272,7 +1271,6 @@ void Account::setClientState (int state)
         {
             // FIXME bug here
             qDebug() << "setClientState relogin";
-            keepAliveAcked = true;
             sipcRegister();
         }
     }//
@@ -1281,13 +1279,28 @@ void Account::setClientState (int state)
 void Account::activateTimer()
 {
     connect (keepAliveTimer, SIGNAL (timeout()), SLOT (keepAlive()));
+    connect (draftsClearTimer, SIGNAL (timeout()), this, SLOT (clearDrafts()));
     connected = true;
-    contactSubscribe();
-    keepAliveTimer->start (60000);
+    keepAliveAcked = true;
+    keepAliveTimer->start (60000);// one minute
     draftsClearTimer->start (15000);
-    downloadPortrait (info->sipuri);
+    contactSubscribe();
     emit logined ();
-    // call other stuffs right here
+}
+
+void Account::suspend()
+{
+    connected = false;
+    keepAliveAcked = true;
+    keepAliveTimer->disconnect (this);
+    keepAliveTimer->stop();
+    draftsClearTimer->disconnect (this);
+    draftsClearTimer->stop();
+    serverTransporter->stop();
+    conversationManager->closeAll();
+    inbox.clear();
+    outbox.clear();
+    drafts.clear();
 }
 
 
@@ -1306,10 +1319,7 @@ void Account::onServerTransportError (const int se)
             // TODO need confirm from user
             // relogin
             qDebug() << "Networking Error";
-            keepAliveTimer->stop();
-            draftsClearTimer->stop();
-            conversationManager->closeAll();
-            serverTransporter->stop();
+            suspend();
             break;
         default:
             break;
@@ -1357,7 +1367,6 @@ void Account::dequeueMessages()
 
 void Account::dispatchOutbox()
 {
-    // TODO: move to drafts first
     mutex.lock();
     Letter *data;
     bool empty = outbox.isEmpty();
@@ -1532,23 +1541,38 @@ void Account::parseReceivedData (const QByteArray &in)
     // TODO code or query type should be in field of Q:
     QByteArray data = in;
     int b = data.indexOf ("Q:");
-    int e = data.indexOf ("\r\n",b);
-    b = data.lastIndexOf (" ",e);
-    QByteArray code = data.mid (b+1,e-b-1);
+    int e = data.indexOf ("\r\n", b);
+    b = data.lastIndexOf (" ", e);
+    QByteArray code = data.mid (b + 1, e - b - 1);
     qDebug() << "parseReceivedData code" << code;
     if (code == "M")
     {
-        int b = data.indexOf ("N: ");
-        int e = data.indexOf ("\r\n", b);
-        QByteArray event = data.mid (b + 3, e - b - 3);
-        if (event == "system-message")
+        if (data.startsWith ("SIP-C/4.0 280 Send SMS OK"))
         {
-
+            // TODO check quota-frequency
+            qDebug() << "onSendReplay";
+            qDebug() << data;
+            onSendReplay (data);
+            int b = data.indexOf ("F: ");
+            int e = data.indexOf ("\r\n", b);
+            QByteArray sipuri = data.mid (b + 3, e - b - 3);
+            conversationManager->removeConversation (sipuri);
         }
-        else// if (event == "CatMsg")
+        else
         {
-            onReceivedMessage (data);
-        } // else if (event == "SMS2Fetion") // when send to my self
+            if (data.contains ("N: system-message"))
+            {
+                // Do nothing!!
+            }
+            else if (data.contains ("C:"))
+            {
+                onReceivedMessage (data);
+            } // else if (event == "SMS2Fetion") // when send to my self
+            else if (data.contains ("XI: ") and data.contains ("D: "))
+            {
+                onSendReplay (data);
+            }
+        }
     }
     else if (code == "BN")
     {
@@ -1615,20 +1639,13 @@ void Account::parseReceivedData (const QByteArray &in)
             parseSipcRegister (data);
         }
         else if (data.startsWith ("SIP-C/4.0 200 OK") and
-                 data.contains ("<client") /* and step == SIPCA*/)
+                 data.contains ("<results><client") /* and step == SIPCA*/)
         {
             // R, X, /results/client
             parseSipcAuthorize (data);
         }
         else if (data.startsWith ("SIP-C/4.0 200 OK") and
-                 data.contains ("A: CS address=")) // right after startChat
-        {
-            qDebug() << "onStartChat";
-            qDebug() << data;
-            onStartChat (data);
-        }
-        else if (data.startsWith ("SIP-C/4.0 200 OK") and
-                 data.contains ("X:") and data.contains ("<results><credentials kernel"))
+                 data.contains ("X:") /*and data.contains ("<results><credentials kernel")*/)
         {
             qDebug() << "keepAliveAcked";
             qDebug() << data;
@@ -1641,18 +1658,32 @@ void Account::parseReceivedData (const QByteArray &in)
             qDebug() << data;
             onSendReplay (data);
         }
-        else if (data.startsWith ("SIP-C/4.0 280 Send SMS OK"))
+        else if (data.startsWith ("SIP-C/4.0 400 Bad Request"))
         {
-            // TODO check quota-frequency
-            qDebug() << "onSendReplay";
-            qDebug() << data;
-            onSendReplay (data);
-            int b = data.indexOf ("F: ");
-            int e = data.indexOf ("\r\n", b);
-            QByteArray sipuri = data.mid (b + 3, e - b - 3);
-            conversationManager->removeConversation (sipuri);
+            QTimer::singleShot (0,this, SLOT (systemConfig()));
         }
-        else if (data.contains ("<results><presence><basic"))
+        else if (data.startsWith ("SIP-C/4.0 500 RegisterFailed"))
+        {
+            systemConfig();
+            qDebug() << "RegisterFailed";
+            qDebug() << data;
+        }
+        else
+        {
+            qDebug() << QString::fromUtf8 (data) << "[Not handled]";
+        }
+    }
+    else if (code == "S")
+    {
+        if (data.startsWith ("SIP-C/4.0 200 OK") and
+            data.contains ("A: CS address=")) // right after startChat
+        {
+            qDebug() << "onStartChat";
+            qDebug() << data;
+            onStartChat (data);
+        }
+        // TODO process xml with root node /results/
+        else  if (data.contains ("<results><presence><basic"))
         {
             //TODO wrap as a function
             int b = data.indexOf ("value=\"");
@@ -1668,15 +1699,8 @@ void Account::parseReceivedData (const QByteArray &in)
             qDebug() << "contactChanged";
             qDebug() << data;
         }
-        else if (data.startsWith ("SIP-C/4.0 500 RegisterFailed"))
+        else  if (data.contains ("<results><contact user-id"))
         {
-            systemConfig();
-            qDebug() << "RegisterFailed";
-            qDebug() << data;
-        }
-        else
-        {
-            qDebug() << QString::fromUtf8 (data) << "[Not handled]";
         }
     }
     else
@@ -1800,8 +1824,8 @@ void Account::onBNPresenceV4 (const QByteArray &data)
                     contactInfo->scoreLevel = child.attribute ("l").toUtf8();
                     // FIXME not to downloadPortrait if there is one up to date;
                     // p is the portraitCrc
-                    //  contactInfo->imageChanged = child.attribute("p").toUtf8();
-                    if (not child.attribute ("p").isEmpty())
+                    if (not child.attribute ("p").isEmpty() and
+                        child.attribute ("p") not_eq "0")
                     {
                         downloadPortrait (sipuri);
                     }
@@ -2042,7 +2066,6 @@ void Account::onStartChat (const QByteArray &data)
     toInvite.clear();
     if (sipuri.isEmpty())
     {
-        qDebug() << "toInvite is empty ================";
         return;
     }
     int b, e;
@@ -2205,30 +2228,6 @@ void Account::onInfoTransferV4 (const QByteArray &data)
     }
 }
 
-
-void Account::onSipc (const QByteArray &data)
-{
-    qDebug() << "onSipc";
-    qDebug() << QString::fromUtf8 (data);;
-    // in openfetion, message is distinguished into by challId.
-    // try
-    // 1. if callId is pgGroupCallId
-    // pg_group_parse_list
-    // for each node group, get properties uri, identity, insert PGgroup.
-    // 2. if callId is ulist->message->callid --
-    // TODO add Qlist to store message
-    // store tosend message and remove it if acked, and then save to dataBase
-    // if the callId matches unacked msg in list, then remove it from list
-    // 3. pggroup is non-empty, foreach pg in pggroup,
-    // if pg'inviteCallId matches this callId.(ensure 200 OK).
-    // and pg NOT hasAcked, do ack and set hasAcked true. :
-    // Do ack:
-    // set info->callId to this callId
-    // write inviteAckData to server
-
-    // else if pg'getMemberCallId matches this callId, then parse member list
-    // and subscribe
-}
 
 void Account::onOption (const QByteArray &data)
 {

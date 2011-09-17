@@ -66,7 +66,10 @@ class Conversation : public Transporter
 public:
     Conversation (const QByteArray &sipuri, QObject *parent = 0);
     ~Conversation();
-    const QByteArray &name () const;
+    inline const QByteArray &name () const
+    {
+        return sipuri;
+    }
 signals:
     void toClose (const QByteArray &);
 private slots:

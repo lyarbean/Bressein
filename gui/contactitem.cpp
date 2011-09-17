@@ -250,7 +250,7 @@ void ContactItem::setupChatView()
         }
         else
         {
-            chatView->setNames (contactInfo->userId, hostName);
+            chatView->setNames (contactInfo->mobileno, hostName);
         }
     }
     chatView->show();
@@ -268,7 +268,7 @@ void ContactItem::activateChatView (bool ok)
     }
     else
     {
-        chatView->show();
+        chatView->showNormal();
         chatView->raise();
     }
 }

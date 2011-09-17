@@ -105,13 +105,19 @@ private:
     void downloadPortrait (const QByteArray &sipuri);
 private slots:
     void activateTimer();
+    /**
+     * @brief stop dispatching and set state for restore when network is broken.
+     *
+     * @return void
+     **/
+    void suspend();
     void onServerTransportError (const int);
+    void onPortraitDownloaded (const QByteArray &);
     void queueMessages (const QByteArray &receiveData);
     void dequeueMessages();
     void dispatchOutbox();
     void dispatchOfflineBox();
     void clearDrafts();
-    void onPortraitDownloaded (const QByteArray &);
     void keepAlive();
     void ssiLogin();
     void ssiPic();
@@ -184,7 +190,6 @@ private slots:
     void onInvite (const QByteArray &data);
     void onInfo (const QByteArray &data);
     void onInfoTransferV4 (const QByteArray &data);
-    void onSipc (const QByteArray &data);
     void onStartChat (const QByteArray &data);
     void onSendReplay (const QByteArray &data);
     void onOption (const QByteArray &data);

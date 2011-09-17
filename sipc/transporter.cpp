@@ -68,6 +68,7 @@ void Transporter::stop()
 {
     writerTicker->stop();
     writerTicker->disconnect();
+    socket->disconnectFromHost();
     toSendMessages.clear();
 }
 

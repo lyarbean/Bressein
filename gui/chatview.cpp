@@ -35,13 +35,10 @@ OpenSSL library used as well as that of the covered work.
 
 #include <QApplication>
 #include <QDesktopWidget>
-#include <QGraphicsLinearLayout>
 #include <QGraphicsTextItem>
 #include <QTextDocument>
-#include <QTextDocumentFragment>
 #include <QTextCursor>
 #include <QTextBlock>
-#include <QImageReader>
 #include <QUrl>
 #include <QDir>
 #include <QDateTime>
@@ -95,13 +92,12 @@ void ChatView::setNames (const QByteArray &otherName,
     this->myName = myName;
     setWindowTitle (tr ("Bressein: chatting with ").
                     append (QString::fromUtf8 (otherName)));
-    adjustSize();
 }
 
 void ChatView::setPortraits (const QByteArray &otherSipuri,
                              const QByteArray &mySipuri)
 {
-    QString iconPath = QDir::homePath().append ("/.bressein/icons/");
+    static QString iconPath = QDir::homePath().append ("/.bressein/icons/");
     otherPortraitName = iconPath.append (sipToFetion (otherSipuri)).append (".jpeg");
     if (not QDir::root().exists (otherPortraitName))
     {
@@ -140,23 +136,25 @@ void ChatView::keyReleaseEvent (QKeyEvent *event)
         event->modifiers() == Qt::ControlModifier)
     {
         QByteArray text = inputArea->plainText();
-        if (not text.isEmpty())
+        if (text.isEmpty())
         {
-            if (self)
-            {
-                showArea->addText (QDateTime::currentDateTime().
-                                   toString().toUtf8(), text);
-            }
-            else
-            {
-                showArea->addText (myName, QDateTime::currentDateTime().
-                                   toString().toUtf8(), text, myPortraitName.toLocal8Bit());
-                self = true;
-            }
-            inputArea->document()->clear();
-            emit sendMessage (text);
-            adjustSize();
+            return;
         }
+        if (self)
+        {
+            showArea->addText (QDateTime::currentDateTime().toString().toUtf8(),
+                               text);
+        }
+        else
+        {
+            showArea->addText (myName,
+                               QDateTime::currentDateTime().toString().toUtf8(),
+                               text, myPortraitName.toLocal8Bit());
+            self = true;
+        }
+        inputArea->document()->clear();
+        emit sendMessage (text);
+        adjustSize();
     }
 }
 

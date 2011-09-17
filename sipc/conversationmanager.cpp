@@ -49,11 +49,6 @@ Conversation::~Conversation()
 {
 }
 
-const QByteArray &Conversation::name () const
-{
-    return sipuri;
-}
-
 void Conversation::onSocketError (const int se)
 {
     //TODO handle almost cases
@@ -115,10 +110,7 @@ void ConversationManager::removeConversation (const QByteArray &sipuri)
             qDebug () << " sipuri not matched";
             //TODO
         }
-        disconnect (conversation, SIGNAL (dataReceived (const QByteArray &)),
-                    this, SLOT (onDataReceived (const QByteArray &)));
-        disconnect (conversation, SIGNAL (toClose (const QByteArray &)),
-                    this, SLOT (removeConversation (const QByteArray &)));
+        conversation->disconnect();
         //NOTE call close rather than deleteLater!!
         conversation->close();
         conversations.remove (sipuri);
@@ -175,8 +167,7 @@ void ConversationManager::closeAll()
     while (iterator not_eq conversations.end())
     {
         conversation = iterator.value();
-        disconnect (conversation, SIGNAL (dataReceived (const QByteArray &)),
-                    this, SLOT (onDataReceived (const QByteArray &)));
+        conversation->disconnect();
         //NOTE call close rather than deleteLater!!
         conversation->close();
         iterator++;
