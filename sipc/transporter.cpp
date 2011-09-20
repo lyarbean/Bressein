@@ -148,7 +148,6 @@ void Transporter::writeData (const QByteArray &data)
     socket->waitForBytesWritten ();
     socket->flush();
     qDebug() << "WRITTEN!!";
-
 }
 
 void Transporter::readData()
@@ -182,13 +181,10 @@ void Transporter::readData()
         pos = buffer.indexOf (delimit_1);
         if (pos < 0 or pos > seperator)
         {
-
-            qDebug() << "no" << delimit_1;
             pos = buffer.indexOf (delimit_2);
             delimit = delimit_2;
             if (pos < 0 or pos > seperator)
             {
-                qDebug() << "no" << delimit_2;
                 // if no length tag,
                 chunck = buffer.left (seperator + 4);
                 buffer.remove (0, seperator + 4);
@@ -212,11 +208,6 @@ void Transporter::readData()
             buffer.remove (0, length + seperator + 4);
             emit dataReceived (chunck);
             seperator = buffer.indexOf ("\r\n\r\n");
-        }
-        else
-        {
-            //
-            return;
         }
     }
 }

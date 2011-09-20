@@ -1550,13 +1550,13 @@ void Account::parseReceivedData (const QByteArray &in)
         if (data.startsWith ("SIP-C/4.0 280 Send SMS OK"))
         {
             // TODO check quota-frequency
-            qDebug() << "onSendReplay";
+                        qDebug() << "onMessageReplied";
             qDebug() << data;
-            onSendReplay (data);
-            int b = data.indexOf ("F: ");
-            int e = data.indexOf ("\r\n", b);
-            QByteArray sipuri = data.mid (b + 3, e - b - 3);
-            conversationManager->removeConversation (sipuri);
+            onMessageReplied (data);
+//             int b = data.indexOf ("F: ");
+//             int e = data.indexOf ("\r\n", b);
+//             QByteArray sipuri = data.mid (b + 3, e - b - 3);
+//             conversationManager->removeConversation (sipuri);
         }
         else
         {
@@ -1570,7 +1570,7 @@ void Account::parseReceivedData (const QByteArray &in)
             } // else if (event == "SMS2Fetion") // when send to my self
             else if (data.contains ("XI: ") and data.contains ("D: "))
             {
-                onSendReplay (data);
+                onMessageReplied (data);
             }
         }
     }
@@ -1656,7 +1656,7 @@ void Account::parseReceivedData (const QByteArray &in)
         {
             qDebug() << "onSendReplay";
             qDebug() << data;
-            onSendReplay (data);
+            onMessageReplied (data);
         }
         else if (data.startsWith ("SIP-C/4.0 400 Bad Request"))
         {
@@ -1816,7 +1816,6 @@ void Account::onBNPresenceV4 (const QByteArray &data)
                     {
                         contactInfo = contacts.value (sipuri);
                     }
-
                     contactInfo->userId = userId;
                     contactInfo->mobileno = child.attribute ("m").toUtf8();
                     contactInfo->nickName = child.attribute ("n").toUtf8();
@@ -1950,7 +1949,7 @@ void Account::onBNConversation (const QByteArray &data)
             {
                 QByteArray uri = domChild.attribute ("uri").toUtf8();
                 //TODO emit contactLeft(uri);
-                //    conversationManager->removeConversation (uri);
+                conversationManager->removeConversation (uri);
             }
         }
         domRoot = domRoot.nextSiblingElement ("event");
@@ -2087,7 +2086,7 @@ void Account::onStartChat (const QByteArray &data)
     conversationManager->sendData (sipuri, toSendMsg);
 }
 
-void Account::onSendReplay (const QByteArray &data)
+void Account::onMessageReplied (const QByteArray &data)
 {
     int b, e;
     b = data.indexOf ("I: ");

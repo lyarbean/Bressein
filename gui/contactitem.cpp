@@ -29,8 +29,6 @@ OpenSSL library used as well as that of the covered work.
 */
 
 #include "contactitem.h"
-
-// #include "sipc/account.h"
 #include "sipc/aux.h"
 #include "chatview.h"
 #include "singleton.h"
@@ -196,7 +194,6 @@ void ContactItem::updateView()
             break;
         default:
             stateString = QString::number (contactInfo->state);
-            break;
     }
     if (not contactInfo->devicetype.isEmpty())
     {

@@ -191,7 +191,7 @@ private slots:
     void onInfo (const QByteArray &data);
     void onInfoTransferV4 (const QByteArray &data);
     void onStartChat (const QByteArray &data);
-    void onSendReplay (const QByteArray &data);
+    void onMessageReplied (const QByteArray &data);
     void onOption (const QByteArray &data);
     // some functions that helps above on's
     void parsePGGroupMembers (const QByteArray &data);
@@ -212,8 +212,6 @@ private:
 
     Contacts contacts;
     Groups groups;
-    // groups
-    //pggroups
 
     QNetworkProxy proxy;
     PortraitFetcher fetcher;
