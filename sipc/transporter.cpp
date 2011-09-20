@@ -159,7 +159,7 @@ void Transporter::readData()
         }
     }
     static QByteArray delimit_1 = "L: ";
-    static QByteArray delimit_2 = "content-Content-Length: ";
+    static QByteArray delimit_2 = "Content-Length: ";
     QByteArray responseData = socket->readAll ();
     buffer.append (responseData);
     QByteArray chunck;
