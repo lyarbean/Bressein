@@ -202,6 +202,10 @@ void Transporter::readData()
             emit dataReceived (chunck);
             seperator = buffer.indexOf ("\r\n\r\n");
         }
+        else
+        {
+            return;
+        }
     }
 }
 
