@@ -35,17 +35,14 @@ namespace Bressein
 {
 
 Transporter::Transporter (QObject *parent)
-    : QObject (parent)
+    : QObject (parent), socket (new QTcpSocket (this)), writerTicker (new QTimer (this))
 {
-    socket = new QTcpSocket (this);
     socket->setReadBufferSize (0);
     socket->setSocketOption (QAbstractSocket::KeepAliveOption, 1);
     socket->setSocketOption (QAbstractSocket::LowDelayOption, 1);
-    writerTicker = new QTimer (this);
     connect (socket, SIGNAL (readyRead()), this, SLOT (readData()));
     connect (socket, SIGNAL (error (QAbstractSocket::SocketError)),
              this, SLOT (onSocketError (QAbstractSocket::SocketError)));
-    //TODO handle socket's signals
     this->moveToThread (&workerThread);
     workerThread.start();
 }
@@ -119,25 +116,22 @@ void Transporter::onSocketError (QAbstractSocket::SocketError se)
 void Transporter::removeSocket()
 {
     socket->disconnect();
-    qDebug() << "delete sockets";
     socket->disconnectFromHost();
     while (socket->state() not_eq QAbstractSocket::UnconnectedState)
         socket->waitForDisconnected();
-    qDebug() << "delete sockets 2";
     socket->deleteLater();
+    qDebug() << this->metaObject()->className() << "removeSocket";
 }
 
 void Transporter::writeData (const QByteArray &data)
 {
     if (data.isEmpty()) return;
-    qDebug() << "=================================";
-    qDebug() << this->metaObject()->className() << "::writeData";
+    qDebug() << this->metaObject()->className() << "::write data";
     qDebug() << QString::fromUtf8 (data);
-    qDebug() << "=================================";
-    qDebug() << socket->state();
     if (socket->state() not_eq QAbstractSocket::ConnectedState)
     {
         qDebug() <<  "writeData::Error: socket is not connected";
+        qDebug() << socket->state();
         return;
     }
     int length = 0;
@@ -147,7 +141,7 @@ void Transporter::writeData (const QByteArray &data)
     }
     socket->waitForBytesWritten ();
     socket->flush();
-    qDebug() << "WRITTEN!!";
+    qDebug() << this->metaObject()->className() << "::data written";
 }
 
 void Transporter::readData()
@@ -199,7 +193,6 @@ void Transporter::readData()
         if (not ok)
         {
             qDebug() << "Not ok" << buffer;
-
             return;
         }
         if (buffer.size() >= length + seperator + 4)
@@ -225,11 +218,12 @@ void Transporter::dequeueMessages()
     QByteArray data;
     bool empty = toSendMessages.isEmpty();
     if (not empty)
+    {
         data = toSendMessages.takeFirst();
+    }
     mutex.unlock();
     while (not empty)
     {
-
         if (not data.isEmpty())
         {
             writeData (data);

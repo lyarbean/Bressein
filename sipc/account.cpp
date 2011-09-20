@@ -1550,7 +1550,7 @@ void Account::parseReceivedData (const QByteArray &in)
         if (data.startsWith ("SIP-C/4.0 280 Send SMS OK"))
         {
             // TODO check quota-frequency
-                        qDebug() << "onMessageReplied";
+            qDebug() << "onMessageReplied";
             qDebug() << data;
             onMessageReplied (data);
 //             int b = data.indexOf ("F: ");
