@@ -28,12 +28,12 @@ combination shall include the source code for the parts of the
 OpenSSL library used as well as that of the covered work.
 */
 
-
+#include "aux.h"
 #include <QDateTime>
 #include <QCryptographicHash>
 #include <QDebug>
 #include <openssl/rsa.h>
-#include "aux.h"
+
 
 namespace Bressein
 {

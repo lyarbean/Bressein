@@ -32,7 +32,6 @@ OpenSSL library used as well as that of the covered work.
 #ifndef PORTRAITFETCHER_H
 #define PORTRAITFETCHER_H
 
-#include <QObject>
 #include <QThread>
 #include <QMutex>
 #include <QWaitCondition>

@@ -32,7 +32,6 @@ OpenSSL library used as well as that of the covered work.
 #define TRANSPORTER_H
 
 #include <QtCore/QObject>
-#include <QMap>
 #include <QThread>
 #include <QMutex>
 #include <QTcpSocket>
@@ -45,7 +44,6 @@ namespace Bressein
 class Transporter : public QObject
 {
     Q_OBJECT
-
 public:
     Transporter (QObject *parent = 0);
     virtual ~Transporter();
@@ -53,12 +51,6 @@ public slots:
     void connectToHost (const QByteArray &ip, const quint16 port);
     void stop ();
     void close();
-    /**
-     * @brief activate keepaliveTicker
-     *
-     * @return void
-     **/
-//     void toKeepalive ();
     void sendData (const QByteArray &data);
 signals:
     // when received an entire message, emit out
@@ -68,8 +60,6 @@ private slots:
     void setHost();
     void onSocketError (QAbstractSocket::SocketError);
     void removeSocket();
-//     void activateKeepalive();
-//     void keepalive();
     void writeData (const QByteArray &);
     void readData ();
     void queueMessages (const QByteArray &data);
@@ -80,11 +70,10 @@ private:
     QMutex mutex;
     QThread workerThread;
     // all data to send will be in the list messages
-    QList<QByteArray> toSendMessages;//incomes
+    QList<QByteArray> toSendMessages;
     QByteArray buffer;
     QTcpSocket *socket;
     QTimer *writerTicker;
-//     QTimer *keepaliveTicker;
 };
 }
 #endif // TRANSPORTER_H

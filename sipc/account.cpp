@@ -40,12 +40,17 @@ OpenSSL library used as well as that of the covered work.
 // N.B. we call buddyList contacts
 namespace Bressein
 {
-Account::Account (QObject *parent) : QObject (parent)
+Account::Account (QObject *parent)
+    : QObject (parent),
+      publicInfo (new ContactInfo),
+      info (new Info (this)),
+      keepAliveTimer (new QTimer (this)),
+      messageTimer (new QTimer (this)),
+      draftsClearTimer (new QTimer (this)),
+      serverTransporter (new Transporter (0)),
+      conversationManager (new ConversationManager (this))
 {
     systemConfigFetched = false;
-    keepAliveTimer = new QTimer (this);
-    messageTimer = new QTimer (this);
-    draftsClearTimer = new QTimer (this);
     connect (messageTimer, SIGNAL (timeout()),
              this, SLOT (dequeueMessages()));
     connect (messageTimer, SIGNAL (timeout()),
@@ -53,11 +58,6 @@ Account::Account (QObject *parent) : QObject (parent)
     connect (messageTimer, SIGNAL (timeout()),
              this, SLOT (dispatchOfflineBox()));
     messageTimer->start (1000);
-
-    publicInfo = new ContactInfo;
-    info = new Info (this);
-    serverTransporter = new Transporter (0);
-    conversationManager = new ConversationManager (this);
     connect (conversationManager, SIGNAL (receiveData (const QByteArray &)),
              this, SLOT (queueMessages (const QByteArray &)),
              Qt::QueuedConnection);
@@ -325,6 +325,8 @@ void Account::keepAlive()
         return;
     }
     if (not keepAliveAcked)
+        // TODO if keepAlive is called prior keepAlive Acked,
+        //use callId to facilitate
     {
         // TODO
         qDebug() << "networking is broken";
@@ -1377,12 +1379,31 @@ void Account::dispatchOutbox()
     if (not empty)
     {
         data = outbox.takeFirst();
-        drafts.append (data);
-        data->callId = info->callId;
         sipuri = data->receiver;
-        content = data->content;
-        toSendMsg = catMsgData (info->fetionNumber, sipuri,
-                                info->callId, content);
+        // if receiver is off line. move to offlineBox
+        // else if out of conversation,
+        if (contacts.find (sipuri).value()->state < StateType::HIDDEN)
+        {
+            offlineBox.append (data);
+            mutex.unlock();
+            return;
+        }
+        else if (not conversationManager->isOnConversation (sipuri))
+        {
+            outbox.append (data);
+            //scheduled for next dispatch
+            // FIXME this cancel dispatch
+            mutex.unlock();
+            return;
+        }
+        else
+        {
+            drafts.append (data);
+            data->callId = info->callId;
+            content = data->content;
+            toSendMsg = catMsgData (info->fetionNumber, sipuri,
+                                    info->callId, content);
+        }
     }
     mutex.unlock();
     while (not empty)
@@ -1564,14 +1585,15 @@ void Account::parseReceivedData (const QByteArray &in)
             {
                 // Do nothing!!
             }
-            else if (data.contains ("C:"))
-            {
-                onReceivedMessage (data);
-            } // else if (event == "SMS2Fetion") // when send to my self
-            else if (data.contains ("XI: ") and data.contains ("D: "))
+
+            else if (not data.contains ("L: "))
             {
                 onMessageReplied (data);
             }
+            else if (data.contains ("D:"))
+            {
+                onReceivedMessage (data);
+            } // else if (event == "SMS2Fetion") // when send to my self
         }
     }
     else if (code == "BN")
@@ -1660,7 +1682,7 @@ void Account::parseReceivedData (const QByteArray &in)
         }
         else if (data.startsWith ("SIP-C/4.0 400 Bad Request"))
         {
-            QTimer::singleShot (0,this, SLOT (systemConfig()));
+            QTimer::singleShot (0, this, SLOT (systemConfig()));
         }
         else if (data.startsWith ("SIP-C/4.0 500 RegisterFailed"))
         {
@@ -1682,25 +1704,9 @@ void Account::parseReceivedData (const QByteArray &in)
             qDebug() << data;
             onStartChat (data);
         }
-        // TODO process xml with root node /results/
-        else  if (data.contains ("<results><presence><basic"))
+        else if (data.contains ("\r\n\r\n<results>"))
         {
-            //TODO wrap as a function
-            int b = data.indexOf ("value=\"");
-            int e = data.indexOf ("\"/", b);
-            QByteArray v = data.mid (b + 7, e - b - 7);
-            bool ok;
-            int value = v.toInt (&ok);
-            if (ok)
-            {
-                publicInfo->state = (StateType) value;
-                emit contactChanged (info->sipuri);
-            }
-            qDebug() << "contactChanged";
-            qDebug() << data;
-        }
-        else  if (data.contains ("<results><contact user-id"))
-        {
+            onServiceResults (data);
         }
     }
     else
@@ -1772,6 +1778,7 @@ void Account::onReceivedMessage (const QByteArray &data)
 void Account::onBNPresenceV4 (const QByteArray &data)
 {
     qDebug() << "onBNPresenceV4 >>>>";
+    //BUG!!
     int b = data.indexOf ("\r\n\r\n");
     QByteArray xml = data.mid (b + 4);
     QDomDocument domDoc;
@@ -2097,7 +2104,6 @@ void Account::onMessageReplied (const QByteArray &data)
     {
         return;
     }
-
     if (drafts.empty())
     {
         return;
@@ -2195,7 +2201,10 @@ void Account::onInfoTransferV4 (const QByteArray &data)
     QDomElement domRoot = domDoc.documentElement();
     domRoot = domRoot.firstChildElement ("args");
     if (domRoot.hasAttribute ("action"))
+    {
+        qDebug() << "onInfoTransferV4";
         qDebug() << domRoot.attribute ("action");
+    }
     domRoot = domRoot.firstChildElement ("image");
     QByteArray method = domRoot.attribute ("method").toUtf8();
     QByteArray transfer_id = domRoot.attribute ("transfer-id").toUtf8();
@@ -2257,7 +2266,145 @@ void Account::parsePGGroupMembers (const QByteArray &data)
     // uri, iicnickname, identity,user-id
 }
 
+void Account::onServiceResults (const QByteArray &data)
+{
+    // TODO process xml with root node /results/
+    if (data.contains ("<presence><basic"))
+    {
+        //TODO wrap as a function
+        int b = data.indexOf ("value=\"");
+        int e = data.indexOf ("\"/", b);
+        QByteArray v = data.mid (b + 7, e - b - 7);
+        bool ok;
+        int value = v.toInt (&ok);
+        if (ok)
+        {
+            publicInfo->state = (StateType) value;
+            emit contactChanged (info->sipuri);
+        }
+        qDebug() << "contactChanged" << ok;
+        qDebug() << data;
+    }
+    else if (data.contains ("<contact"))
+    {
+        int b = data.indexOf ("<results>");
+        int e = data.indexOf ("</results>");
+        QByteArray xml = data.mid (b, e - b + 10);
+        QDomDocument domDoc;
+        QString errorMsg;
+        int errorLine, errorColumn;
+        bool ok = domDoc.setContent
+                  (xml, false, &errorMsg, &errorLine, &errorColumn);
+        if (not ok)
+        {
+            // perhaps need more data from  socket
+            return;
+        }
+        // begin to parse
+        QDomElement domRoot = domDoc.documentElement();
+        QDomElement domChild, domGrand;
+        if (domRoot.tagName() == "results")
+        {
+            QByteArray userId;
+            ContactInfo *contactInfo = 0;
+            QByteArray sipuri;
+            domChild = domRoot.firstChildElement ("contact");
+            if (domChild.hasAttribute ("user-id"))
+            {
+                userId = domChild.attribute ("user-id").toUtf8();
+            }
+            if (userId.isEmpty())
+            {
+                return;
+            }
+            foreach (ContactInfo *ci, contacts.values())
+            {
+                if (ci->userId == userId)
+                {
+                    contactInfo = ci;
+                    sipuri = contacts.key (ci);
+                    break;
+                }
+            }
+            if (sipuri.isEmpty() or contactInfo == 0) //imply contactInfo is invalid
+            {
+                return;
+            }
+            if (domChild.hasAttribute ("mobile-no"))
+            {
+                contactInfo->mobileno =
+                    domChild.attribute ("mobile-no").toUtf8();
+            }
+            if (domChild.hasAttribute ("basic-service-status"))
+            {
+                contactInfo->serviceStatus =
+                    domChild.attribute ("basic-service-status").toUtf8();
+            }
+            if (domChild.hasAttribute ("name"))
+            {
+                if (contactInfo->localName.isEmpty())
+                {
+                    contactInfo->localName =
+                        domChild.attribute ("name").toUtf8();
+                }
+            }
+            if (domChild.hasAttribute ("nickname"))
+            {
+                contactInfo->nickName =
+                    domChild.attribute ("nickname").toUtf8();
+            }
+            if (domChild.hasAttribute ("gender"))
+            {
+                contactInfo->gender =
+                    domChild.attribute ("gender").toUtf8();
+            }
+            if (domChild.hasAttribute ("birth-date"))
+            {
+                contactInfo->birthdate =
+                    domChild.attribute ("birth-date").toUtf8();
+            }
+            if (domChild.hasAttribute ("impresa"))
+            {
+                contactInfo->impresa =
+                    domChild.attribute ("impresa").toUtf8();
+            }
+            if (domChild.hasAttribute ("carrier"))
+            {
+                contactInfo->carrier =
+                    domChild.attribute ("carrier").toUtf8();
+            }
+            if (domChild.hasAttribute ("carrier-status"))
+            {
+                contactInfo->carrierStatus =
+                    domChild.attribute ("carrier-status").toUtf8();
+            }
+            if (domChild.hasAttribute ("carrier-region"))
+            {
+                contactInfo->carrierRegion =
+                    domChild.attribute ("carrier-region").toUtf8();
+            }
+            if (domChild.hasAttribute ("user-region"))
+            {
+                contactInfo->userRegion =
+                    domChild.attribute ("user-region").toUtf8();
+            }
+            if (domChild.hasAttribute ("score-level"))
+            {
+                contactInfo->scoreLevel =
+                    domChild.attribute ("score-level").toUtf8();
+            }
+            if (domChild.hasAttribute ("personal-email"))
+            {
+                contactInfo->personalEmail =
+                    domChild.attribute ("personal-email").toUtf8();
+            }
+            emit contactChanged (sipuri);
+            qDebug() << "contactChanged 2" ;
+            qDebug() << data;
+        }
 
+    }
+}
 
 } // end Bressein
 

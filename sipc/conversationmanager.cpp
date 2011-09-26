@@ -141,7 +141,7 @@ void ConversationManager::sendToAll (const QByteArray &data)
 
 bool ConversationManager::isOnConversation (const QByteArray &sipuri) const
 {
-    if (conversations.isEmpty())
+    if (conversations.isEmpty() or sipuri.isEmpty())
     {
         return false;
     }

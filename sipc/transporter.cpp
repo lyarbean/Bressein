@@ -35,7 +35,9 @@ namespace Bressein
 {
 
 Transporter::Transporter (QObject *parent)
-    : QObject (parent), socket (new QTcpSocket (this)), writerTicker (new QTimer (this))
+    : QObject (parent),
+      socket (new QTcpSocket (this)),
+      writerTicker (new QTimer (this))
 {
     socket->setReadBufferSize (0);
     socket->setSocketOption (QAbstractSocket::KeepAliveOption, 1);

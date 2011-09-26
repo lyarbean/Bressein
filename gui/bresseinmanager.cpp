@@ -43,7 +43,6 @@ OpenSSL library used as well as that of the covered work.
 #include <QMenu>
 #include <QTimer>
 #include <QDir>
-#include <QLabel>
 /**
 struct iiibiiay
 {
@@ -79,7 +78,6 @@ namespace Bressein
 BresseinManager::BresseinManager (QObject *parent)
     : QObject (parent),
       account (new Account),
-      // loginDialog (new LoginWidget),
       sidePanel (new SidepanelView),
       contactsScene (new ContactsScene (this)),
       tray (new QSystemTrayIcon (this)),

@@ -195,6 +195,7 @@ private slots:
     void onOption (const QByteArray &data);
     // some functions that helps above on's
     void parsePGGroupMembers (const QByteArray &data);
+    void onServiceResults (const QByteArray &data);
 
 private:
     ContactInfo *publicInfo; // inserted in contacts, never delete it directly

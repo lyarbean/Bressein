@@ -74,16 +74,6 @@ enum BuddyListType
     BUDDY_LIST_STRANGER = -1 ,
     BUDDY_LIST_PGGROUP = -2
 };
-/**
- * @brief Type used to indicate whether user's portrait has been changed
- **/
-enum ImageChangedType
-{
-    IMAGE_NOT_INITIALIZED = -1 ,//portrait has not been initialized
-    IMAGE_NOT_CHANGED ,         //portrait does not change
-    IMAGE_CHANGED ,             //portrait has been changed
-    IMAGE_ALLREADY_SET
-};
 
 struct ContactInfo
 {
@@ -104,14 +94,17 @@ struct ContactInfo
     QByteArray mobileno;   //mobile phone number
     QByteArray nickName;
     QByteArray birthdate;   //user's bitrhday
-    QByteArray country;    //user's country's simplified form,like CN
-    QByteArray province;   //user's province's simplified form,like bj
-    QByteArray city;       //user's city's code ,like 10 for beijing
+    QByteArray carrierRegion;
+    QByteArray userRegion;
+//     QByteArray country;    //user's country's simplified form,like CN
+//     QByteArray province;   //user's province's simplified form,like bj
+//     QByteArray city;       //user's city's code ,like 10 for beijing
     QByteArray scoreLevel;        //user's score level,unused now
     QByteArray serviceStatus;     //basic service status
     QByteArray carrierStatus;
     QByteArray carrier;
     QByteArray gender;   //gender '1' for male '2' for female,'0' for private
+    QByteArray personalEmail;
 };
 
 typedef QMap<QByteArray, ContactInfo *> Contacts; // <sipuri, info>
