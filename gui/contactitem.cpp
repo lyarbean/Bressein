@@ -133,29 +133,29 @@ void ContactItem::updateView()
     }
     document()->clear();
     QString text;
+    // TODO moves to stylesheet
     text.append ("<div style='display:inline;height:54;'><img width='48' src='"
                  + imagePath + "' style='margin:0 0 0 0;float:left;clear:right;"
                  "text-align:center;'/>");
-    text.append ("<div style='margin:0 0 0 0;font-size:12px;color:#888;'>");
-    if (not contactInfo->localName.isEmpty())
+    text.append ("<div style='margin:0 0 0 0;font-size:12px;color:#CCC;'>");
+    if (not contactInfo->preferedName.isEmpty())
     {
-        text.append (QString::fromUtf8 (contactInfo->localName));
-    }
-    else if (not contactInfo->nickName.isEmpty())
-    {
-        text.append (QString::fromUtf8 (contactInfo->nickName));
+        text.append (QString::fromUtf8 (contactInfo->preferedName));
     }
     else
     {
-        text.append (QString::fromUtf8 (sipToFetion (sipuri)));
-        text.append ("[");
-        text.append (QString::fromUtf8 (contactInfo->userId));
-        text.append ("]");
+        text.append (tr ("No name set!"));
     }
     if (not contactInfo->mobileno.isEmpty())
     {
         text.append ("[");
         text.append (QString::fromUtf8 (contactInfo->mobileno));
+        text.append ("]");
+    }
+    else
+    {
+        text.append ("[sip:");
+        text.append (QString::fromUtf8 (sipToFetion (sipuri)));
         text.append ("]");
     }
     // TODO some descriptions some from contactInfo
@@ -210,7 +210,7 @@ void ContactItem::updateView()
     if (not contactInfo->impresa.isEmpty())
     {
         text.append ("<div style='margin:0 0 0 1px;overflow:hidden;"
-                     "font-size:10px;color:#F80;display:inline'>");
+                     "font-size:10px;color:#F80;display:box'>");
         text.append (QString::fromUtf8 (contactInfo->impresa));
         text.append ("</div>");
     }

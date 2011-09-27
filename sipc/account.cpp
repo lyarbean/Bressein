@@ -916,6 +916,7 @@ void Account::parseSipcAuthorize (QByteArray &data)
                     domChild.attribute ("mobile-no").toUtf8();
                 publicInfo->nickName =
                     domChild.attribute ("nickname").toUtf8();
+                publicInfo->preferedName = publicInfo->nickName;
                 info->client.smsOnLineStatus =
                     domChild.attribute ("sms-online-status").toUtf8();
                 info->client.version = domChild.attribute ("version").toUtf8();
@@ -1015,6 +1016,18 @@ void Account::parseSipcAuthorize (QByteArray &data)
                             domGrand.attribute ("r").toUtf8();
                         QByteArray sipuri = domGrand.attribute ("u").toUtf8();
                         contacts.insert (sipuri, contact);
+                        if (not contact->localName.isEmpty())
+                        {
+                            contact->preferedName = contact->localName;
+                        }
+                        else if (not contact->nickName.isEmpty())
+                        {
+                            contact->preferedName = contact->nickName;
+                        }
+                        else if (not contact->name.isEmpty())
+                        {
+                            contact->preferedName = contact->name;
+                        }
                         emit contactChanged (sipuri);
                     }
                     domGrand = domGrand.nextSiblingElement ("b");
@@ -1584,15 +1597,15 @@ void Account::parseReceivedData (const QByteArray &in)
             if (data.contains ("N: system-message"))
             {
                 // Do nothing!!
+                return;
             }
-
-            else if (not data.contains ("L: "))
-            {
-                onMessageReplied (data);
-            }
-            else if (data.contains ("D:"))
+            else if (data.startsWith ("M "+ info->fetionNumber +" SIP-C/4.0"))
             {
                 onReceivedMessage (data);
+            }
+            else if (data.startsWith ("SIP-C/4.0 200 OK"))
+            {
+                onMessageReplied (data);
             } // else if (event == "SMS2Fetion") // when send to my self
         }
     }
@@ -2120,6 +2133,7 @@ void Account::onMessageReplied (const QByteArray &data)
             if (drafts.at (i)->callId == calledId)
             {
                 qDebug() << "onSendReplay" << i;
+                // BUG here, if here comes message
                 delete drafts.at (i);
                 drafts.removeAt (i);
                 break;
@@ -2397,6 +2411,19 @@ void Account::onServiceResults (const QByteArray &data)
             {
                 contactInfo->personalEmail =
                     domChild.attribute ("personal-email").toUtf8();
+            }
+            // get preferedName
+            if (not contactInfo->localName.isEmpty())
+            {
+                contactInfo->preferedName = contactInfo->localName;
+            }
+            else if (not contactInfo->nickName.isEmpty())
+            {
+                contactInfo->preferedName = contactInfo->nickName;
+            }
+            else if (not contactInfo->name.isEmpty())
+            {
+                contactInfo->preferedName = contactInfo->name;
             }
             emit contactChanged (sipuri);
             qDebug() << "contactChanged 2" ;

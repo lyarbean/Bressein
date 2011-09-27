@@ -83,7 +83,9 @@ struct ContactInfo
     // r; relationStatus, u: sipuri
     ContactInfo () {};
     QByteArray userId;
+    QByteArray preferedName;// just for convenience, localName->nickName->name
     QByteArray localName;
+    QByteArray name;
     QByteArray groupId;  //TODO use group name
     QByteArray identity;
     QByteArray relationStatus;  //AUTHENTICATED or not
