@@ -338,6 +338,7 @@ void Account::keepAlive()
         keepAliveAcked = false;
         QByteArray toSendMsg = keepAliveData (info->fetionNumber, info->callId);
         serverTransporter->sendData (toSendMsg);
+        // TODO check states
         QByteArray chatK = chatKeepAliveData (info->fetionNumber, info->callId);
         conversationManager->sendToAll (chatK);
     }
@@ -1731,7 +1732,7 @@ void Account::parseReceivedData (const QByteArray &in)
 void Account::onReceivedMessage (const QByteArray &data)
 {
 // TODO distinct private messages from groups messages
-    qDebug() << QString::fromUtf8 (data);
+    qDebug() << "onReceivedMessage" << QString::fromUtf8 (data);
     int b = data.indexOf ("F: ");
     int e = data.indexOf ("\r\n", b);
     QByteArray fromSipuri = data.mid (b + 3, e - b - 3);
@@ -1777,8 +1778,10 @@ void Account::onReceivedMessage (const QByteArray &data)
     {
         if (conversationManager->isOnConversation (fromSipuri))
         {
-
+            qDebug() << "send reply";
+            mutex.lock();
             conversationManager->sendData (fromSipuri, reply);
+            mutex.unlock();
         }
         else
         {

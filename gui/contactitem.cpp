@@ -34,6 +34,7 @@ OpenSSL library used as well as that of the covered work.
 #include "singleton.h"
 #include "bresseinmanager.h"
 
+#include <QApplication>
 #include <QStyleOptionGraphicsItem>
 #include <QGraphicsSceneMouseEvent>
 #include <QTextDocument>
@@ -231,7 +232,14 @@ void ContactItem::updateContact (ContactInfo *contactInfo)
 
 void ContactItem::setupChatView()
 {
-    chatView = new ChatView;
+    if (chatView)
+    {
+        return;
+    }
+    while (not chatView)
+    {
+        chatView = new ChatView;
+    }
     connect (chatView, SIGNAL (sendMessage (QByteArray)),
              this, SLOT (onSendMessage (QByteArray)));
     chatView->setPortraits (sipuri, hostSipuri);
@@ -250,7 +258,7 @@ void ContactItem::setupChatView()
             chatView->setNames (contactInfo->mobileno, hostName);
         }
     }
-    chatView->show();
+    QApplication::processEvents();
 }
 
 void ContactItem::activateChatView (bool ok)

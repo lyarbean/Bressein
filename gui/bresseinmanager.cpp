@@ -254,8 +254,6 @@ void BresseinManager::onIncomeMessage (const QByteArray &contact,
                                        const QByteArray &date,
                                        const QByteArray &content)
 {
-    contactsScene->onIncomeMessage (contact, date, content);
-
     QDBusInterface notify ("org.freedesktop.Notifications",
                            "/org/freedesktop/Notifications",
                            "org.freedesktop.Notifications");
@@ -275,6 +273,7 @@ void BresseinManager::onIncomeMessage (const QByteArray &contact,
     args << int (3000);// timeout
     QDBusMessage call =
         notify.callWithArgumentList (QDBus::NoBlock, "Notify", args);
+    contactsScene->onIncomeMessage (contact, date, content);
 }
 
 void BresseinManager::onNotSentMessage (const QByteArray &sipuri,
