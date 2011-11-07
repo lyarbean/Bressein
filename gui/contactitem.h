@@ -64,9 +64,7 @@ public:
     void updateContact (ContactInfo *contactInfo);
 
 private slots:
-    void setupChatView();
     void activateChatView (bool ok);
-    void closeChatView();
 signals:
     void sendMessage (const QByteArray &, const QByteArray &);
     //private:

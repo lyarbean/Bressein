@@ -1795,6 +1795,7 @@ void Account::onBNPresenceV4 (const QByteArray &data)
 {
     qDebug() << "onBNPresenceV4 >>>>";
     //BUG!!
+    QMutexLocker locker(&mutex);
     int b = data.indexOf ("\r\n\r\n");
     QByteArray xml = data.mid (b + 4);
     QDomDocument domDoc;
