@@ -44,6 +44,11 @@ SidepanelView::SidepanelView (QWidget *parent)
 {
     setWindowTitle ("Bressein");
     setRenderingSystem();
+    QLinearGradient linearGrad (QPointF (-100, 0), QPointF (700, 0));
+    linearGrad.setColorAt (0, Qt::black);
+    linearGrad.setColorAt (1, Qt::red);
+    linearGrad.setSpread (QGradient::ReflectSpread);
+    setBackgroundBrush (linearGrad);
     setScene (loginScene);
     connect (loginScene,
              SIGNAL (loginCommit (const QByteArray &, const QByteArray &)),
@@ -54,11 +59,7 @@ SidepanelView::SidepanelView (QWidget *parent)
              this,
              SLOT (onVerifycommit (QByteArray)));
     setMinimumSize (loginScene->itemsBoundingRect().size().toSize());
-    QLinearGradient linearGrad (QPointF (-100, 0), QPointF (700, 0));
-    linearGrad.setColorAt (0, Qt::black);
-    linearGrad.setColorAt (1, Qt::red);
-    linearGrad.setSpread (QGradient::ReflectSpread);
-    setBackgroundBrush (linearGrad);
+
 }
 
 SidepanelView::~SidepanelView()

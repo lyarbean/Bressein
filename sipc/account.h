@@ -33,6 +33,7 @@ OpenSSL library used as well as that of the covered work.
 #include "types.h"
 #include "portraitfetcher.h"
 #include "conversationmanager.h"
+#include "messagerecorder.h"
 #include <QtCore/QObject>
 #include <QtCore/QThread>
 #include <QtNetwork/QTcpSocket>
@@ -239,6 +240,7 @@ private:
     bool systemConfigFetched;
     bool connected;
     bool keepAliveAcked;
+    MessageRecorder messageRecoder;
 
 };
 }

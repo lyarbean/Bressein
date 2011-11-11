@@ -42,12 +42,12 @@ OpenSSL library used as well as that of the covered work.
 namespace Bressein
 {
 ContactItem::ContactItem (QGraphicsItem *parent, QGraphicsScene *scene)
-        : QGraphicsTextItem (parent, scene), contactInfo (0), chatView (new ChatView)
+    : QGraphicsTextItem (parent, scene), contactInfo (0), chatView (new ChatView)
 {
     setTextInteractionFlags (Qt::TextBrowserInteraction);
     setCacheMode (QGraphicsItem::DeviceCoordinateCache);
     connect (chatView, SIGNAL (sendMessage (QByteArray)),
-            this, SLOT (onSendMessage (QByteArray)));
+             this, SLOT (onSendMessage (QByteArray)));
 }
 
 ContactItem::~ContactItem()
@@ -55,8 +55,8 @@ ContactItem::~ContactItem()
 }
 
 void ContactItem::paint (QPainter *painter,
-        const QStyleOptionGraphicsItem *option,
-        QWidget *widget)
+                         const QStyleOptionGraphicsItem *option,
+                         QWidget *widget)
 {
     painter->setRenderHints (QPainter::RenderHints (0xF));
     QGraphicsTextItem::paint (painter, option, widget);
@@ -139,8 +139,8 @@ void ContactItem::updateView()
     QString text;
     // TODO moves to stylesheet
     text.append ("<div style='display:inline;height:54;'><img width='48' src='"
-            + imagePath + "' style='margin:0 0 0 0;float:left;clear:right;"
-            "text-align:center;'/>");
+                 + imagePath + "' style='margin:0 0 0 0;float:left;clear:right;"
+                 "text-align:center;'/>");
     text.append ("<div style='margin:0 0 0 0;font-size:12px;color:#CCC;'>");
     if (not contactInfo->preferedName.isEmpty())
     {
@@ -214,7 +214,7 @@ void ContactItem::updateView()
     if (not contactInfo->impresa.isEmpty())
     {
         text.append ("<div style='margin:0 0 0 1px;overflow:hidden;"
-                "font-size:10px;color:#F80;display:box'>");
+                     "font-size:10px;color:#F80;display:box'>");
         text.append (QString::fromUtf8 (contactInfo->impresa));
         text.append ("</div>");
     }
@@ -262,7 +262,7 @@ void ContactItem::activateChatView (bool ok)
 }
 
 void ContactItem::onIncomeMessage (const QByteArray &datetime,
-        const QByteArray &message)
+                                   const QByteArray &message)
 {
     activateChatView (true);
     chatView->incomeMessage (datetime, message);

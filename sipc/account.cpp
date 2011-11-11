@@ -177,12 +177,11 @@ void Account::getNickname (QByteArray &name) const
 void Account::getContactInfo (const QByteArray &sipuri,
                               ContactInfo &contactInfo)
 {
-    mutex.lock();
+    //QMutexLocker lock(&mutex);
     if (contacts.contains (sipuri))
     {
         contactInfo = * contacts.value (sipuri);
     }
-    mutex.unlock();
 }
 /**--------------**/
 /** public slots **/
@@ -196,10 +195,9 @@ void Account::login()
 
 void Account::loginVerify (const QByteArray &code)
 {
+    //QMutexLocker lock(&mutex);
     qDebug() << "loginVerify" << code;
-    mutex.lock();
     info->verification.code = code;
-    mutex.unlock();
     QMetaObject::invokeMethod (this, "ssiLogin", Qt::QueuedConnection);
 
 }
@@ -208,11 +206,11 @@ void Account::sendMessage (const QByteArray &toSipuri,
                            const QByteArray &message)
 {
     // firstly we check the status of toSipuri
-    mutex.lock();
+    //QMutexLocker lock(&mutex);
     if (toSipuri == info->sipuri)
     {
         //
-        qDebug() << "Msg Self" << toSipuri;
+        qDebug() << "To Self" << toSipuri;
         QByteArray toSendMsg = sendCatMsgSelfData (info->fetionNumber,
                                                    info->sipuri,
                                                    info->callId, message);
@@ -224,6 +222,9 @@ void Account::sendMessage (const QByteArray &toSipuri,
         letter->receiver = toSipuri;
         letter->datetime = QDateTime::currentDateTime();
         letter->content = message;
+        messageRecoder.insertRecord (info->sipuri, toSipuri,
+                                     letter->datetime.toString(),
+                                     QString::fromLocal8Bit (message));
         if (contacts.find (toSipuri).value()->state < StateType::HIDDEN)
         {
             qDebug() << "append to offlineBox" << (int) contacts.find (toSipuri).value()->state;
@@ -240,7 +241,6 @@ void Account::sendMessage (const QByteArray &toSipuri,
             outbox.append (letter);
         }
     }
-    mutex.unlock();
 }
 
 
@@ -550,6 +550,7 @@ void Account::downloadPortrait (const QByteArray &sipuri)
 void Account::sipcRegister()
 {
 //     step = SIPCR;
+    //QMutexLocker lock(&mutex);
     qDebug() << "sipcRegister";
 
     int seperator = info->systemconfig.proxyIpPort.indexOf (':');
@@ -1344,21 +1345,19 @@ void Account::onServerTransportError (const int se)
 
 void Account::queueMessages (const QByteArray &receiveData)
 {
-    mutex.lock();
+    //QMutexLocker lock(&mutex);
     inbox.append (receiveData);
-    mutex.unlock();
 }
 
 void Account::dequeueMessages()
 {
-    mutex.lock();
+    //QMutexLocker lock(&mutex);
     QByteArray data;
     bool empty = inbox.isEmpty();
     if (not empty)
     {
         data = inbox.takeFirst();
     }
-    mutex.unlock();
     while (not empty)
     {
         if (not data.isEmpty())
@@ -1367,7 +1366,6 @@ void Account::dequeueMessages()
             qDebug() << QString::fromUtf8 (data);
             parseReceivedData (data);
         }
-        mutex.lock();
         if (not inbox.isEmpty())
         {
             data = inbox.takeFirst();
@@ -1376,14 +1374,13 @@ void Account::dequeueMessages()
         {
             empty = true;
         }
-        mutex.unlock();
     }
 }
 
 
 void Account::dispatchOutbox()
 {
-    mutex.lock();
+    //QMutexLocker lock(&mutex);
     Letter *data;
     bool empty = outbox.isEmpty();
     QByteArray sipuri;
@@ -1399,16 +1396,12 @@ void Account::dispatchOutbox()
         if (contacts.find (sipuri).value()->state < StateType::HIDDEN)
         {
             offlineBox.append (data);
-            mutex.unlock();
-            return;
         }
         else if (not conversationManager->isOnConversation (sipuri))
         {
             outbox.append (data);
             //scheduled for next dispatch
             // FIXME this cancel dispatch
-            mutex.unlock();
-            return;
         }
         else
         {
@@ -1419,7 +1412,6 @@ void Account::dispatchOutbox()
                                     info->callId, content);
         }
     }
-    mutex.unlock();
     while (not empty)
     {
         qDebug() << "dispatchOutbox while (not empty)";
@@ -1429,7 +1421,6 @@ void Account::dispatchOutbox()
         {
             serverTransporter->sendData (toSendMsg);
         }
-        mutex.lock();
         if (not outbox.isEmpty())
         {
             data = outbox.takeFirst();
@@ -1444,14 +1435,13 @@ void Account::dispatchOutbox()
         {
             empty = true;
         }
-        mutex.unlock();
     }
 }
 
 void Account::dispatchOfflineBox()
 {
     //     qDebug() << "dispatchOfflineBox";
-    mutex.lock();
+    //QMutexLocker lock(&mutex);
     Letter *data;
     bool empty = offlineBox.isEmpty();
     QByteArray sipuri;
@@ -1468,7 +1458,6 @@ void Account::dispatchOfflineBox()
         toSendMsg = sendCatMsgPhoneData (info->fetionNumber, sipuri,
                                          info->callId, content, "", "");
     }
-    mutex.unlock();
     while (not empty)
     {
         qDebug() << "==============================";
@@ -1480,7 +1469,6 @@ void Account::dispatchOfflineBox()
 
             serverTransporter->sendData (toSendMsg);
         }
-        mutex.lock();
         if (not offlineBox.isEmpty())
         {
             data = offlineBox.takeFirst();
@@ -1495,17 +1483,16 @@ void Account::dispatchOfflineBox()
         {
             empty = true;
         }
-        mutex.unlock();
     }
 }
 
 void Account::clearDrafts()
 {
+    //QMutexLocker lock(&mutex);
     if (drafts.empty())
     {
         return;
     }
-    mutex.lock();
     if (not drafts.empty()) // double check
     {
         int s = drafts.size();
@@ -1525,7 +1512,6 @@ void Account::clearDrafts()
         for (int i = 0; i < deleted.size(); ++i)
             drafts.removeAt (i);
     }
-    mutex.unlock();
 }
 
 
@@ -1600,7 +1586,7 @@ void Account::parseReceivedData (const QByteArray &in)
                 // Do nothing!!
                 return;
             }
-            else if (data.startsWith ("M "+ info->fetionNumber +" SIP-C/4.0"))
+            else if (data.startsWith ("M " + info->fetionNumber + " SIP-C/4.0"))
             {
                 onReceivedMessage (data);
             }
@@ -1731,6 +1717,7 @@ void Account::parseReceivedData (const QByteArray &in)
 
 void Account::onReceivedMessage (const QByteArray &data)
 {
+    //QMutexLocker lock(&mutex);
 // TODO distinct private messages from groups messages
     qDebug() << "onReceivedMessage" << QString::fromUtf8 (data);
     int b = data.indexOf ("F: ");
@@ -1752,6 +1739,10 @@ void Account::onReceivedMessage (const QByteArray &data)
         fromSipuri.remove (0, 4);
     }
     emit incomeMessage (fromSipuri, datetime, content);
+    messageRecoder.insertRecord (QString::fromUtf8 (fromSipuri),
+                                 QString::fromUtf8 (info->sipuri),
+                                 QString::fromUtf8 (datetime),
+                                 QString::fromUtf8 (content));
     QByteArray reply = "SIP-C/4.0 200 OK\r\n";
 //     if (fromSipuri.contains ("PG"))
 //     {
@@ -1779,9 +1770,7 @@ void Account::onReceivedMessage (const QByteArray &data)
         if (conversationManager->isOnConversation (fromSipuri))
         {
             qDebug() << "send reply";
-            mutex.lock();
             conversationManager->sendData (fromSipuri, reply);
-            mutex.unlock();
         }
         else
         {
@@ -1794,8 +1783,7 @@ void Account::onReceivedMessage (const QByteArray &data)
 void Account::onBNPresenceV4 (const QByteArray &data)
 {
     qDebug() << "onBNPresenceV4 >>>>";
-    //BUG!!
-    QMutexLocker locker(&mutex);
+//     //QMutexLocker locker (&mutex);
     int b = data.indexOf ("\r\n\r\n");
     QByteArray xml = data.mid (b + 4);
     QDomDocument domDoc;
@@ -1810,7 +1798,7 @@ void Account::onBNPresenceV4 (const QByteArray &data)
         qDebug() << xml;
         return;
     }
-    domDoc.normalize();
+//     domDoc.normalize();
     QDomElement domRoot = domDoc.documentElement();
     if (domRoot.tagName() not_eq "events")
     {
@@ -2025,6 +2013,7 @@ void Account::onBNPGGroup (const QByteArray &data)
 
 void Account::onInvite (const QByteArray &data)
 {
+    //QMutexLocker lock(&mutex);
     qDebug() << "onInvite";
     /**
      I xxxxYYYY SIP-C/4.0                     *
@@ -2112,6 +2101,7 @@ void Account::onStartChat (const QByteArray &data)
 
 void Account::onMessageReplied (const QByteArray &data)
 {
+    //QMutexLocker lock(&mutex);
     int b, e;
     b = data.indexOf ("I: ");
     e = data.indexOf ("\r\n", b);
@@ -2125,7 +2115,7 @@ void Account::onMessageReplied (const QByteArray &data)
     {
         return;
     }
-    mutex.lock();
+
     if (not drafts.empty()) //doubly check
     {
         int s = drafts.size();
@@ -2144,7 +2134,6 @@ void Account::onMessageReplied (const QByteArray &data)
             }
         }
     }
-    mutex.unlock();
 }
 
 void Account::onInfo (const QByteArray &data)
@@ -2177,7 +2166,7 @@ void Account::onInfo (const QByteArray &data)
 // FIXME don't know how to fix it
 void Account::onInfoTransferV4 (const QByteArray &data)
 {
-
+    //QMutexLocker lock(&mutex);
     /**
      * IN other SIP-C/4.0
      * I: callId

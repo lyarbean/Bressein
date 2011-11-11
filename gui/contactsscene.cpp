@@ -68,7 +68,7 @@ void ContactsScene::addGroup (const QByteArray &id, const QByteArray &name)
     groupItem->setData (1, id);
     groupItem->setZValue (0);
     groupItem->setVisible (true);
-    resizeScene();
+//     resizeScene();
     qDebug() << "group" << "id" << id << QString::fromUtf8 (name) << "Added";
 }
 
@@ -120,11 +120,11 @@ void ContactsScene::updateContact (const QByteArray &contact,
             connect (item, SIGNAL (sendMessage (QByteArray, QByteArray)),
                      this, SLOT (onSendMessage (QByteArray, QByteArray)));
             qDebug() << "New contactItem added!";
-            resizeScene();
             return;
         }
         groupItem = 0;
     }
+    resizeScene();
 }
 
 void ContactsScene::updateContactPortrait (const QByteArray &contact,

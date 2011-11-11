@@ -192,6 +192,7 @@ void BresseinManager::dbusNotify (const QString &summary,
 void BresseinManager::onGroupChanged (const QByteArray &id,
                                       const QByteArray &name)
 {
+    QMutexLocker lock (&mutex);
     contactsScene->addGroup (id, name);
 }
 
