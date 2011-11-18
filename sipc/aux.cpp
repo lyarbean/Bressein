@@ -171,7 +171,7 @@ const QByteArray configData (QByteArray number)
     numberString.append (number);
     QByteArray part = "<config><user ";
     part.append (numberString);
-    part.append ("\"/><client type=\"PC\" version=\"");
+    part.append ("\"/><client type=\"Bressein\" version=\"");
     part.append (PROTOCOL_VERSION);
     part.append ("\" platform=\"W5.1\" /><servers version=\"0\" />"
                  "<parameters version=\"0\" /><client-config version=\"0\" />"
@@ -966,7 +966,7 @@ const QByteArray setUserInfoV4Data (const QByteArray &fetionNumber,
     body.append ("\" gender=\"");
     body.append (gender);
     body.append ("\" version=\"0\"/>");
-    body.append ("<custom-config type=\"PC\" version=\"");
+    body.append ("<custom-config type=\"Bressein\" version=\"");
     body.append (customConfigVer);
     body.append ("\"/></userinfo></args>");
     QByteArray data ("S fetion.com.cn SIP-C/4.0\r\n");
@@ -993,7 +993,7 @@ const QByteArray setUserInfoV4Data (const QByteArray &fetionNumber,
     body.append (impresa);
     body.append ("\" version=\"");
     body.append (personalVersion);
-    body.append ("\"/><custom-config type=\"PC\" version=\"");
+    body.append ("\"/><custom-config type=\"Bressein\" version=\"");
     body.append (customConfigVer);
     body.append ("\"/></userinfo></args>");
     QByteArray data ("S fetion.com.cn SIP-C/4.0\r\n");

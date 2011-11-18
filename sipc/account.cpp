@@ -1827,25 +1827,25 @@ void Account::onBNPresenceV4 (const QByteArray &data)
                     if (contacts.contains (sipuri))
                     {
                         contactInfo = contacts.value (sipuri);
+                        contactInfo->userId = userId;
+                        contactInfo->mobileno = child.attribute ("m").toUtf8();
+                        contactInfo->nickName = child.attribute ("n").toUtf8();
+                        contactInfo->impresa = child.attribute ("i").toUtf8();
+                        contactInfo->scoreLevel = child.attribute ("l").toUtf8();
+                        // FIXME not to downloadPortrait if there is one up to date;
+                        // p is the portraitCrc
+                        if (not child.attribute ("p").isEmpty() and
+                            child.attribute ("p") not_eq "0")
+                        {
+                            downloadPortrait (sipuri);
+                        }
+                        contactInfo->carrier = child.attribute ("c").toUtf8();
+                        contactInfo->carrierStatus =
+                            child.attribute ("cs").toUtf8();
+                        contactInfo->serviceStatus =
+                            child.attribute ("s").toUtf8();
+                        getContactInfo (contactInfo->userId);
                     }
-                    contactInfo->userId = userId;
-                    contactInfo->mobileno = child.attribute ("m").toUtf8();
-                    contactInfo->nickName = child.attribute ("n").toUtf8();
-                    contactInfo->impresa = child.attribute ("i").toUtf8();
-                    contactInfo->scoreLevel = child.attribute ("l").toUtf8();
-                    // FIXME not to downloadPortrait if there is one up to date;
-                    // p is the portraitCrc
-                    if (not child.attribute ("p").isEmpty() and
-                        child.attribute ("p") not_eq "0")
-                    {
-                        downloadPortrait (sipuri);
-                    }
-                    contactInfo->carrier = child.attribute ("c").toUtf8();
-                    contactInfo->carrierStatus =
-                        child.attribute ("cs").toUtf8();
-                    contactInfo->serviceStatus =
-                        child.attribute ("s").toUtf8();
-                    getContactInfo (contactInfo->userId);
                 }
                 else if (not contactInfo) // get contactif by userId
                 {
