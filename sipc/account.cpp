@@ -58,9 +58,13 @@ Account::Account (QObject *parent)
     connect (messageTimer, SIGNAL (timeout()),
              this, SLOT (dispatchOfflineBox()));
     messageTimer->start (1000);
+    // conversationManager is in this thread
     connect (conversationManager, SIGNAL (receiveData (const QByteArray &)),
-             this, SLOT (queueMessages (const QByteArray &)),
-             Qt::QueuedConnection);
+             this, SLOT (queueMessages (const QByteArray &)));
+    connect (this, SIGNAL (serverConfigParsed()), SLOT (ssiLogin()));
+    connect (this, SIGNAL (ssiResponseParsed()), SLOT (sipcRegister()));
+    connect (this, SIGNAL (sipcRegisterParsed()), SLOT (sipcAuthorize()));
+    connect (this, SIGNAL (sipcAuthorizeParsed()), SLOT (activateTimer()));
     connect (serverTransporter, SIGNAL (dataReceived (const QByteArray &)),
              this, SLOT (queueMessages (const QByteArray &)),
              Qt::QueuedConnection);
@@ -70,10 +74,6 @@ Account::Account (QObject *parent)
     connect (&fetcher, SIGNAL (processed (const QByteArray &)),
              this, SLOT (onPortraitDownloaded (const QByteArray &)),
              Qt::QueuedConnection);
-    connect (this, SIGNAL (serverConfigParsed()), SLOT (ssiLogin()));
-    connect (this, SIGNAL (ssiResponseParsed()), SLOT (sipcRegister()));
-    connect (this, SIGNAL (sipcRegisterParsed()), SLOT (sipcAuthorize()));
-    connect (this, SIGNAL (sipcAuthorizeParsed()), SLOT (activateTimer()));
     // move to slave thread
     this->moveToThread (&workerThread);
     workerThread.start();
@@ -177,7 +177,7 @@ void Account::getNickname (QByteArray &name) const
 void Account::getContactInfo (const QByteArray &sipuri,
                               ContactInfo &contactInfo)
 {
-    //QMutexLocker lock(&mutex);
+
     if (contacts.contains (sipuri))
     {
         contactInfo = * contacts.value (sipuri);
@@ -195,7 +195,7 @@ void Account::login()
 
 void Account::loginVerify (const QByteArray &code)
 {
-    //QMutexLocker lock(&mutex);
+
     qDebug() << "loginVerify" << code;
     info->verification.code = code;
     QMetaObject::invokeMethod (this, "ssiLogin", Qt::QueuedConnection);
@@ -206,7 +206,7 @@ void Account::sendMessage (const QByteArray &toSipuri,
                            const QByteArray &message)
 {
     // firstly we check the status of toSipuri
-    //QMutexLocker lock(&mutex);
+
     if (toSipuri == info->sipuri)
     {
         //
@@ -550,7 +550,7 @@ void Account::downloadPortrait (const QByteArray &sipuri)
 void Account::sipcRegister()
 {
 //     step = SIPCR;
-    //QMutexLocker lock(&mutex);
+
     qDebug() << "sipcRegister";
 
     int seperator = info->systemconfig.proxyIpPort.indexOf (':');
@@ -1345,13 +1345,13 @@ void Account::onServerTransportError (const int se)
 
 void Account::queueMessages (const QByteArray &receiveData)
 {
-    //QMutexLocker lock(&mutex);
+
     inbox.append (receiveData);
 }
 
 void Account::dequeueMessages()
 {
-    //QMutexLocker lock(&mutex);
+
     QByteArray data;
     bool empty = inbox.isEmpty();
     if (not empty)
@@ -1380,7 +1380,7 @@ void Account::dequeueMessages()
 
 void Account::dispatchOutbox()
 {
-    //QMutexLocker lock(&mutex);
+
     Letter *data;
     bool empty = outbox.isEmpty();
     QByteArray sipuri;
@@ -1441,7 +1441,7 @@ void Account::dispatchOutbox()
 void Account::dispatchOfflineBox()
 {
     //     qDebug() << "dispatchOfflineBox";
-    //QMutexLocker lock(&mutex);
+
     Letter *data;
     bool empty = offlineBox.isEmpty();
     QByteArray sipuri;
@@ -1488,7 +1488,7 @@ void Account::dispatchOfflineBox()
 
 void Account::clearDrafts()
 {
-    //QMutexLocker lock(&mutex);
+
     if (drafts.empty())
     {
         return;
@@ -1717,7 +1717,7 @@ void Account::parseReceivedData (const QByteArray &in)
 
 void Account::onReceivedMessage (const QByteArray &data)
 {
-    //QMutexLocker lock(&mutex);
+
 // TODO distinct private messages from groups messages
     qDebug() << "onReceivedMessage" << QString::fromUtf8 (data);
     int b = data.indexOf ("F: ");
@@ -1847,7 +1847,7 @@ void Account::onBNPresenceV4 (const QByteArray &data)
                         getContactInfo (contactInfo->userId);
                     }
                 }
-                else if (not contactInfo) // get contactif by userId
+                else if (not contactInfo) // get contactinfo by userId
                 {
                     foreach (ContactInfo *ci, contacts.values())
                     {
@@ -2013,7 +2013,7 @@ void Account::onBNPGGroup (const QByteArray &data)
 
 void Account::onInvite (const QByteArray &data)
 {
-    //QMutexLocker lock(&mutex);
+
     qDebug() << "onInvite";
     /**
      I xxxxYYYY SIP-C/4.0                     *
@@ -2101,7 +2101,7 @@ void Account::onStartChat (const QByteArray &data)
 
 void Account::onMessageReplied (const QByteArray &data)
 {
-    //QMutexLocker lock(&mutex);
+
     int b, e;
     b = data.indexOf ("I: ");
     e = data.indexOf ("\r\n", b);
@@ -2166,7 +2166,7 @@ void Account::onInfo (const QByteArray &data)
 // FIXME don't know how to fix it
 void Account::onInfoTransferV4 (const QByteArray &data)
 {
-    //QMutexLocker lock(&mutex);
+
     /**
      * IN other SIP-C/4.0
      * I: callId
@@ -2266,7 +2266,6 @@ void Account::parsePGGroupMembers (const QByteArray &data)
         qDebug() << QString::fromUtf8 (data);;
         return;
     }
-    domDoc.normalize();
     QDomElement domRoot = domDoc.documentElement();
     //TODO dunno the structure!
     // from openfetion, there are some nodes with properties like:

@@ -53,7 +53,6 @@ public:
 signals:
     void receiveData (const QByteArray &);
 public slots:
-    void onDataReceived (const QByteArray &);
     void removeConversation (const QByteArray &sipuri);
     void closeAll();
 private:

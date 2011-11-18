@@ -83,10 +83,13 @@ void ConversationManager::addConversation (const QByteArray &sipuri)
     }
     Conversation *conversation = new Conversation (sipuri);
     conversations.insert (sipuri, conversation);
+    // redirect signal
     connect (conversation, SIGNAL (dataReceived (const QByteArray &)),
-             this, SLOT (onDataReceived (const QByteArray &)));
+             this, SIGNAL (receiveData (const QByteArray &)),
+             Qt::QueuedConnection);
     connect (conversation, SIGNAL (toClose (const QByteArray &)),
-             this, SLOT (removeConversation (const QByteArray &)));
+             this, SLOT (removeConversation (const QByteArray &)),
+             Qt::QueuedConnection);
 }
 void ConversationManager::setHost (const QByteArray &sipuri,
                                    const QByteArray &ip,
@@ -152,11 +155,6 @@ bool ConversationManager::isOnConversation (const QByteArray &sipuri) const
         return true;
     }
     return false;
-}
-
-void ConversationManager::onDataReceived (const QByteArray &data)
-{
-    emit receiveData (data);
 }
 
 void ConversationManager::closeAll()
