@@ -37,12 +37,13 @@ OpenSSL library used as well as that of the covered work.
 #include <QApplication>
 #include <QStyleOptionGraphicsItem>
 #include <QGraphicsSceneMouseEvent>
+#include <QGraphicsScene>
 #include <QTextDocument>
 #include <QTextCursor>
 namespace Bressein
 {
 ContactItem::ContactItem (QGraphicsItem *parent, QGraphicsScene *scene)
-    : QGraphicsTextItem (parent, scene), contactInfo (0), chatView (new ChatView)
+    : QGraphicsTextItem (parent, scene), contactInfo (0), chatView (new ChatView(0))
 {
     setTextInteractionFlags (Qt::TextBrowserInteraction);
     setCacheMode (QGraphicsItem::DeviceCoordinateCache);

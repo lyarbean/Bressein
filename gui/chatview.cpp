@@ -50,7 +50,7 @@ namespace Bressein
 {
 ChatView::ChatView (QWidget *parent) :
     QGraphicsView (parent),
-    gscene (new QGraphicsScene (this)),
+    gscene (new QGraphicsScene (0)),
     showArea (new TextItem),
     inputArea (new TextItem),
     self (false) // FIXME what is the first message from
@@ -63,14 +63,17 @@ ChatView::ChatView (QWidget *parent) :
     setDragMode (QGraphicsView::NoDrag);
     setFocusPolicy (Qt::StrongFocus);
     setMinimumSize (300, 300);
-    setGeometry (qApp->activeWindow()->pos().x() - 150,
-                 qApp->activeWindow()->pos().y() + 150,
-                 width(), height());
+//     if (qApp->activeWindow())
+//     {
+//         setGeometry (qApp->activeWindow()->pos().x() - 150,
+//                      qApp->activeWindow()->pos().y() + 150,
+//                      width(), height());
+//     }
     setWindowTitle (tr ("Bressein"));
     gscene->addItem (inputArea);
     gscene->addItem (showArea);
     gscene->setActivePanel (inputArea);
-    showArea->setPos (0, 0);
+
     inputArea->setEditable();
     inputArea->setFocus();
     inputArea->setToolTip
@@ -162,6 +165,7 @@ void ChatView::resizeEvent (QResizeEvent *event)
 {
     QGraphicsView::resizeEvent (event);
     int w = event->size().width();
+    showArea->setPos (0, 0);
     showArea->setTextWidth (w);
     inputArea->setTextWidth (w);
     adjustSize();

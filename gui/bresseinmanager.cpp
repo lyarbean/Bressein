@@ -144,7 +144,9 @@ void BresseinManager::onContactChanged (const QByteArray &contact)
         ContactInfo *contactInfo = new ContactInfo;
         contacts.insert (contact, contactInfo);
     }
+    mutex.lock();
     account->getContactInfo (contact, *contacts.value (contact));
+    mutex.unlock();
     contactsScene->updateContact (contact, contacts.value (contact));
     if (not portraitMap.contains (contact))
     {
@@ -192,7 +194,6 @@ void BresseinManager::dbusNotify (const QString &summary,
 void BresseinManager::onGroupChanged (const QByteArray &id,
                                       const QByteArray &name)
 {
-    QMutexLocker lock (&mutex);
     contactsScene->addGroup (id, name);
 }
 

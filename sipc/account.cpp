@@ -454,13 +454,13 @@ void Account::systemConfig()
     QByteArray body = configData (info->loginNumber);
     qDebug() << body;
     QTcpSocket socket (this);
-    QHostInfo info = QHostInfo::fromName ("nav.fetion.com.cn");
-    if (info.addresses().isEmpty())
+    QHostInfo host = QHostInfo::fromName ("nav.fetion.com.cn");
+    if (host.addresses().isEmpty())
     {
         //FIXME
         return;
     }
-    socket.connectToHost (info.addresses().first().toString(), 80);
+        socket.connectToHost (host.addresses().first().toString(), 80);
     if (not socket.waitForConnected (-1))
     {
         qDebug() << "waitForEncrypted" << socket.errorString();
@@ -553,9 +553,10 @@ void Account::sipcRegister()
 
     qDebug() << "sipcRegister";
 
-    int seperator = info->systemconfig.proxyIpPort.indexOf (':');
-    QByteArray ip = info->systemconfig.proxyIpPort.left (seperator);
-    quint16 port = info->systemconfig.proxyIpPort.mid (seperator + 1).toUInt();
+    int separator = info->systemconfig.proxyIpPort.indexOf (':');
+    QByteArray ip = info->systemconfig.proxyIpPort.left (separator);
+    quint16 port = info->systemconfig.proxyIpPort.mid (separator + 1).toUInt();
+    qDebug() << ip << port;
     serverTransporter->connectToHost (ip, port);
     QByteArray toSendMsg ("R fetion.com.cn SIP-C/4.0\r\n");
     toSendMsg.append ("F: ").append (info->fetionNumber).append ("\r\n");
@@ -1099,7 +1100,7 @@ void Account::ssiPic()
     int length = 0;
     int pos = 0;
     int pos_ = 0;
-    int seperator;
+    int separator;
     QByteArray delimit = "Content-Length: ";
 
     while (not responseData.contains (delimit) or
@@ -1107,7 +1108,7 @@ void Account::ssiPic()
     {
         responseData.append (socket.readLine());
     }
-    seperator = responseData.indexOf ("\r\n\r\n");
+    separator = responseData.indexOf ("\r\n\r\n");
     pos = responseData.indexOf (delimit);
     pos_ = responseData.indexOf ("\r\n", pos);
     length = responseData
@@ -1115,7 +1116,7 @@ void Account::ssiPic()
              .toUInt (&ok);
     int received = responseData.size();
     qDebug() << length;
-    while (received < length + seperator + 4)
+    while (received < length + separator + 4)
     {
         while (socket.bytesAvailable() < (int) sizeof (quint16))
         {
@@ -1128,7 +1129,7 @@ void Account::ssiPic()
                 }
             }
         }
-        responseData.append (socket.read (length + seperator + 4 - received));
+        responseData.append (socket.read (length + separator + 4 - received));
         received = responseData.size();
     }
     qDebug() << responseData;
@@ -2051,9 +2052,9 @@ void Account::onInvite (const QByteArray &data)
     b = data.indexOf ("credential=\"");
     e = data.indexOf ("\"", b + 12);
     QByteArray credential = data.mid (b + 12, e - b - 12);
-    int seperator = address.indexOf (':');
-    QByteArray ip = address.left (seperator);
-    quint16 port = address.mid (seperator + 1).toUInt();
+    int separator = address.indexOf (':');
+    QByteArray ip = address.left (separator);
+    quint16 port = address.mid (separator + 1).toUInt();
     conversationManager->addConversation (fromSipuri);
     // do reply via sipcSocket
     QByteArray reply = "SIP-C/4.0 200 OK\r\nF: ";
@@ -2087,9 +2088,9 @@ void Account::onStartChat (const QByteArray &data)
     b = data.indexOf ("credential=\"");
     e = data.indexOf ("\"", b + 12);
     QByteArray credential = data.mid (b + 12, e - b - 12);
-    int seperator = address.indexOf (':');
-    QByteArray ip = address.left (seperator);
-    quint16 port = address.mid (seperator + 1).toUInt();
+    int separator = address.indexOf (':');
+    QByteArray ip = address.left (separator);
+    quint16 port = address.mid (separator + 1).toUInt();
     QByteArray toSendMsg;
     toSendMsg = registerData (info->fetionNumber, info->callId, credential);
     conversationManager->addConversation (sipuri);
