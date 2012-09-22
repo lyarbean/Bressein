@@ -149,7 +149,7 @@ void Account::setAccount (QByteArray number, QByteArray password)
         info->fetionNumber = number;
     }
     info->password = password;
-    publicInfo->state = StateType::ONLINE;// online
+    publicInfo->state = StateType::OFFLINE;// online
     publicInfo->groupId = "-1";
     info->cnonce = cnonce();
     info->callId = 1;
@@ -697,7 +697,8 @@ void Account::parseSsiResponse (QByteArray &data)
                 // info->state = domE.attribute ("user-status").toUtf8();
                 publicInfo->userId = domChild.attribute ("user-id").toUtf8();
                 contacts.insert (info->sipuri, publicInfo);
-                emit contactChanged (info->sipuri);
+                // It seems a bug here?
+//                 emit contactChanged (info->sipuri);
             }
             else
             {
@@ -752,9 +753,8 @@ void Account::parseSipcRegister (QByteArray &data)
         RSAPublicEncrypt (publicInfo->userId, info->password,
                           info->nonce, info->aeskey, info->key,
                           info->response, ok);
-        qDebug() << "RSAPublicEncrypt";
     }
-    emit sipcRegisterParsed();
+    QTimer::singleShot(0, this, SLOT(sipcAuthorize()));
 }
 
 
@@ -2429,4 +2429,3 @@ void Account::onServiceResults (const QByteArray &data)
 } // end Bressein
 
 #include "account.moc"
-

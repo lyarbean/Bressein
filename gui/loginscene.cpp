@@ -43,11 +43,9 @@ LoginScene::LoginScene (QObject *parent) : QGraphicsScene (parent),
     connect (loginWidget,
              SIGNAL (commit (const QByteArray &,const QByteArray &)),
              this,
-             SLOT (onLoginCommit (const QByteArray &,const QByteArray &)));
+             SIGNAL (loginCommit (const QByteArray &,const QByteArray &)));
     connect (loginWidget, SIGNAL (verify (const QByteArray &)),
-             this, SLOT (onVerifyCommit (const QByteArray &)));
-//     addPixmap (QPixmap (":/images/envelop_64.png"))
-//     ->setPos (0,loginWidget->height());
+             this, SIGNAL (verifyCommit (const QByteArray &)));
     setSceneRect (itemsBoundingRect());
     setItemIndexMethod (QGraphicsScene::NoIndex);
 }
@@ -66,16 +64,6 @@ void LoginScene::onRequseVerify (const QByteArray &datum)
 {
     loginWidget->requestVerify (datum);
     setSceneRect (itemsBoundingRect());
-}
-
-void LoginScene::onLoginCommit (const QByteArray &n, const QByteArray &p)
-{
-    emit loginCommit (n,p);
-}
-
-void LoginScene::onVerifyCommit (const QByteArray &c)
-{
-    emit verifyCommit (c);
 }
 
 }

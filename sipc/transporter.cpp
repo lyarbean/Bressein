@@ -142,12 +142,13 @@ void Transporter::writeData (const QByteArray &data)
         length += socket->write (data.right (data.size() - length));
     }
     socket->waitForBytesWritten ();
-    socket->flush();
+//     socket->flush();
     qDebug() << this->metaObject()->className() << "::data written";
 }
 
 void Transporter::readData()
 {
+    qDebug() << "prepare to readData";
     while (socket->bytesAvailable() < (int) sizeof (quint16))
     {
         if (not socket->waitForReadyRead (1000))
@@ -220,21 +221,19 @@ void Transporter::queueMessages (const QByteArray &data)
 
 void Transporter::dequeueMessages()
 {
-    mutex.lock();
+//     mutex.lock();
     QByteArray data;
     bool empty = toSendMessages.isEmpty();
     if (not empty)
     {
         data = toSendMessages.takeFirst();
     }
-    mutex.unlock();
     while (not empty)
     {
         if (not data.isEmpty())
         {
             writeData (data);
         }
-        mutex.lock();
         if (not toSendMessages.isEmpty())
         {
             data = toSendMessages.takeFirst();
@@ -243,8 +242,8 @@ void Transporter::dequeueMessages()
         {
             empty = true;
         }
-        mutex.unlock();
     }
+//     mutex.unlock();
 }
 
 }

@@ -52,7 +52,6 @@ ContactsScene::~ContactsScene()
 
 void ContactsScene::addGroup (const QByteArray &id, const QByteArray &name)
 {
-    qDebug() << "To add group" << "id" << QString::fromUtf8 (name);
     GroupItem *groupItem = 0;
     foreach (QGraphicsItem *gitem, items())
     {
@@ -68,8 +67,6 @@ void ContactsScene::addGroup (const QByteArray &id, const QByteArray &name)
     groupItem->setData (1, id);
     groupItem->setZValue (0);
     groupItem->setVisible (true);
-//     resizeScene();
-    qDebug() << "group" << "id" << id << QString::fromUtf8 (name) << "Added";
 }
 
 void ContactsScene::updateContact (const QByteArray &contact,
@@ -118,8 +115,7 @@ void ContactsScene::updateContact (const QByteArray &contact,
             item->setZValue (1);
             item->setVisible (true);
             connect (item, SIGNAL (sendMessage (QByteArray, QByteArray)),
-                     this, SLOT (onSendMessage (QByteArray, QByteArray)));
-            qDebug() << "New contactItem added!";
+                     this, SIGNAL (sendMessage (QByteArray, QByteArray)));
             return;
         }
         groupItem = 0;
@@ -158,7 +154,6 @@ void ContactsScene::updateContactPortrait (const QByteArray &contact,
 
 void ContactsScene::resizeScene()
 {
-    qDebug() << "resizeScene called";
     if (items().isEmpty())
     {
         return;
@@ -264,13 +259,6 @@ void ContactsScene::onIncomeMessage (const QByteArray &contact,
         }
     }
 }
-
-void ContactsScene::onSendMessage (const QByteArray &sipuri,
-                                   const QByteArray &message)
-{
-    emit sendMessage (sipuri, message);
-}
-
 
 void ContactsScene::contextMenuEvent (QGraphicsSceneContextMenuEvent *event)
 {

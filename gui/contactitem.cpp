@@ -43,12 +43,10 @@ OpenSSL library used as well as that of the covered work.
 namespace Bressein
 {
 ContactItem::ContactItem (QGraphicsItem *parent, QGraphicsScene *scene)
-    : QGraphicsTextItem (parent, scene), contactInfo (0), chatView (new ChatView(0))
+    : QGraphicsTextItem (parent, scene), contactInfo (0)
 {
     setTextInteractionFlags (Qt::TextBrowserInteraction);
     setCacheMode (QGraphicsItem::DeviceCoordinateCache);
-    connect (chatView, SIGNAL (sendMessage (QByteArray)),
-             this, SLOT (onSendMessage (QByteArray)));
 }
 
 ContactItem::~ContactItem()
@@ -100,15 +98,27 @@ QRectF ContactItem::boundingRect() const
     return  QRectF (0, 0, textWidth(), 56);
 }
 
-void ContactItem::setHostSipuri (const QByteArray &sipuri)
+void ContactItem::setHostSipuri (const QByteArray &hostSipuri)
 {
-    this->hostSipuri = sipuri;
-    chatView->setPortraits (sipuri, hostSipuri);
+    this->hostSipuri = hostSipuri;
+    if (chatViewHash.contains(hostSipuri))
+    {
+        chatViewHash.value(sipuri)->setPortraits (sipuri, hostSipuri);
+    }
 }
 
 void ContactItem::setSipuri (const QByteArray &sipuri)
 {
     this->sipuri = sipuri;
+    ChatView *chatView;
+    if (not chatViewHash.contains(sipuri))
+    {
+        chatView = new ChatView;
+        chatViewHash.insert(sipuri,chatView);
+        connect (chatView, SIGNAL (sendMessage (QByteArray)),
+                 this, SIGNAL (sendMessage (QByteArray)));
+    }
+    chatView = chatViewHash.value(sipuri);
     chatView->setPortraits (sipuri, hostSipuri);
 }
 
@@ -230,20 +240,25 @@ void ContactItem::updateView()
 
 void ContactItem::updateContact (ContactInfo *contactInfo)
 {
+
     if (contactInfo)
     {
         this->contactInfo = contactInfo;
-        if (not contactInfo->localName.isEmpty())
+        if (chatViewHash.contains(hostSipuri))
         {
-            chatView->setNames (contactInfo->localName, hostName);
-        }
-        else if (not contactInfo->nickName.isEmpty())
-        {
-            chatView->setNames (contactInfo->nickName, hostName);
-        }
-        else
-        {
-            chatView->setNames (contactInfo->mobileno, hostName);
+            ChatView *chatView = chatViewHash.value(sipuri);
+            if (not contactInfo->localName.isEmpty())
+            {
+                chatView->setNames (contactInfo->localName, hostName);
+            }
+            else if (not contactInfo->nickName.isEmpty())
+            {
+                chatView->setNames (contactInfo->nickName, hostName);
+            }
+            else
+            {
+                chatView->setNames (contactInfo->mobileno, hostName);
+            }
         }
         updateView();
     }
@@ -251,14 +266,18 @@ void ContactItem::updateContact (ContactInfo *contactInfo)
 
 void ContactItem::activateChatView (bool ok)
 {
-    if (not ok)
+    if (chatViewHash.contains(hostSipuri))
     {
-        chatView->hide();
-    }
-    else
-    {
-        chatView->showNormal();
-        chatView->raise();
+        ChatView *chatView = chatViewHash.value(sipuri);
+        if (not ok)
+        {
+            chatView->hide();
+        }
+        else
+        {
+            chatView->showNormal();
+            chatView->raise();
+        }
     }
 }
 
@@ -266,12 +285,12 @@ void ContactItem::onIncomeMessage (const QByteArray &datetime,
                                    const QByteArray &message)
 {
     activateChatView (true);
-    chatView->incomeMessage (datetime, message);
-}
-
-void ContactItem::onSendMessage (const QByteArray &message)
-{
-    emit sendMessage (sipuri, message);
+    // FIXME if not set yet
+    if (chatViewHash.contains(sipuri))
+    {
+        ChatView *chatView = chatViewHash.value(sipuri);
+        chatView->incomeMessage (datetime, message);
+    }
 }
 
 void ContactItem::mouseDoubleClickEvent (QGraphicsSceneMouseEvent *event)

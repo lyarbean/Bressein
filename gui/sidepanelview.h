@@ -56,15 +56,10 @@ signals:
     void toLogin (const QByteArray &,
                   const QByteArray &);
     void toVerify (const QByteArray &);
-    void sendMessage (const QByteArray &sipuri,
-                      const QByteArray &message);
 public slots:
     void activateLogin (bool ok);
     void requestVerify (const QByteArray &);
 private slots:
-    void onVerifycommit (const QByteArray &);
-    void onLoginCommit (const QByteArray &,
-                        const QByteArray &);
     void setRenderingSystem();
     void setupSceneItems();
 protected:

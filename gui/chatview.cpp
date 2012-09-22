@@ -58,7 +58,7 @@ ChatView::ChatView (QWidget *parent) :
     setBackgroundBrush (Qt::NoBrush);
     setAlignment (Qt::AlignLeft | Qt::AlignTop);
     setRenderHints (QPainter::RenderHints (0xF));
-    setCacheMode (QGraphicsView::CacheBackground);
+    setCacheMode (QGraphicsView::CacheNone);
     setViewportUpdateMode (QGraphicsView::FullViewportUpdate);
     setDragMode (QGraphicsView::NoDrag);
     setFocusPolicy (Qt::StrongFocus);
@@ -73,7 +73,6 @@ ChatView::ChatView (QWidget *parent) :
     gscene->addItem (inputArea);
     gscene->addItem (showArea);
     gscene->setActivePanel (inputArea);
-
     inputArea->setEditable();
     inputArea->setFocus();
     inputArea->setToolTip
@@ -82,6 +81,7 @@ ChatView::ChatView (QWidget *parent) :
     viewport()->setAutoFillBackground (0);
     connect (inputArea->document(), SIGNAL (contentsChanged()),
              this, SLOT (adjustSize()));
+    setWindowFlags(Qt::SubWindow);
 }
 
 ChatView::~ChatView()

@@ -44,6 +44,7 @@ SidepanelView::SidepanelView (QWidget *parent)
 {
     setWindowTitle ("Bressein");
     setRenderingSystem();
+    setForegroundBrush (Qt::white);
     QLinearGradient linearGrad (QPointF (-100, 0), QPointF (700, 0));
     linearGrad.setColorAt (0, Qt::black);
     linearGrad.setColorAt (1, Qt::red);
@@ -53,11 +54,11 @@ SidepanelView::SidepanelView (QWidget *parent)
     connect (loginScene,
              SIGNAL (loginCommit (const QByteArray &, const QByteArray &)),
              this,
-             SLOT (onLoginCommit (const QByteArray &, const QByteArray &)));
+             SIGNAL (toLogin (const QByteArray &, const QByteArray &)));
     connect (loginScene,
              SIGNAL (verifyCommit (const QByteArray &)),
              this,
-             SLOT (onVerifycommit (QByteArray)));
+             SIGNAL (toVerify (QByteArray)));
     setMinimumSize (loginScene->itemsBoundingRect().size().toSize());
 
 }
@@ -67,30 +68,19 @@ SidepanelView::~SidepanelView()
     loginScene->deleteLater();
 }
 
-void SidepanelView::onLoginCommit (const QByteArray &n, const QByteArray &p)
-{
-    emit toLogin (n, p);
-}
-
-void SidepanelView::onVerifycommit (const QByteArray &c)
-{
-    emit toVerify (c);
-}
-
 //TODO onContactRemoved
 void SidepanelView::setRenderingSystem()
 {
     setAlignment (Qt::AlignLeft | Qt::AlignTop);
-    setWindowFlags (Qt::Window);
+//     setWindowFlags (Qt::Window);
     setMaximumWidth (600);
     setContentsMargins (0,0,0,0);
-    setBackgroundRole (QPalette::BrightText);
-    setForegroundRole (QPalette::NoRole);
+//     setBackgroundRole (QPalette::BrightText);
+//     setForegroundRole (QPalette::NoRole);
     setRenderHints (QPainter::RenderHints (0xF));
     setCacheMode (QGraphicsView::CacheBackground);
     setViewportUpdateMode (QGraphicsView::FullViewportUpdate);
     setDragMode (QGraphicsView::ScrollHandDrag);
-
 }
 
 

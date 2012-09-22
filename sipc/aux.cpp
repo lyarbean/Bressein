@@ -130,11 +130,11 @@ void RSAPublicEncrypt (const QByteArray &userId,
     // split ret into hex bytearray
     Q_ASSERT (ret == 128);
     char *res = (char *) malloc (ret * 2 + 1);
-    memset (res , 0 , ret * 2 + 1);
+    memset (res, 0, ret * 2 + 1);
     int i = 0;
     while (i < ret)
     {
-        sprintf (res + i * 2 , "%02x" , out[i]);
+        sprintf (res + i * 2, "%02x", out[i]);
         i++;
     };
     result = QByteArray (res);
@@ -168,10 +168,11 @@ const QByteArray configData (QByteArray number)
     {
         numberString.append ("sid=\"");
     }
-    numberString.append (number);
+//     numberString.append (number);
+    numberString.append("13910000000");
     QByteArray part = "<config><user ";
     part.append (numberString);
-    part.append ("\"/><client type=\"Bressein\" version=\"");
+    part.append ("\"/><client type=\"PC\" version=\"");
     part.append (PROTOCOL_VERSION);
     part.append ("\" platform=\"W5.1\" /><servers version=\"0\" />"
                  "<parameters version=\"0\" /><client-config version=\"0\" />"
@@ -179,8 +180,8 @@ const QByteArray configData (QByteArray number)
     QByteArray data ("POST /nav/getsystemconfig.aspx HTTP/1.1\r\n"
                      "User-Agent: IIC2.0/PC ");
     data.append (PROTOCOL_VERSION);
-    data.append ("\r\nHost: ");
-    data.append (NAVIGATION);
+//     data.append ("\r\nHost: ");
+//     data.append (NAVIGATION);
     data.append ("\r\nConnection: Keep-Alive\r\n"
                  "Cache-Control: no-cache\r\n"
                  "Content-length: ");
@@ -272,8 +273,7 @@ const QByteArray downloadPortraitData (const QByteArray &portraitName,
     data.append (percentEncodingLowercase (ssic));
     data.append (" HTTP/1.1\r\nUser-Agent: IIC2.0/PC ");
     data.append (PROTOCOL_VERSION);
-    data.append ("\r\nAccept: image/pjpeg;image/jpeg;image/bmp;"
-                 "image/x-windows-bmp;image/png;image/gif\r\n"
+    data.append ("\r\nAccept: */*\r\n"
                  "Host: ");
     data.append (portraitName);
     data.append ("\r\nConnection: Keep-Alive\r\n\r\n");
@@ -287,8 +287,7 @@ const QByteArray downloadPortraitAgainData (const QByteArray &path,
     data.append (path);
     data.append (" HTTP/1.1\r\nUser-Agent: IIC2.0/PC ");
     data.append (PROTOCOL_VERSION);
-    data.append ("\r\nAccept: image/pjpeg;image/jpeg;image/bmp;"
-                 "image/x-windows-bmp;image/png;image/gif\r\n"
+    data.append ("\r\nAccept:*/*\r\n"
                  "Cache-Control: private\r\n"
                  "Host: ");
     data.append (host);
@@ -966,7 +965,7 @@ const QByteArray setUserInfoV4Data (const QByteArray &fetionNumber,
     body.append ("\" gender=\"");
     body.append (gender);
     body.append ("\" version=\"0\"/>");
-    body.append ("<custom-config type=\"Bressein\" version=\"");
+    body.append ("<custom-config type=\"PC\" version=\"");
     body.append (customConfigVer);
     body.append ("\"/></userinfo></args>");
     QByteArray data ("S fetion.com.cn SIP-C/4.0\r\n");

@@ -55,8 +55,6 @@ public slots:
     void onIncomeMessage (const QByteArray &,
                           const QByteArray &,
                           const QByteArray &);
-private slots:
-    void onSendMessage (const QByteArray &, const QByteArray &);
 protected:
     void contextMenuEvent (QGraphicsSceneContextMenuEvent *event);
 };

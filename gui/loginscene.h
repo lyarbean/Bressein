@@ -49,10 +49,6 @@ signals:
     void loginCommit (const QByteArray &,
                       const QByteArray &);
     void verifyCommit (const QByteArray &);
-private slots:
-    void onLoginCommit (const QByteArray &,
-                        const QByteArray &);
-    void onVerifyCommit (const QByteArray &);
 private:
     LoginWidget *loginWidget;
 };

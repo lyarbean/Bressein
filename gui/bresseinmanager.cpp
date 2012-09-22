@@ -78,9 +78,9 @@ namespace Bressein
 BresseinManager::BresseinManager (QObject *parent)
     : QObject (parent),
       account (new Account),
-      sidePanel (new SidepanelView),
-      contactsScene (new ContactsScene (this)),
-      tray (new QSystemTrayIcon (this)),
+      sidePanel (new SidepanelView(0)),
+      contactsScene (new ContactsScene(0)),
+      tray (new QSystemTrayIcon /*(this)*/),
       trayIconMenu (new QMenu (0))
 {
     connectSignalSlots();
@@ -316,21 +316,27 @@ void BresseinManager::initializeTray()
     // trayIconMenu.addAction ...
     QAction *action;
     action = new QAction (tr ("Online"), tray);
+    Q_ASSERT(action);
     connect (action, SIGNAL (triggered ()), account, SLOT (setOnline()));
     trayIconMenu->addAction (action);
     action = new QAction (tr ("Offline"), tray);
+    Q_ASSERT(action);
     connect (action, SIGNAL (triggered ()), account, SLOT (setOffline()));
     trayIconMenu->addAction (action);
     action = new QAction (tr ("Busy"), tray);
+    Q_ASSERT(action);
     connect (action, SIGNAL (triggered ()), account, SLOT (setBusy()));
     trayIconMenu->addAction (action);
     action = new QAction (tr ("Hidden"), tray);
+    Q_ASSERT(action);
     connect (action, SIGNAL (triggered ()), account, SLOT (setHidden()));
     trayIconMenu->addAction (action);
     action = new QAction (tr ("Metting"), tray);
+    Q_ASSERT(action);
     connect (action, SIGNAL (triggered ()), account, SLOT (setMeeting()));
     trayIconMenu->addAction (action);
     action = new QAction (tr ("quit"), tray);
+    Q_ASSERT(action);
     connect (action, SIGNAL (triggered (bool)), this, SLOT (bye()));
     trayIconMenu->addAction (action);
     tray->setContextMenu (trayIconMenu);

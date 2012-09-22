@@ -70,7 +70,6 @@ signals:
     //private:
     void incomeMessage (const QByteArray &, const QByteArray &);
 public slots:
-    void onSendMessage (const QByteArray &);
     void onIncomeMessage (const QByteArray &, const QByteArray &);
 protected:
     void paint (QPainter *painter,
@@ -88,7 +87,8 @@ private:
     QByteArray sipuri;
     QString imagePath;
     ContactInfo *contactInfo;
-    ChatView *chatView;
+    QHash<QByteArray,ChatView*> chatViewHash; // sipuri
+//     ChatView *chatView;
 };
 }
 #endif // CONTACTITEM_H

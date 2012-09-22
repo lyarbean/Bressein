@@ -41,7 +41,7 @@ namespace Bressein
 /**
  * @brief The current Fetion's version
  **/
-const static QByteArray PROTOCOL_VERSION = "4.5.0900";
+const static QByteArray PROTOCOL_VERSION = "4.6.2600";
 const static QByteArray NAVIGATION = "nav.fetion.com.cn";
 const static QByteArray DOMAIN_URI = "fetion.com.cn";
 const static QByteArray UID_URI = "uid.fetion.com.cn";
